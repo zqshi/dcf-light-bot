@@ -2,7 +2,15 @@
 (function () {
   const state = {
     token: localStorage.getItem('dcf_admin_token') || '',
-    me: null
+    me: null,
+    auditQuery: {
+      type: '',
+      actor: '',
+      cursor: '0',
+      nextCursor: null,
+      hasMore: false,
+      history: []
+    }
   };
 
   const el = {
@@ -24,11 +32,15 @@
     sharedAssets: document.getElementById('shared-assets'),
     pendingAssets: document.getElementById('pending-assets'),
     auditList: document.getElementById('audit-list'),
+    auditPageInfo: document.getElementById('audit-page-info'),
     releaseJson: document.getElementById('release-json'),
     releaseFailures: document.getElementById('release-failures'),
     refreshInstances: document.getElementById('btn-refresh-instances'),
     refreshAssets: document.getElementById('btn-refresh-assets'),
     refreshAudits: document.getElementById('btn-refresh-audits'),
+    auditPrev: document.getElementById('btn-audit-prev'),
+    auditNext: document.getElementById('btn-audit-next'),
+    auditExport: document.getElementById('btn-audit-export'),
     refreshRelease: document.getElementById('btn-refresh-release'),
     assertRelease: document.getElementById('btn-assert-release'),
     instanceCreateForm: document.getElementById('instance-create-form'),
@@ -93,7 +105,11 @@
     el.instancesTable.innerHTML = '';
     (rows || []).forEach(function (item) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${item.id || '-'}</td><td>${item.tenantId || '-'}</td><td>${item.state || '-'}</td><td>${item.runtimeVersion || '-'}</td><td>${item.updatedAt || '-'}</td>`;
+      tr.innerHTML = `<td>${item.id || '-'}</td><td>${item.tenantId || '-'}</td><td>${item.state || '-'}</td><td>${item.runtimeVersion || '-'}</td><td>${item.updatedAt || '-'}</td>
+      <td>
+        <button type="button" class="ghost row-action" data-instance-action="start" data-instance-id="${item.id || ''}">启动</button>
+        <button type="button" class="ghost row-action" data-instance-action="stop" data-instance-id="${item.id || ''}">停止</button>
+      </td>`;
       el.instancesTable.appendChild(tr);
     });
   }
@@ -146,12 +162,51 @@
   }
 
   async function refreshAudits(params) {
-    const query = new URLSearchParams({ limit: '50' });
-    if (params && params.type) query.set('type', params.type);
-    if (params && params.actor) query.set('actor', params.actor);
+    const merged = Object.assign({}, state.auditQuery, params || {});
+    const query = new URLSearchParams({ limit: '50', cursor: String(merged.cursor || '0') });
+    if (merged.type) query.set('type', merged.type);
+    if (merged.actor) query.set('actor', merged.actor);
     const auditRes = await api(`/api/control/audits?${query.toString()}`);
-    renderAudits(auditRes.data || []);
-    return auditRes.data || [];
+    const rows = auditRes.data || [];
+    renderAudits(rows);
+    state.auditQuery = {
+      type: String(merged.type || ''),
+      actor: String(merged.actor || ''),
+      cursor: String(auditRes.cursor || merged.cursor || '0'),
+      nextCursor: auditRes.nextCursor || null,
+      hasMore: Boolean(auditRes.hasMore),
+      history: Array.isArray(merged.history) ? merged.history : state.auditQuery.history
+    };
+    el.auditPageInfo.textContent = `cursor=${state.auditQuery.cursor} next=${state.auditQuery.nextCursor || '-'} hasMore=${state.auditQuery.hasMore}`;
+    return rows;
+  }
+
+  async function exportAuditsNdjson() {
+    const query = new URLSearchParams({ format: 'ndjson', limit: '5000', cursor: String(state.auditQuery.cursor || '0') });
+    if (state.auditQuery.type) query.set('type', state.auditQuery.type);
+    if (state.auditQuery.actor) query.set('actor', state.auditQuery.actor);
+    const headers = {};
+    if (state.token) headers.Authorization = `Bearer ${state.token}`;
+    const response = await fetch(`/api/control/audits/export?${query.toString()}`, { method: 'GET', headers: headers });
+    if (!response.ok) {
+      throw new Error(`导出失败: ${response.status}`);
+    }
+    const text = await response.text();
+    const blob = new Blob([text], { type: 'application/x-ndjson;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = url;
+    a.download = `dcf-audits-${ts}.ndjson`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function runInstanceAction(id, action) {
+    if (!id) throw new Error('请输入实例ID');
+    await api(`/api/control/instances/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: '{}' });
   }
 
   async function refreshRelease() {
@@ -307,8 +362,7 @@
     el.instanceStart.addEventListener('click', async function () {
       try {
         const id = el.instanceActionId.value.trim();
-        if (!id) throw new Error('请输入实例ID');
-        await api(`/api/control/instances/${encodeURIComponent(id)}/start`, { method: 'POST', body: '{}' });
+        await runInstanceAction(id, 'start');
         await refreshInstances();
         showToast('实例已启动', 'success');
       } catch (error) {
@@ -319,8 +373,7 @@
     el.instanceStop.addEventListener('click', async function () {
       try {
         const id = el.instanceActionId.value.trim();
-        if (!id) throw new Error('请输入实例ID');
-        await api(`/api/control/instances/${encodeURIComponent(id)}/stop`, { method: 'POST', body: '{}' });
+        await runInstanceAction(id, 'stop');
         await refreshInstances();
         showToast('实例已停止', 'success');
       } catch (error) {
@@ -369,11 +422,66 @@
     el.auditFilterForm.addEventListener('submit', async function (evt) {
       evt.preventDefault();
       try {
+        state.auditQuery.history = [];
         await refreshAudits({
+          cursor: '0',
           type: el.auditType.value.trim(),
           actor: el.auditActor.value.trim()
         });
         showToast('审计查询完成', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.auditNext.addEventListener('click', async function () {
+      try {
+        if (!state.auditQuery.hasMore || !state.auditQuery.nextCursor) {
+          showToast('没有下一页', 'error');
+          return;
+        }
+        state.auditQuery.history = state.auditQuery.history.concat([state.auditQuery.cursor]);
+        await refreshAudits({ cursor: state.auditQuery.nextCursor, history: state.auditQuery.history });
+        showToast('已切换到下一页', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.auditPrev.addEventListener('click', async function () {
+      try {
+        const history = state.auditQuery.history.slice();
+        if (!history.length) {
+          showToast('已经是第一页', 'error');
+          return;
+        }
+        const prevCursor = history.pop();
+        await refreshAudits({ cursor: prevCursor, history: history });
+        showToast('已返回上一页', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.auditExport.addEventListener('click', async function () {
+      try {
+        await exportAuditsNdjson();
+        showToast('审计导出已开始', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.instancesTable.addEventListener('click', async function (evt) {
+      const btn = evt.target && evt.target.closest ? evt.target.closest('button[data-instance-action]') : null;
+      if (!btn) return;
+      const action = btn.getAttribute('data-instance-action');
+      const id = btn.getAttribute('data-instance-id');
+      if (!action || !id) return;
+      try {
+        await runInstanceAction(id, action);
+        await refreshInstances();
+        showToast(`实例 ${id} 已${action === 'start' ? '启动' : '停止'}`, 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }

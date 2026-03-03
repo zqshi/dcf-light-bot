@@ -39,6 +39,7 @@
 - [x] Add built-in admin console web UI (`/admin`) and release preflight control-plane APIs.
 - [x] Add admin console operation actions (instance create/start/stop, asset review/bind, audit filter).
 - [x] Add admin console quick review row actions and release preflight assert/failure highlighting.
+- [x] Add instance row-level start/stop and audit cursor pagination + ndjson export in admin console.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

@@ -39,7 +39,9 @@ npm start
   - one-click quick approve/reject on pending asset rows
   - bind shared assets to tenant
   - filter audit logs by `type` / `actor`
+  - audit pagination (prev/next cursor) and NDJSON export
   - run release preflight assert and highlight failed checks
+  - instance row-level start/stop actions
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
