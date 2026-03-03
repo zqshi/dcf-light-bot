@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { ROLE_PERMISSIONS } = require('../../../contexts/identity-access/application/AuthService');
+const { buildPromptStrategyCompatRouter } = require('./adminCompatPromptStrategy');
 
 function parseCookies(headerValue) {
   const out = {};
@@ -63,6 +64,10 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function newId(prefix) {
+  return `${String(prefix || 'id')}_${crypto.randomBytes(8).toString('hex')}`;
+}
+
 function buildAdminCompatRouter(context) {
   const router = express.Router();
   const sessions = new Map();
@@ -81,6 +86,9 @@ function buildAdminCompatRouter(context) {
     overrides: [],
     updatedAt: nowIso()
   };
+  const toolServiceStore = new Map();
+  let toolStoreHydrated = false;
+  const ossCaseState = new Map();
 
   const roleStore = new Map();
   Object.entries(ROLE_PERMISSIONS).forEach(([role, perms]) => {
@@ -167,6 +175,45 @@ function buildAdminCompatRouter(context) {
     const svc = context.assetService || context.skillService;
     if (!svc || typeof svc.listReportsByType !== 'function') return [];
     return svc.listReportsByType(type);
+  }
+
+  async function hydrateToolServices() {
+    if (toolStoreHydrated) return;
+    const rows = await listSharedAssets('tool');
+    rows.forEach((x) => {
+      toolServiceStore.set(String(x.id), {
+        id: String(x.id),
+        name: String(x.name || x.id),
+        transport: String((x.payload && x.payload.transport) || 'http'),
+        endpoint: String((x.payload && x.payload.endpoint) || ''),
+        description: String(x.description || ''),
+        enabled: true,
+        registrationSource: 'shared-center',
+        registrant: 'system',
+        registrationStatus: 'approved',
+        health: null,
+        updatedAt: x.updatedAt || x.createdAt || nowIso(),
+        createdAt: x.createdAt || nowIso()
+      });
+    });
+    toolStoreHydrated = true;
+  }
+
+  function normalizeToolRow(input = {}, seed = {}) {
+    return {
+      id: String(seed.id || input.id || newId('tool')),
+      name: String(input.name || seed.name || '').trim(),
+      transport: String(input.transport || seed.transport || 'http').trim(),
+      endpoint: String(input.endpoint || seed.endpoint || '').trim(),
+      description: String(input.description || seed.description || '').trim(),
+      enabled: input.enabled === undefined ? Boolean(seed.enabled !== false) : Boolean(input.enabled),
+      registrationSource: String(seed.registrationSource || input.registrationSource || 'manual'),
+      registrant: String(seed.registrant || input.registrant || 'admin'),
+      registrationStatus: String(seed.registrationStatus || input.registrationStatus || 'pending'),
+      health: seed.health || null,
+      createdAt: seed.createdAt || nowIso(),
+      updatedAt: nowIso()
+    };
   }
 
   function employeeFromInstance(instance) {
@@ -586,6 +633,8 @@ function buildAdminCompatRouter(context) {
     res.json(skillPolicyState);
   });
 
+  router.use(buildPromptStrategyCompatRouter(context));
+
   router.get('/api/admin/logs', async (_req, res) => {
     const rows = await context.auditService.list(1000);
     res.json(rows);
@@ -634,40 +683,88 @@ function buildAdminCompatRouter(context) {
   });
 
   router.get('/api/admin/tools/mcp-services', async (_req, res) => {
-    const rows = await listSharedAssets('tool');
-    res.json(rows.map((x) => ({
-      serviceId: x.id,
-      name: x.name,
-      description: x.description || '',
-      status: 'active',
-      endpoint: x.payload && x.payload.endpoint ? x.payload.endpoint : '',
-      updatedAt: x.updatedAt || x.createdAt
-    })));
+    await hydrateToolServices();
+    res.json(Array.from(toolServiceStore.values()).map((x) => ({ ...x, serviceId: x.id })));
   });
 
-  router.post('/api/admin/tools/mcp-services', (req, res) => {
-    res.json({ success: true, action: 'created', payload: safeJson(req.body, {}) });
+  router.post('/api/admin/tools/mcp-services', async (req, res) => {
+    await hydrateToolServices();
+    const payload = normalizeToolRow(req.body, { registrationStatus: 'pending', registrant: req.adminSession.user.username });
+    if (!payload.name || !payload.endpoint) {
+      res.status(400).json({ error: 'name and endpoint are required' });
+      return;
+    }
+    toolServiceStore.set(payload.id, payload);
+    await context.auditService.log('admin.tools.mcp.created', { serviceId: payload.id, name: payload.name, registrationStatus: payload.registrationStatus });
+    res.json({ success: true, service: payload });
   });
 
-  router.post('/api/admin/tools/mcp-services/:id', (req, res) => {
-    res.json({ success: true, action: 'updated', serviceId: req.params.id, payload: safeJson(req.body, {}) });
+  router.post('/api/admin/tools/mcp-services/:id', async (req, res) => {
+    await hydrateToolServices();
+    const id = String(req.params.id);
+    const existed = toolServiceStore.get(id);
+    if (!existed) {
+      res.status(404).json({ error: 'service not found' });
+      return;
+    }
+    const next = normalizeToolRow(req.body, existed);
+    next.id = id;
+    next.registrationStatus = existed.registrationStatus || 'approved';
+    toolServiceStore.set(id, next);
+    await context.auditService.log('admin.tools.mcp.updated', { serviceId: id, enabled: next.enabled });
+    res.json({ success: true, service: next });
   });
 
-  router.post('/api/admin/tools/mcp-services/:id/check-health', (req, res) => {
-    res.json({ serviceId: req.params.id, healthy: true, checkedAt: nowIso() });
+  router.post('/api/admin/tools/mcp-services/:id/check-health', async (req, res) => {
+    await hydrateToolServices();
+    const id = String(req.params.id);
+    const row = toolServiceStore.get(id);
+    if (!row) {
+      res.status(404).json({ error: 'service not found' });
+      return;
+    }
+    row.health = { status: 'healthy', latencyMs: 25, checkedAt: nowIso() };
+    row.updatedAt = nowIso();
+    toolServiceStore.set(id, row);
+    await context.auditService.log('admin.tools.mcp.health_checked', { serviceId: id, health: row.health.status });
+    res.json({ serviceId: id, health: row.health });
   });
 
-  router.post('/api/admin/tools/mcp-services/:id/delete', (req, res) => {
-    res.json({ success: true, action: 'deleted', serviceId: req.params.id });
+  router.post('/api/admin/tools/mcp-services/:id/delete', async (req, res) => {
+    await hydrateToolServices();
+    const id = String(req.params.id);
+    toolServiceStore.delete(id);
+    await context.auditService.log('admin.tools.mcp.deleted', { serviceId: id });
+    res.json({ success: true, serviceId: id });
   });
 
   router.get('/api/admin/tools/pending', async (_req, res) => {
-    const reports = await listAssetReportsByType('tool');
-    res.json(reports.filter((x) => String(x.status || '') === 'pending_review'));
+    await hydrateToolServices();
+    const rows = Array.from(toolServiceStore.values())
+      .filter((x) => ['pending', 'rejected', 'rollback'].includes(String(x.registrationStatus || 'pending')))
+      .map((x) => ({ ...x }));
+    res.json(rows);
   });
 
-  router.post('/api/admin/tools/mcp-services/:id/:action', (req, res) => {
-    res.json({ success: true, serviceId: req.params.id, action: req.params.action, payload: safeJson(req.body, {}) });
+  router.post('/api/admin/tools/mcp-services/:id/:action', async (req, res) => {
+    await hydrateToolServices();
+    const id = String(req.params.id);
+    const action = String(req.params.action || '').trim();
+    const row = toolServiceStore.get(id);
+    if (!row) {
+      res.status(404).json({ error: 'service not found' });
+      return;
+    }
+    const map = { approve: 'approved', reject: 'rejected', rollback: 'rollback', resubmit: 'pending' };
+    if (!map[action]) {
+      res.status(400).json({ error: 'unsupported action' });
+      return;
+    }
+    row.registrationStatus = map[action];
+    row.updatedAt = nowIso();
+    toolServiceStore.set(id, row);
+    await context.auditService.log(`admin.tools.mcp.${action}`, { serviceId: id, registrationStatus: row.registrationStatus });
+    res.json({ success: true, serviceId: id, action, registrationStatus: row.registrationStatus });
   });
 
   router.get('/api/admin/oss-findings', async (_req, res) => {
@@ -686,10 +783,10 @@ function buildAdminCompatRouter(context) {
     res.json(reports.map((x) => ({
       id: x.id,
       title: x.name,
-      status: x.status,
+      status: (ossCaseState.get(String(x.id)) || {}).status || x.status,
       sourceTenantId: x.sourceTenantId,
       createdAt: x.createdAt,
-      updatedAt: x.updatedAt
+      updatedAt: (ossCaseState.get(String(x.id)) || {}).updatedAt || x.updatedAt
     })));
   });
 
@@ -700,11 +797,28 @@ function buildAdminCompatRouter(context) {
       res.status(404).json({ error: 'oss case not found' });
       return;
     }
-    res.json(row);
+    const patch = ossCaseState.get(String(row.id)) || {};
+    res.json({
+      ...row,
+      status: patch.status || row.status,
+      updatedAt: patch.updatedAt || row.updatedAt
+    });
   });
 
-  router.post('/api/admin/oss-cases/:id/:action', (req, res) => {
-    res.json({ success: true, caseId: req.params.id, action: req.params.action, payload: safeJson(req.body, {}) });
+  router.post('/api/admin/oss-cases/:id/:action', async (req, res) => {
+    const caseId = String(req.params.id);
+    const action = String(req.params.action || '').trim();
+    const reports = await listAssetReportsByType('knowledge');
+    const row = reports.find((x) => String(x.id) === caseId);
+    if (!row) {
+      res.status(404).json({ error: 'oss case not found' });
+      return;
+    }
+    const statusMap = { approve: 'approved', reject: 'rejected', deploy: 'deployed', verify: 'verified', rollback: 'rollback' };
+    const nextStatus = statusMap[action] || row.status;
+    ossCaseState.set(caseId, { status: nextStatus, updatedAt: nowIso(), action });
+    await context.auditService.log('admin.oss.case.action', { caseId, action, status: nextStatus });
+    res.json({ success: true, caseId, action, status: nextStatus });
   });
 
   router.get('/api/admin/auth/health', (_req, res) => {
