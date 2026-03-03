@@ -35,6 +35,11 @@ npm start
 - `PERSISTENCE_BACKEND=postgres`: use Postgres as control-plane store backend.
 - When using Postgres, set `POSTGRES_URL` and run migration SQL in [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
 
+## Kubernetes Deploy
+- Manifests: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/deploy/k8s/README.md)
+- Apply: `npm run k8s:apply`
+- Delete: `npm run k8s:delete`
+
 ## Auth
 - Login: `POST /api/control/auth/login`
 - Control APIs: `Authorization: Bearer <jwt-or-admin-token>`

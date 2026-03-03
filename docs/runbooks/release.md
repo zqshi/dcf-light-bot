@@ -34,6 +34,7 @@
 1. Update `versions.lock.json` if OpenClaw dependency changed.
 2. Tag and push.
 3. Deploy control plane.
+   - `npm run k8s:apply`
 4. Run smoke checks:
    - `GET /health`
    - `GET /status`
@@ -55,3 +56,5 @@
 1. Redeploy previous tag.
 2. Verify `versions.lock.json` still matches dependency commit.
 3. Replay failed operations from audit log if needed.
+4. If needed, rollback k8s resources:
+   - `npm run k8s:delete`

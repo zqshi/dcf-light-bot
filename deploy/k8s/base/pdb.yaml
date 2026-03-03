@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dcf-light-bot
+  namespace: dcf-system
+  labels:
+    app.kubernetes.io/name: dcf-light-bot
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcf-light-bot

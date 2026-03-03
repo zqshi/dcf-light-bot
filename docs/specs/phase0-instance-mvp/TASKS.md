@@ -31,6 +31,7 @@
 - [x] Add Prometheus alert rule template and executable platform SLO check script.
 - [x] Add Grafana dashboard template and monitoring import guide.
 - [x] Add local observability stack templates (docker-compose + prometheus + grafana + alertmanager).
+- [x] Add Kubernetes deployment templates (deployment/service/ingress/hpa/networkpolicy/pdb).
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

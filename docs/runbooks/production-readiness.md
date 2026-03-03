@@ -14,6 +14,7 @@
 - [ ] Periodic backups configured
 - [ ] Reconciler loop enabled and monitored
 - [ ] Matrix `!create_agent` load tested for idempotent instance creation
+- [ ] Kubernetes manifests reviewed and customized (`deploy/k8s/base`)
 
 ## Observability
 - [ ] Audit endpoint retained with export plan
