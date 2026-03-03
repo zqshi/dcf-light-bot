@@ -79,6 +79,13 @@
             <thead><tr><th>ID</th><th>租户</th><th>状态</th><th>运行版本</th><th>更新时间</th><th>操作</th></tr></thead>
             <tbody id="instances-table"></tbody>
           </table>
+          <section id="instance-detail" class="detail-card hidden">
+            <div class="panel-head">
+              <h4>实例详情</h4>
+              <button id="btn-close-instance-detail" class="ghost" type="button">关闭</button>
+            </div>
+            <pre id="instance-detail-json" class="json"></pre>
+          </section>
         </article>
 
         <article id="tab-assets" class="card tab-panel">
@@ -112,6 +119,9 @@
           <div class="split">
             <div>
               <h4>已共享</h4>
+              <form id="asset-inline-bind-form" class="inline-form">
+                <label>目标租户ID<input id="inline-bind-tenant-id" placeholder="tenant_xxx" /></label>
+              </form>
               <ul id="shared-assets"></ul>
             </div>
             <div>

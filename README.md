@@ -42,6 +42,8 @@ npm start
   - audit pagination (prev/next cursor) and NDJSON export
   - run release preflight assert and highlight failed checks
   - instance row-level start/stop actions
+  - instance detail drawer (runtime/resources/error snapshot)
+  - shared asset row-level quick bind to target tenant
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.

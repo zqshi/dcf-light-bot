@@ -29,8 +29,12 @@
     pendingTotal: document.getElementById('pending-total'),
     preflightOk: document.getElementById('preflight-ok'),
     instancesTable: document.getElementById('instances-table'),
+    instanceDetail: document.getElementById('instance-detail'),
+    instanceDetailJson: document.getElementById('instance-detail-json'),
+    closeInstanceDetail: document.getElementById('btn-close-instance-detail'),
     sharedAssets: document.getElementById('shared-assets'),
     pendingAssets: document.getElementById('pending-assets'),
+    inlineBindTenantId: document.getElementById('inline-bind-tenant-id'),
     auditList: document.getElementById('audit-list'),
     auditPageInfo: document.getElementById('audit-page-info'),
     releaseJson: document.getElementById('release-json'),
@@ -107,6 +111,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${item.id || '-'}</td><td>${item.tenantId || '-'}</td><td>${item.state || '-'}</td><td>${item.runtimeVersion || '-'}</td><td>${item.updatedAt || '-'}</td>
       <td>
+        <button type="button" class="ghost row-action" data-instance-detail="1" data-instance-id="${item.id || ''}">详情</button>
         <button type="button" class="ghost row-action" data-instance-action="start" data-instance-id="${item.id || ''}">启动</button>
         <button type="button" class="ghost row-action" data-instance-action="stop" data-instance-id="${item.id || ''}">停止</button>
       </td>`;
@@ -118,7 +123,11 @@
     el.sharedAssets.innerHTML = '';
     (sharedRows || []).slice(0, 20).forEach(function (item) {
       const li = document.createElement('li');
-      li.textContent = `${item.assetType || 'skill'} | ${item.name || item.id} | by ${item.ownerTenantId || '-'}`;
+      li.className = 'shared-row';
+      li.innerHTML = `<span>${item.assetType || 'skill'} | ${item.name || item.id} | by ${item.ownerTenantId || '-'}</span>
+      <span class="shared-actions">
+        <button type="button" class="ghost" data-shared-bind="1" data-asset-id="${item.id || ''}" data-asset-type="${item.assetType || 'skill'}">绑定到租户</button>
+      </span>`;
       el.sharedAssets.appendChild(li);
     });
 
@@ -207,6 +216,13 @@
   async function runInstanceAction(id, action) {
     if (!id) throw new Error('请输入实例ID');
     await api(`/api/control/instances/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: '{}' });
+  }
+
+  async function showInstanceDetail(id) {
+    if (!id) throw new Error('实例ID不能为空');
+    const res = await api(`/api/control/instances/${encodeURIComponent(id)}`);
+    el.instanceDetailJson.textContent = JSON.stringify(res.data || {}, null, 2);
+    el.instanceDetail.classList.remove('hidden');
   }
 
   async function refreshRelease() {
@@ -312,6 +328,11 @@
     el.refreshInstances.addEventListener('click', async function () {
       await refreshInstances();
       showToast('实例列表已刷新', 'success');
+    });
+
+    el.closeInstanceDetail.addEventListener('click', function () {
+      el.instanceDetail.classList.add('hidden');
+      el.instanceDetailJson.textContent = '';
     });
 
     el.refreshAssets.addEventListener('click', async function () {
@@ -474,16 +495,29 @@
 
     el.instancesTable.addEventListener('click', async function (evt) {
       const btn = evt.target && evt.target.closest ? evt.target.closest('button[data-instance-action]') : null;
-      if (!btn) return;
-      const action = btn.getAttribute('data-instance-action');
-      const id = btn.getAttribute('data-instance-id');
-      if (!action || !id) return;
-      try {
-        await runInstanceAction(id, action);
-        await refreshInstances();
-        showToast(`实例 ${id} 已${action === 'start' ? '启动' : '停止'}`, 'success');
-      } catch (error) {
-        showToast(error.message, 'error');
+      const detailBtn = evt.target && evt.target.closest ? evt.target.closest('button[data-instance-detail]') : null;
+      if (btn) {
+        const action = btn.getAttribute('data-instance-action');
+        const id = btn.getAttribute('data-instance-id');
+        if (!action || !id) return;
+        try {
+          await runInstanceAction(id, action);
+          await refreshInstances();
+          showToast(`实例 ${id} 已${action === 'start' ? '启动' : '停止'}`, 'success');
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+        return;
+      }
+      if (detailBtn) {
+        const id = detailBtn.getAttribute('data-instance-id');
+        if (!id) return;
+        try {
+          await showInstanceDetail(id);
+          showToast(`已加载实例 ${id} 详情`, 'success');
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
       }
     });
 
@@ -498,6 +532,33 @@
         await doAssetReview(reportId, decision, opinion);
         await refreshAssets();
         showToast(`已${decision} ${reportId}`, 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.sharedAssets.addEventListener('click', async function (evt) {
+      const btn = evt.target && evt.target.closest ? evt.target.closest('button[data-shared-bind]') : null;
+      if (!btn) return;
+      const tenantId = (el.inlineBindTenantId.value || '').trim();
+      if (!tenantId) {
+        showToast('请先填写目标租户ID', 'error');
+        return;
+      }
+      const assetId = btn.getAttribute('data-asset-id');
+      const assetType = btn.getAttribute('data-asset-type') || 'skill';
+      if (!assetId) return;
+      try {
+        await api('/api/control/assets/bindings', {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId: tenantId,
+            assetId: assetId,
+            assetType: assetType,
+            actor: (state.me && state.me.username) || 'platform_admin'
+          })
+        });
+        showToast(`已绑定 ${assetId} 到 ${tenantId}`, 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }
