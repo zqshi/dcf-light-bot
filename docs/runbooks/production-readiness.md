@@ -27,3 +27,4 @@
 - [ ] CI green on lint + test + lock verify
 - [ ] Runbooks reviewed
 - [ ] Asset governance process enabled (`/api/control/assets/*`: report/review/bind)
+- [ ] Multi-level review policy verified (`requiredApprovals`, reviewer opinions, pending queue)

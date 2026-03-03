@@ -10,6 +10,7 @@ function normalizeAssetType(input) {
 }
 
 function createSkillReport(input) {
+  const requiredApprovals = Math.max(1, Number(input.requiredApprovals || 1));
   return {
     id: newId('skill_report'),
     assetType: normalizeAssetType(input.assetType),
@@ -21,7 +22,10 @@ function createSkillReport(input) {
     contentRef: String(input.contentRef || '').trim() || null,
     tags: Array.isArray(input.tags) ? input.tags.map((x) => String(x).trim()).filter(Boolean) : [],
     version: String(input.version || '1.0.0').trim(),
-    status: 'pending',
+    status: 'pending_review',
+    requiredApprovals,
+    approvals: [],
+    reviewHistory: [],
     reviewedBy: null,
     reviewedAt: null,
     createdAt: nowIso(),

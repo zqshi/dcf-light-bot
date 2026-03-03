@@ -14,7 +14,44 @@ function buildAssetRouter(assetService, requirePermission) {
 
   router.get('/reports', requirePermission('control:asset:read'), async (req, res, next) => {
     try {
-      res.json({ success: true, data: await assetService.listReportsByType(req.query.type) });
+      let rows = await assetService.listReportsByType(req.query.type);
+      if (req.query.status) {
+        rows = rows.filter((x) => String(x.status || '') === String(req.query.status));
+      }
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/reviews/pending', requirePermission('control:asset:review'), async (req, res, next) => {
+    try {
+      const reviewer = req.query.reviewer || req.principal.username || '';
+      const rows = await assetService.listPendingReviews(reviewer);
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/reports/:reportId/reviews', requirePermission('control:asset:review'), async (req, res, next) => {
+    try {
+      const rows = await assetService.listReviewHistory(req.params.reportId);
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/reports/:reportId/reviews', requirePermission('control:asset:review'), async (req, res, next) => {
+    try {
+      const out = await assetService.reviewReport(
+        req.params.reportId,
+        req.body.reviewer || req.principal.username || 'platform_admin',
+        req.body.decision || 'approve',
+        req.body.opinion || ''
+      );
+      res.json({ success: true, data: out });
     } catch (error) {
       next(error);
     }
@@ -22,7 +59,11 @@ function buildAssetRouter(assetService, requirePermission) {
 
   router.post('/reports/:reportId/approve', requirePermission('control:asset:review'), async (req, res, next) => {
     try {
-      const out = await assetService.approveReport(req.params.reportId, req.body.reviewer || req.principal.username || 'platform_admin');
+      const out = await assetService.approveReport(
+        req.params.reportId,
+        req.body.reviewer || req.principal.username || 'platform_admin',
+        req.body.opinion || ''
+      );
       res.json({ success: true, data: out });
     } catch (error) {
       next(error);
@@ -34,7 +75,7 @@ function buildAssetRouter(assetService, requirePermission) {
       const out = await assetService.rejectReport(
         req.params.reportId,
         req.body.reviewer || req.principal.username || 'platform_admin',
-        req.body.reason || ''
+        req.body.reason || req.body.opinion || ''
       );
       res.json({ success: true, data: out });
     } catch (error) {

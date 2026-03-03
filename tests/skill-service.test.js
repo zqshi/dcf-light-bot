@@ -20,7 +20,7 @@ describe('SkillService', () => {
       description: 'parse invoices'
     });
 
-    expect(report.status).toBe('pending');
+    expect(report.status).toBe('pending_review');
     const rows = await service.listReports();
     expect(rows.length).toBe(1);
 

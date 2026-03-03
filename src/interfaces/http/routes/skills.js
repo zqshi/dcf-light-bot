@@ -17,7 +17,12 @@ function buildSkillRouter(skillService, requirePermission) {
 
   router.get('/reports', requirePermission('control:skill:read'), async (req, res, next) => {
     try {
-      res.json({ success: true, data: await skillService.listReportsByType(req.query.type || 'skill') });
+      const rows = await skillService.listReportsByType(req.query.type || 'skill');
+      if (req.query.status) {
+        res.json({ success: true, data: rows.filter((x) => String(x.status || '') === String(req.query.status)) });
+        return;
+      }
+      res.json({ success: true, data: rows });
     } catch (error) {
       next(error);
     }
@@ -25,7 +30,11 @@ function buildSkillRouter(skillService, requirePermission) {
 
   router.post('/reports/:reportId/approve', requirePermission('control:skill:review'), async (req, res, next) => {
     try {
-      const out = await skillService.approveReport(req.params.reportId, req.body.reviewer || req.principal.username || 'platform_admin');
+      const out = await skillService.approveReport(
+        req.params.reportId,
+        req.body.reviewer || req.principal.username || 'platform_admin',
+        req.body.opinion || ''
+      );
       res.json({ success: true, data: out });
     } catch (error) {
       next(error);
@@ -37,7 +46,7 @@ function buildSkillRouter(skillService, requirePermission) {
       const out = await skillService.rejectReport(
         req.params.reportId,
         req.body.reviewer || req.principal.username || 'platform_admin',
-        req.body.reason || ''
+        req.body.reason || req.body.opinion || ''
       );
       res.json({ success: true, data: out });
     } catch (error) {

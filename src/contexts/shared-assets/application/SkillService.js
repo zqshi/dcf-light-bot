@@ -48,51 +48,120 @@ class SkillService {
     return rows.filter((x) => String(x.assetType || 'skill') === type);
   }
 
-  async approveReport(reportId, reviewer = 'platform_admin') {
+  async listReportsByStatus(status) {
+    const rows = await this.repo.listAssetReports();
+    const target = String(status || '').trim();
+    if (!target) return rows;
+    return rows.filter((x) => String(x.status || '') === target);
+  }
+
+  buildApprovalStage(report) {
+    const approvals = Array.isArray(report.approvals) ? report.approvals : [];
+    const requiredApprovals = Math.max(1, Number(report.requiredApprovals || 1));
+    return {
+      approvedCount: approvals.length,
+      requiredApprovals,
+      remainingApprovals: Math.max(0, requiredApprovals - approvals.length)
+    };
+  }
+
+  appendReview(report, reviewer, decision, opinion) {
+    const history = Array.isArray(report.reviewHistory) ? report.reviewHistory : [];
+    history.push({
+      reviewer,
+      decision,
+      opinion: String(opinion || '').trim().slice(0, 2000) || null,
+      at: nowIso()
+    });
+    report.reviewHistory = history;
+    report.updatedAt = nowIso();
+    return report;
+  }
+
+  async reviewReport(reportId, reviewer = 'platform_admin', decision = 'approve', opinion = '') {
+    const normalizedDecision = String(decision || '').trim().toLowerCase();
+    if (!['approve', 'reject'].includes(normalizedDecision)) {
+      throw new AppError('decision must be approve or reject', 400, 'SKILL_REVIEW_DECISION_INVALID');
+    }
     const report = await this.repo.getAssetReport(reportId);
     if (!report) throw new AppError('skill report not found', 404, 'SKILL_REPORT_NOT_FOUND');
     if (String(report.status) === 'approved') {
       const shared = (await this.repo.listSharedAssets()).find((x) => x.sourceReportId === report.id);
-      return { report, sharedSkill: shared || null };
+      return { report, sharedSkill: shared || null, stage: this.buildApprovalStage(report) };
     }
     if (String(report.status) === 'rejected') {
-      throw new AppError('rejected report cannot be approved', 409, 'SKILL_REPORT_REJECTED');
+      throw new AppError('rejected report cannot be reviewed', 409, 'SKILL_REPORT_REJECTED');
     }
 
-    report.status = 'approved';
-    report.reviewedBy = reviewer;
-    report.reviewedAt = nowIso();
-    report.updatedAt = nowIso();
-    await this.repo.updateAssetReport(report);
-
-    const sharedSkill = createSharedSkillFromReport(report, reviewer);
-    await this.repo.addSharedAsset(sharedSkill);
-
-    await this.audit.log('skill.report.approved', {
+    this.appendReview(report, reviewer, normalizedDecision, opinion);
+    await this.audit.log('skill.review.submitted', {
       reportId,
       reviewer,
-      assetType: sharedSkill.assetType,
-      sharedSkillId: sharedSkill.id,
-      sourceTenantId: report.sourceTenantId
+      decision: normalizedDecision,
+      opinion: String(opinion || '').trim().slice(0, 2000) || null,
+      sourceTenantId: report.sourceTenantId,
+      assetType: report.assetType
     });
 
-    return { report, sharedSkill };
+    if (normalizedDecision === 'reject') {
+      report.status = 'rejected';
+      report.reviewedBy = reviewer;
+      report.reviewedAt = nowIso();
+      report.rejectReason = String(opinion || '').trim().slice(0, 500) || null;
+      await this.repo.updateAssetReport(report);
+      await this.audit.log('skill.report.rejected', { reportId, reviewer, reason: report.rejectReason });
+      return { report, sharedSkill: null, stage: this.buildApprovalStage(report) };
+    }
+
+    const approvals = Array.isArray(report.approvals) ? report.approvals : [];
+    if (!approvals.includes(reviewer)) approvals.push(reviewer);
+    report.approvals = approvals;
+    report.updatedAt = nowIso();
+    const stage = this.buildApprovalStage(report);
+    let sharedSkill = null;
+
+    if (stage.remainingApprovals === 0) {
+      report.status = 'approved';
+      report.reviewedBy = reviewer;
+      report.reviewedAt = nowIso();
+      sharedSkill = (await this.repo.listSharedAssets()).find((x) => x.sourceReportId === report.id) || null;
+      if (!sharedSkill) {
+        sharedSkill = createSharedSkillFromReport(report, reviewer);
+        await this.repo.addSharedAsset(sharedSkill);
+      }
+      await this.audit.log('skill.report.approved', {
+        reportId,
+        reviewer,
+        assetType: sharedSkill.assetType,
+        sharedSkillId: sharedSkill.id,
+        sourceTenantId: report.sourceTenantId
+      });
+    }
+
+    await this.repo.updateAssetReport(report);
+    return { report, sharedSkill, stage: this.buildApprovalStage(report) };
+  }
+
+  async approveReport(reportId, reviewer = 'platform_admin', opinion = '') {
+    return this.reviewReport(reportId, reviewer, 'approve', opinion);
   }
 
   async rejectReport(reportId, reviewer = 'platform_admin', reason = '') {
+    const out = await this.reviewReport(reportId, reviewer, 'reject', reason);
+    return out.report;
+  }
+
+  async listPendingReviews(reviewer) {
+    const rows = await this.listReportsByStatus('pending_review');
+    const who = String(reviewer || '').trim();
+    if (!who) return rows;
+    return rows.filter((x) => !(Array.isArray(x.approvals) && x.approvals.includes(who)));
+  }
+
+  async listReviewHistory(reportId) {
     const report = await this.repo.getAssetReport(reportId);
     if (!report) throw new AppError('skill report not found', 404, 'SKILL_REPORT_NOT_FOUND');
-    if (String(report.status) === 'approved') {
-      throw new AppError('approved report cannot be rejected', 409, 'SKILL_REPORT_APPROVED');
-    }
-    report.status = 'rejected';
-    report.reviewedBy = reviewer;
-    report.reviewedAt = nowIso();
-    report.updatedAt = nowIso();
-    report.rejectReason = String(reason || '').trim().slice(0, 500) || null;
-    await this.repo.updateAssetReport(report);
-    await this.audit.log('skill.report.rejected', { reportId, reviewer, reason: report.rejectReason });
-    return report;
+    return Array.isArray(report.reviewHistory) ? report.reviewHistory : [];
   }
 
   async listSharedSkills() {

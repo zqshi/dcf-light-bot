@@ -24,6 +24,7 @@
 - [x] Add structured audit context (request/trace/correlation/actor) and export endpoint.
 - [x] Add audit incremental pull (`sinceId/sinceAt/untilAt`) and cursor pagination.
 - [x] Add audit TTL/archive retention policy with scheduled cleanup task.
+- [x] Add multi-level asset approval with opinion trail and pending review query.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

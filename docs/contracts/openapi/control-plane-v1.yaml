@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DCF Light Bot Control Plane API
-  version: 1.7.0
+  version: 1.8.0
 paths:
   /health:
     get:
@@ -64,6 +64,14 @@ paths:
       summary: Report tenant asset (skill/tool/knowledge)
     get:
       summary: List tenant asset reports
+  /api/control/assets/reviews/pending:
+    get:
+      summary: List pending reviews for reviewer
+  /api/control/assets/reports/{reportId}/reviews:
+    get:
+      summary: List review history of report
+    post:
+      summary: Submit review decision with opinion
   /api/control/assets/reports/{reportId}/approve:
     post:
       summary: Approve asset report and publish shared asset

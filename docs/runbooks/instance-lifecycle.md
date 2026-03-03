@@ -32,3 +32,9 @@
 2. Verify audit events include these fields plus `actor`.
 3. Export for SIEM ingestion via `GET /api/control/audits/export?format=ndjson`.
 4. For incremental pull use `sinceId` or `sinceAt` and page with `cursor/nextCursor`.
+
+## Asset Review Governance
+1. Create report with optional `requiredApprovals` (`POST /api/control/assets/reports`).
+2. Reviewer checks queue: `GET /api/control/assets/reviews/pending`.
+3. Submit review with opinion: `POST /api/control/assets/reports/{reportId}/reviews`.
+4. Query full opinion trail: `GET /api/control/assets/reports/{reportId}/reviews`.

@@ -18,6 +18,9 @@ function makeCtx(authService) {
     assetService: {
       reportAsset: async (body) => ({ id: 'r1', ...body, status: 'pending' }),
       listReportsByType: async () => [{ id: 'r1', assetType: 'tool' }],
+      listPendingReviews: async () => [{ id: 'r_pending', status: 'pending_review' }],
+      listReviewHistory: async () => [{ reviewer: 'reviewer_1', decision: 'approve' }],
+      reviewReport: async () => ({ report: { id: 'r1', status: 'pending_review' }, stage: { remainingApprovals: 1 } }),
       approveReport: async () => ({ report: { id: 'r1', status: 'approved' }, sharedSkill: { id: 'a1', assetType: 'tool' } }),
       rejectReport: async () => ({ id: 'r1', status: 'rejected' }),
       listSharedAssets: async () => [{ id: 'a1', assetType: 'tool' }],
@@ -44,7 +47,10 @@ describe('Asset route', () => {
     controlPlaneJwtSecret: 'jwtsecret',
     controlPlaneJwtExpiresInSec: 3600,
     matrixWebhookSecret: 'mx',
-    controlPlaneUsers: [{ username: 'ops', role: 'ops_admin', password: 'plain:ops123', disabled: false }]
+    controlPlaneUsers: [
+      { username: 'ops', role: 'ops_admin', password: 'plain:ops123', disabled: false },
+      { username: 'reviewer', role: 'reviewer', password: 'plain:review123', disabled: false }
+    ]
   });
 
   test('ops can list and bind tool assets', async () => {
@@ -64,5 +70,23 @@ describe('Asset route', () => {
       .send({ tenantId: 't1', assetId: 'a1', assetType: 'tool' });
     expect(bindRes.status).toBe(201);
     expect(bindRes.body.data.assetType).toBe('tool');
+  });
+
+  test('reviewer can query pending reviews and review history', async () => {
+    const app = createServer(makeCtx(auth));
+    const login = await request(app).post('/api/control/auth/login').send({ username: 'reviewer', password: 'review123' });
+    const token = login.body.data.token;
+
+    const pendingRes = await request(app)
+      .get('/api/control/assets/reviews/pending')
+      .set('Authorization', `Bearer ${token}`);
+    expect(pendingRes.status).toBe(200);
+    expect(pendingRes.body.data[0].status).toBe('pending_review');
+
+    const historyRes = await request(app)
+      .get('/api/control/assets/reports/r1/reviews')
+      .set('Authorization', `Bearer ${token}`);
+    expect(historyRes.status).toBe(200);
+    expect(historyRes.body.data[0].reviewer).toBe('reviewer_1');
   });
 });

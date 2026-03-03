@@ -13,6 +13,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - Runtime proxy in kubernetes mode with retry, circuit breaker, and degraded fallback.
 - Asset compatibility validation (`version` / `minOpenclawVersion`) with non-blocking mount isolation.
 - Audit retention lifecycle: TTL + max rows + archive ring with scheduled cleanup.
+- Multi-level asset review (`requiredApprovals`) with review opinion trail and pending-review queue.
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.
