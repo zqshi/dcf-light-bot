@@ -56,6 +56,7 @@ npm start
   - server-side instance query filters (`state/name/tenantId`)
   - server-side audit `instanceId` filter
   - batch asset binding API
+  - batch instance action API (`start/stop`) and admin console batch action form
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
@@ -103,6 +104,7 @@ npm start
 - `POST /api/control/release/preflight/assert`
 - `POST /api/control/assets/reviews/batch`
 - `POST /api/control/assets/bindings/batch`
+- `POST /api/control/instances/batch-actions`
 
 ## Quality Gates
 ```bash

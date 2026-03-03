@@ -75,6 +75,16 @@
             <button id="btn-instance-start" type="button">启动</button>
             <button id="btn-instance-stop" class="ghost" type="button">停止</button>
           </form>
+          <form id="instance-batch-action-form" class="inline-form">
+            <label>实例ID列表(逗号/换行)<textarea id="instance-batch-ids" rows="3" placeholder="inst_a,inst_b"></textarea></label>
+            <label>动作
+              <select id="instance-batch-action">
+                <option value="start">start</option>
+                <option value="stop">stop</option>
+              </select>
+            </label>
+            <button type="submit">批量执行</button>
+          </form>
           <form id="instance-filter-form" class="inline-form">
             <label>名称搜索<input id="instance-name-filter" placeholder="alice" /></label>
             <label>租户搜索<input id="instance-tenant-filter" placeholder="tenant_xxx" /></label>

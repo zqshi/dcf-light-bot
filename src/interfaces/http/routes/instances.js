@@ -45,6 +45,42 @@ function buildInstanceRouter(instanceService, requirePermission) {
     }
   });
 
+  router.post('/batch-actions', requirePermission('control:instance:write'), async (req, res, next) => {
+    try {
+      const body = req.body || {};
+      const action = String(body.action || 'start').trim().toLowerCase();
+      const ids = Array.isArray(body.instanceIds) ? body.instanceIds : [];
+      const results = [];
+      for (const rawId of ids) {
+        const instanceId = String(rawId || '').trim();
+        if (!instanceId) continue;
+        try {
+          let data;
+          if (action === 'start') data = await instanceService.start(instanceId);
+          else if (action === 'stop') data = await instanceService.stop(instanceId);
+          else throw new Error('action must be start or stop');
+          results.push({ instanceId, ok: true, data });
+        } catch (error) {
+          results.push({ instanceId, ok: false, error: String(error.message || 'batch action failed') });
+        }
+      }
+      const succeeded = results.filter((x) => x.ok).length;
+      const failed = results.length - succeeded;
+      res.json({
+        success: true,
+        data: {
+          action,
+          total: results.length,
+          succeeded,
+          failed,
+          results
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/:instanceId/start', requirePermission('control:instance:write'), async (req, res, next) => {
     try {
       res.json({ success: true, data: await instanceService.start(req.params.instanceId) });

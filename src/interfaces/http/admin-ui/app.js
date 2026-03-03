@@ -63,6 +63,9 @@
     instanceActionId: document.getElementById('instance-action-id'),
     instanceStart: document.getElementById('btn-instance-start'),
     instanceStop: document.getElementById('btn-instance-stop'),
+    instanceBatchActionForm: document.getElementById('instance-batch-action-form'),
+    instanceBatchIds: document.getElementById('instance-batch-ids'),
+    instanceBatchAction: document.getElementById('instance-batch-action'),
     instanceFilterForm: document.getElementById('instance-filter-form'),
     instanceNameFilter: document.getElementById('instance-name-filter'),
     instanceTenantFilter: document.getElementById('instance-tenant-filter'),
@@ -479,6 +482,26 @@
         await runInstanceAction(id, 'stop');
         await refreshInstances();
         showToast('实例已停止', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.instanceBatchActionForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        const ids = parseBatchIds(el.instanceBatchIds.value);
+        if (!ids.length) throw new Error('请填写至少一个实例ID');
+        const out = await api('/api/control/instances/batch-actions', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: el.instanceBatchAction.value,
+            instanceIds: ids
+          })
+        });
+        await refreshInstances();
+        const failed = Number(out.data && out.data.failed || 0);
+        showToast(`批量实例操作完成: 成功${out.data.succeeded} 失败${failed}`, failed > 0 ? 'error' : 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }
