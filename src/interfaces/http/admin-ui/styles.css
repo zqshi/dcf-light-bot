@@ -189,6 +189,14 @@ li {
   font-size: 12px;
 }
 
+.copy-btn {
+  background: #fff;
+  color: var(--brand);
+  border-color: #b4c8ea;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
 .pending-actions .danger {
   background: #fff;
   color: var(--bad);

@@ -75,6 +75,18 @@
             <button id="btn-instance-start" type="button">启动</button>
             <button id="btn-instance-stop" class="ghost" type="button">停止</button>
           </form>
+          <form id="instance-filter-form" class="inline-form">
+            <label>状态筛选
+              <select id="instance-state-filter">
+                <option value="">all</option>
+                <option value="running">running</option>
+                <option value="provisioning">provisioning</option>
+                <option value="failed">failed</option>
+                <option value="stopped">stopped</option>
+              </select>
+            </label>
+            <button type="submit">应用筛选</button>
+          </form>
           <table>
             <thead><tr><th>ID</th><th>租户</th><th>状态</th><th>运行版本</th><th>更新时间</th><th>操作</th></tr></thead>
             <tbody id="instances-table"></tbody>
@@ -123,6 +135,8 @@
                 <label>目标租户ID<input id="inline-bind-tenant-id" placeholder="tenant_xxx" /></label>
               </form>
               <ul id="shared-assets"></ul>
+              <h4>绑定历史</h4>
+              <ul id="asset-bindings"></ul>
             </div>
             <div>
               <h4>待审核</h4>

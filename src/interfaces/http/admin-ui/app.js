@@ -1,8 +1,10 @@
-/* global document, localStorage */
+/* global document, localStorage, navigator */
 (function () {
   const state = {
     token: localStorage.getItem('dcf_admin_token') || '',
     me: null,
+    instanceStateFilter: '',
+    instancesCache: [],
     auditQuery: {
       type: '',
       actor: '',
@@ -55,6 +57,8 @@
     instanceActionId: document.getElementById('instance-action-id'),
     instanceStart: document.getElementById('btn-instance-start'),
     instanceStop: document.getElementById('btn-instance-stop'),
+    instanceFilterForm: document.getElementById('instance-filter-form'),
+    instanceStateFilter: document.getElementById('instance-state-filter'),
     assetReviewForm: document.getElementById('asset-review-form'),
     reviewReportId: document.getElementById('review-report-id'),
     reviewDecision: document.getElementById('review-decision'),
@@ -63,6 +67,7 @@
     bindTenantId: document.getElementById('bind-tenant-id'),
     bindAssetId: document.getElementById('bind-asset-id'),
     bindAssetType: document.getElementById('bind-asset-type'),
+    assetBindings: document.getElementById('asset-bindings'),
     auditFilterForm: document.getElementById('audit-filter-form'),
     auditType: document.getElementById('audit-type'),
     auditActor: document.getElementById('audit-actor')
@@ -111,6 +116,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${item.id || '-'}</td><td>${item.tenantId || '-'}</td><td>${item.state || '-'}</td><td>${item.runtimeVersion || '-'}</td><td>${item.updatedAt || '-'}</td>
       <td>
+        <button type="button" class="copy-btn" data-copy-value="${item.id || ''}">复制ID</button>
         <button type="button" class="ghost row-action" data-instance-detail="1" data-instance-id="${item.id || ''}">详情</button>
         <button type="button" class="ghost row-action" data-instance-action="start" data-instance-id="${item.id || ''}">启动</button>
         <button type="button" class="ghost row-action" data-instance-action="stop" data-instance-id="${item.id || ''}">停止</button>
@@ -119,13 +125,25 @@
     });
   }
 
-  function renderAssets(sharedRows, pendingRows) {
+  function renderAssetBindings(rows) {
+    el.assetBindings.innerHTML = '';
+    (rows || []).slice(0, 20).forEach(function (item) {
+      const li = document.createElement('li');
+      li.className = 'shared-row';
+      li.innerHTML = `<span>${item.assetType || 'skill'} | tenant=${item.tenantId || '-'} | asset=${item.assetId || '-'} | by ${item.actor || '-'}</span>
+      <span class="shared-actions"><button type="button" class="copy-btn" data-copy-value="${item.id || ''}">复制绑定ID</button></span>`;
+      el.assetBindings.appendChild(li);
+    });
+  }
+
+  function renderAssets(sharedRows, pendingRows, bindingRows) {
     el.sharedAssets.innerHTML = '';
     (sharedRows || []).slice(0, 20).forEach(function (item) {
       const li = document.createElement('li');
       li.className = 'shared-row';
-      li.innerHTML = `<span>${item.assetType || 'skill'} | ${item.name || item.id} | by ${item.ownerTenantId || '-'}</span>
+      li.innerHTML = `<span>${item.assetType || 'skill'} | ${item.name || item.id} | by ${item.ownerTenantId || '-'} </span>
       <span class="shared-actions">
+        <button type="button" class="copy-btn" data-copy-value="${item.id || ''}">复制资产ID</button>
         <button type="button" class="ghost" data-shared-bind="1" data-asset-id="${item.id || ''}" data-asset-type="${item.assetType || 'skill'}">绑定到租户</button>
       </span>`;
       el.sharedAssets.appendChild(li);
@@ -137,11 +155,13 @@
       li.className = 'pending-row';
       li.innerHTML = `<span>${item.assetType || 'skill'} | ${item.name || item.id} | 状态 ${item.status || '-'}</span>
         <span class="pending-actions">
+          <button type="button" class="copy-btn" data-copy-value="${item.id || ''}">复制报告ID</button>
           <button type="button" data-action="approve" data-report-id="${item.id || ''}">approve</button>
           <button type="button" class="danger" data-action="reject" data-report-id="${item.id || ''}">reject</button>
         </span>`;
       el.pendingAssets.appendChild(li);
     });
+    renderAssetBindings(bindingRows || []);
   }
 
   function renderAudits(rows) {
@@ -155,10 +175,13 @@
 
   async function refreshInstances() {
     const instanceRes = await api('/api/control/instances');
-    const instances = instanceRes.data || [];
-    el.instanceTotal.textContent = String(instances.length);
-    renderInstances(instances);
-    return instances;
+    state.instancesCache = instanceRes.data || [];
+    const filtered = state.instanceStateFilter
+      ? state.instancesCache.filter(function (x) { return String(x.state || '') === state.instanceStateFilter; })
+      : state.instancesCache;
+    el.instanceTotal.textContent = String(state.instancesCache.length);
+    renderInstances(filtered);
+    return filtered;
   }
 
   async function refreshAssets() {
@@ -166,8 +189,9 @@
     const pending = pendingRes.data || [];
     el.pendingTotal.textContent = String(pending.length);
     const sharedRes = await api('/api/control/assets/shared');
-    renderAssets(sharedRes.data || [], pending);
-    return { pending, shared: sharedRes.data || [] };
+    const bindingRes = await api('/api/control/assets/bindings');
+    renderAssets(sharedRes.data || [], pending, bindingRes.data || []);
+    return { pending, shared: sharedRes.data || [], bindings: bindingRes.data || [] };
   }
 
   async function refreshAudits(params) {
@@ -216,6 +240,21 @@
   async function runInstanceAction(id, action) {
     if (!id) throw new Error('请输入实例ID');
     await api(`/api/control/instances/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: '{}' });
+  }
+
+  async function copyText(text) {
+    const value = String(text || '').trim();
+    if (!value) throw new Error('复制内容为空');
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+    const input = document.createElement('input');
+    input.value = value;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    input.remove();
   }
 
   async function showInstanceDetail(id) {
@@ -402,6 +441,13 @@
       }
     });
 
+    el.instanceFilterForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      state.instanceStateFilter = (el.instanceStateFilter.value || '').trim();
+      await refreshInstances();
+      showToast(`已应用实例状态筛选: ${state.instanceStateFilter || 'all'}`, 'success');
+    });
+
     el.assetReviewForm.addEventListener('submit', async function (evt) {
       evt.preventDefault();
       try {
@@ -558,7 +604,19 @@
             actor: (state.me && state.me.username) || 'platform_admin'
           })
         });
+        await refreshAssets();
         showToast(`已绑定 ${assetId} 到 ${tenantId}`, 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    document.body.addEventListener('click', async function (evt) {
+      const btn = evt.target && evt.target.closest ? evt.target.closest('button[data-copy-value]') : null;
+      if (!btn) return;
+      try {
+        await copyText(btn.getAttribute('data-copy-value'));
+        showToast('复制成功', 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }

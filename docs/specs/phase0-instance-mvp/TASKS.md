@@ -41,6 +41,7 @@
 - [x] Add admin console quick review row actions and release preflight assert/failure highlighting.
 - [x] Add instance row-level start/stop and audit cursor pagination + ndjson export in admin console.
 - [x] Add instance detail drawer and shared-asset quick bind row actions in admin console.
+- [x] Add instance state filter, asset binding history view, and one-click ID copy actions in admin console.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

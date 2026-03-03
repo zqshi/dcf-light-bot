@@ -44,6 +44,9 @@ npm start
   - instance row-level start/stop actions
   - instance detail drawer (runtime/resources/error snapshot)
   - shared asset row-level quick bind to target tenant
+  - instance state filter (all/running/provisioning/failed/stopped)
+  - shared asset binding history list
+  - one-click copy for instance/asset/report/binding IDs
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
