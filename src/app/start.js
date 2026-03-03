@@ -22,6 +22,55 @@ function createLogger() {
   };
 }
 
+function normalizeFailureReason(input) {
+  const raw = String(input || '').trim().toLowerCase();
+  if (!raw) return 'none';
+  if (raw.includes('timeout')) return 'timeout';
+  if (raw.includes('auth')) return 'auth';
+  if (raw.includes('network')) return 'network';
+  if (raw.includes('dns')) return 'dns';
+  if (raw.includes('rate')) return 'rate_limit';
+  if (raw.includes('k8s')) return 'k8s';
+  if (raw.includes('provision')) return 'provision';
+  return 'other';
+}
+
+function summarizeInstances(instances) {
+  const rows = Array.isArray(instances) ? instances : [];
+  const stateCounts = {};
+  const failureReasons = {};
+  let failedCount = 0;
+  for (const row of rows) {
+    const state = String(row && row.state || 'unknown');
+    stateCounts[state] = (stateCounts[state] || 0) + 1;
+    if (state === 'failed') {
+      failedCount += 1;
+      const reason = normalizeFailureReason(row && row.lastError);
+      failureReasons[reason] = (failureReasons[reason] || 0) + 1;
+    }
+  }
+  return { stateCounts, failureReasons, failedCount };
+}
+
+function evaluateHealthLevel(input, thresholds) {
+  const overdue = Number(input.overdueReviews || 0);
+  const escalated = Number(input.escalatedReviews || 0);
+  const degradedEvents = Number(input.recentDegradedEvents || 0);
+  const failedInstances = Number(input.failedInstances || 0);
+  if (
+    overdue >= Number(thresholds.unhealthyOverdue || 20)
+    || degradedEvents >= Number(thresholds.unhealthyDegradedEvents || 20)
+    || failedInstances >= Number(thresholds.unhealthyFailedInstances || 5)
+  ) return 'unhealthy';
+  if (
+    overdue >= Number(thresholds.degradedOverdue || 1)
+    || escalated >= Number(thresholds.degradedEscalated || 1)
+    || degradedEvents >= Number(thresholds.degradedEvents || 1)
+    || failedInstances >= Number(thresholds.degradedFailedInstances || 1)
+  ) return 'degraded';
+  return 'healthy';
+}
+
 async function startApp() {
   const config = loadConfig();
   const logger = createLogger();
@@ -114,16 +163,29 @@ async function startApp() {
           const t = String(x.type || '');
           return t.includes('degraded') || t.includes('failed');
         });
-        const overdue = Number(dashboard.overdueTotal || 0);
-        const escalated = Number(dashboard.escalatedTotal || 0);
-        const healthLevel = (overdue >= 20 || degradedEvents.length >= 20)
-          ? 'unhealthy'
-          : ((overdue > 0 || escalated > 0 || degradedEvents.length > 0) ? 'degraded' : 'healthy');
+        const summary = summarizeInstances(instances);
+        const thresholds = {
+          unhealthyOverdue: config.healthUnhealthyOverdueThreshold,
+          unhealthyDegradedEvents: config.healthUnhealthyDegradedEventThreshold,
+          unhealthyFailedInstances: config.healthUnhealthyFailedInstancesThreshold,
+          degradedOverdue: config.healthDegradedOverdueThreshold,
+          degradedEscalated: config.healthDegradedEscalatedThreshold,
+          degradedEvents: config.healthDegradedEventThreshold,
+          degradedFailedInstances: config.healthDegradedFailedInstancesThreshold
+        };
+        const healthLevel = evaluateHealthLevel({
+          overdueReviews: dashboard.overdueTotal,
+          escalatedReviews: dashboard.escalatedTotal,
+          recentDegradedEvents: degradedEvents.length,
+          failedInstances: summary.failedCount
+        }, thresholds);
         metricsService.setReviewDashboard(dashboard);
         metricsService.setStatusSnapshot({
           instances: instances.length,
           recentAuditCount: audits.length,
-          healthLevel
+          healthLevel,
+          instanceStateCounts: summary.stateCounts,
+          instanceFailureReasons: summary.failureReasons
         });
       }).catch((error) => {
         logger.error('metrics refresh tick failed', { error: error.message });

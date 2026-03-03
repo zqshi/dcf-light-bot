@@ -27,6 +27,8 @@
 11. Confirm metrics exposure:
    - `METRICS_ENABLED=true`
    - `METRICS_REFRESH_INTERVAL_MS`
+12. Confirm health thresholds:
+   - `HEALTH_UNHEALTHY_*` and `HEALTH_DEGRADED_*`
 
 ## Release Steps
 1. Update `versions.lock.json` if OpenClaw dependency changed.

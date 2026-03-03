@@ -35,6 +35,18 @@ class PlatformMetricsService {
       help: 'Total managed tenant instances',
       registers: [this.registry]
     });
+    this.instanceStateGauge = new client.Gauge({
+      name: 'dcf_instance_state_total',
+      help: 'Managed instances by state',
+      labelNames: ['state'],
+      registers: [this.registry]
+    });
+    this.instanceFailureReasonGauge = new client.Gauge({
+      name: 'dcf_instance_failure_reason_total',
+      help: 'Managed instances by failure reason bucket',
+      labelNames: ['reason'],
+      registers: [this.registry]
+    });
     this.healthGauge = new client.Gauge({
       name: 'dcf_health_state',
       help: 'Platform health level (healthy=2, degraded=1, unhealthy=0)',
@@ -60,6 +72,18 @@ class PlatformMetricsService {
     const s = snapshot || {};
     this.instancesGauge.set(Number(s.instances || 0));
     this.auditRecentGauge.set(Number(s.recentAuditCount || 0));
+    if (s.instanceStateCounts && typeof s.instanceStateCounts === 'object') {
+      this.instanceStateGauge.reset();
+      for (const [state, count] of Object.entries(s.instanceStateCounts)) {
+        this.instanceStateGauge.set({ state: String(state) }, Number(count || 0));
+      }
+    }
+    if (s.instanceFailureReasons && typeof s.instanceFailureReasons === 'object') {
+      this.instanceFailureReasonGauge.reset();
+      for (const [reason, count] of Object.entries(s.instanceFailureReasons)) {
+        this.instanceFailureReasonGauge.set({ reason: String(reason) }, Number(count || 0));
+      }
+    }
     const level = String(s.healthLevel || 'healthy');
     const value = level === 'unhealthy' ? 0 : (level === 'degraded' ? 1 : 2);
     this.healthGauge.set(value);

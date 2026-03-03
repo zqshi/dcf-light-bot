@@ -27,6 +27,7 @@
 - [x] Add multi-level asset approval with opinion trail and pending review query.
 - [x] Add review SLA escalation scheduler and review workload dashboard API.
 - [x] Add Prometheus metrics endpoint and graded health status output.
+- [x] Add instance-labeled metrics and configurable health thresholds.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

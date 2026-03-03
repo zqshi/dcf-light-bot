@@ -16,6 +16,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - Multi-level asset review (`requiredApprovals`) with review opinion trail and pending-review queue.
 - Review SLA automation (overdue escalation) and review workload dashboard API.
 - Prometheus metrics endpoint (`/metrics`) and graded health status (`healthy/degraded/unhealthy`).
+- Instance-labeled metrics (`dcf_instance_state_total`, `dcf_instance_failure_reason_total`) and configurable health thresholds.
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.

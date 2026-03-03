@@ -20,6 +20,8 @@
 - [ ] Audit export endpoint verified (`/api/control/audits/export?format=ndjson`)
 - [ ] Audit retention configured (`AUDIT_RETENTION_*`, `AUDIT_ARCHIVE_*`)
 - [ ] Prometheus metrics endpoint verified (`/metrics`)
+- [ ] Instance label metrics verified (`dcf_instance_state_total`, `dcf_instance_failure_reason_total`)
+- [ ] Health threshold config validated (`HEALTH_UNHEALTHY_*`, `HEALTH_DEGRADED_*`)
 - [ ] Error logs shipped to centralized sink
 - [ ] Alerting configured for failed provisioning
 
