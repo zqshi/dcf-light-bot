@@ -112,7 +112,7 @@ label {
   min-width: 240px;
 }
 
-input, select, button {
+input, select, textarea, button {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--line);

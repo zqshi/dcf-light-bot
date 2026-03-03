@@ -68,17 +68,24 @@
     instanceTenantFilter: document.getElementById('instance-tenant-filter'),
     instanceStateFilter: document.getElementById('instance-state-filter'),
     assetReviewForm: document.getElementById('asset-review-form'),
+    assetBatchReviewForm: document.getElementById('asset-batch-review-form'),
     reviewReportId: document.getElementById('review-report-id'),
     reviewDecision: document.getElementById('review-decision'),
     reviewOpinion: document.getElementById('review-opinion'),
+    batchReviewReportIds: document.getElementById('batch-review-report-ids'),
+    batchReviewDecision: document.getElementById('batch-review-decision'),
+    batchReviewOpinion: document.getElementById('batch-review-opinion'),
     assetBindForm: document.getElementById('asset-bind-form'),
     bindTenantId: document.getElementById('bind-tenant-id'),
     bindAssetId: document.getElementById('bind-asset-id'),
     bindAssetType: document.getElementById('bind-asset-type'),
     assetBindings: document.getElementById('asset-bindings'),
     auditFilterForm: document.getElementById('audit-filter-form'),
+    auditInstanceTraceForm: document.getElementById('audit-instance-trace-form'),
     auditType: document.getElementById('audit-type'),
-    auditActor: document.getElementById('audit-actor')
+    auditActor: document.getElementById('audit-actor'),
+    auditInstanceId: document.getElementById('audit-instance-id'),
+    auditInstanceSummary: document.getElementById('audit-instance-summary')
   };
 
   async function api(path, options) {
@@ -218,6 +225,8 @@
     const auditRes = await api(`/api/control/audits?${query.toString()}`);
     const rows = auditRes.data || [];
     renderAudits(rows);
+    el.auditInstanceSummary.classList.add('hidden');
+    el.auditInstanceSummary.textContent = '';
     state.auditQuery = {
       type: String(merged.type || ''),
       actor: String(merged.actor || ''),
@@ -256,6 +265,60 @@
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function fetchAuditsNdjsonPage(cursor, filters) {
+    const query = new URLSearchParams({ format: 'ndjson', limit: '5000', cursor: String(cursor || '0') });
+    if (filters && filters.type) query.set('type', filters.type);
+    if (filters && filters.actor) query.set('actor', filters.actor);
+    const headers = {};
+    if (state.token) headers.Authorization = `Bearer ${state.token}`;
+    const response = await fetch(`/api/control/audits/export?${query.toString()}`, { method: 'GET', headers: headers });
+    if (!response.ok) throw new Error(`审计查询失败: ${response.status}`);
+    const text = await response.text();
+    const lines = text.split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+    const rows = lines.map(function (line) {
+      try { return JSON.parse(line); } catch { return null; }
+    }).filter(Boolean);
+    return {
+      rows: rows,
+      nextCursor: response.headers.get('x-next-cursor') || null,
+      hasMore: String(response.headers.get('x-has-more') || 'false') === 'true'
+    };
+  }
+
+  async function fetchAllAuditsByFilters(filters) {
+    let cursor = '0';
+    let hasMore = true;
+    const out = [];
+    let guard = 0;
+    while (hasMore && guard < 20) {
+      const page = await fetchAuditsNdjsonPage(cursor, filters);
+      out.push.apply(out, page.rows);
+      hasMore = Boolean(page.hasMore && page.nextCursor);
+      cursor = page.nextCursor || '0';
+      guard += 1;
+    }
+    return out;
+  }
+
+  function buildInstanceAuditSummary(instanceId, rows) {
+    const target = String(instanceId || '').trim();
+    const filtered = (rows || []).filter(function (event) {
+      const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
+      return String(payload.instanceId || '') === target || String(payload.sourceInstanceId || '') === target;
+    });
+    const byType = {};
+    filtered.forEach(function (event) {
+      const type = String(event.type || 'unknown');
+      byType[type] = (byType[type] || 0) + 1;
+    });
+    return {
+      instanceId: target,
+      total: filtered.length,
+      byType: byType,
+      latestAt: filtered.length ? filtered[0].at : null
+    };
   }
 
   async function runInstanceAction(id, action) {
@@ -312,6 +375,12 @@
         opinion: String(opinion || '').trim()
       })
     });
+  }
+
+  function parseBatchIds(input) {
+    const raw = String(input || '');
+    const parts = raw.split(/[\s,]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    return Array.from(new Set(parts));
   }
 
   async function loadDashboard() {
@@ -498,6 +567,32 @@
       }
     });
 
+    el.assetBatchReviewForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        const ids = parseBatchIds(el.batchReviewReportIds.value);
+        if (!ids.length) throw new Error('请填写至少一个报告ID');
+        let success = 0;
+        const failed = [];
+        for (const id of ids) {
+          try {
+            await doAssetReview(id, el.batchReviewDecision.value, el.batchReviewOpinion.value.trim());
+            success += 1;
+          } catch (error) {
+            failed.push({ id: id, error: error.message });
+          }
+        }
+        await refreshAssets();
+        if (failed.length) {
+          showToast(`批量审核完成: 成功${success} 失败${failed.length}`, 'error');
+        } else {
+          showToast(`批量审核成功: ${success}`, 'success');
+        }
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
     el.assetBindForm.addEventListener('submit', async function (evt) {
       evt.preventDefault();
       try {
@@ -526,6 +621,29 @@
           actor: el.auditActor.value.trim()
         });
         showToast('审计查询完成', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.auditInstanceTraceForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        const instanceId = (el.auditInstanceId.value || '').trim();
+        if (!instanceId) throw new Error('请输入实例ID');
+        const allRows = await fetchAllAuditsByFilters({
+          type: state.auditQuery.type,
+          actor: state.auditQuery.actor
+        });
+        const summary = buildInstanceAuditSummary(instanceId, allRows);
+        const filtered = allRows.filter(function (event) {
+          const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
+          return String(payload.instanceId || '') === instanceId || String(payload.sourceInstanceId || '') === instanceId;
+        });
+        renderAudits(filtered.slice(0, 200));
+        el.auditInstanceSummary.textContent = JSON.stringify(summary, null, 2);
+        el.auditInstanceSummary.classList.remove('hidden');
+        showToast(`实例 ${instanceId} 聚合完成: ${summary.total} 条`, 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }

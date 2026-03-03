@@ -43,6 +43,7 @@
 - [x] Add instance detail drawer and shared-asset quick bind row actions in admin console.
 - [x] Add instance state filter, asset binding history view, and one-click ID copy actions in admin console.
 - [x] Add instance name/tenant search, asset type filter, and audit export mode switch in admin console.
+- [x] Add instance-level audit trace aggregation and batch asset review operations in admin console.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

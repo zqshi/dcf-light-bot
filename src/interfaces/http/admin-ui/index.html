@@ -118,6 +118,17 @@
             <label>意见<input id="review-opinion" placeholder="looks good" /></label>
             <button type="submit">提交审核</button>
           </form>
+          <form id="asset-batch-review-form" class="inline-form">
+            <label>批量报告ID(逗号/换行分隔)<textarea id="batch-review-report-ids" rows="3" placeholder="rep_a,rep_b"></textarea></label>
+            <label>审核动作
+              <select id="batch-review-decision">
+                <option value="approve">approve</option>
+                <option value="reject">reject</option>
+              </select>
+            </label>
+            <label>意见<input id="batch-review-opinion" placeholder="batch reviewed by admin-ui" /></label>
+            <button type="submit">批量审核</button>
+          </form>
           <form id="asset-bind-form" class="inline-form">
             <label>租户ID<input id="bind-tenant-id" required placeholder="tenant_xxx" /></label>
             <label>资产ID<input id="bind-asset-id" required placeholder="asset_xxx" /></label>
@@ -173,7 +184,12 @@
             <label>操作者<input id="audit-actor" placeholder="admin" /></label>
             <button type="submit">查询</button>
           </form>
+          <form id="audit-instance-trace-form" class="inline-form">
+            <label>实例ID追踪<input id="audit-instance-id" placeholder="inst_xxx" /></label>
+            <button type="submit">按实例聚合</button>
+          </form>
           <p id="audit-page-info" class="muted">cursor=0</p>
+          <pre id="audit-instance-summary" class="json hidden"></pre>
           <label>导出模式
             <select id="audit-export-mode">
               <option value="current">当前页</option>

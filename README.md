@@ -50,6 +50,8 @@ npm start
   - shared asset type filter (skill/tool/knowledge)
   - one-click copy for instance/asset/report/binding IDs
   - audit export mode switch (current page / full by filter)
+  - audit trace aggregation by instance id
+  - batch asset review (approve/reject multiple report IDs)
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
