@@ -76,6 +76,8 @@
             <button id="btn-instance-stop" class="ghost" type="button">停止</button>
           </form>
           <form id="instance-filter-form" class="inline-form">
+            <label>名称搜索<input id="instance-name-filter" placeholder="alice" /></label>
+            <label>租户搜索<input id="instance-tenant-filter" placeholder="tenant_xxx" /></label>
             <label>状态筛选
               <select id="instance-state-filter">
                 <option value="">all</option>
@@ -131,12 +133,23 @@
           <div class="split">
             <div>
               <h4>已共享</h4>
-              <form id="asset-inline-bind-form" class="inline-form">
-                <label>目标租户ID<input id="inline-bind-tenant-id" placeholder="tenant_xxx" /></label>
-              </form>
-              <ul id="shared-assets"></ul>
-              <h4>绑定历史</h4>
-              <ul id="asset-bindings"></ul>
+          <form id="asset-inline-bind-form" class="inline-form">
+            <label>目标租户ID<input id="inline-bind-tenant-id" placeholder="tenant_xxx" /></label>
+          </form>
+          <form id="asset-filter-form" class="inline-form">
+            <label>资产类型
+              <select id="asset-type-filter">
+                <option value="">all</option>
+                <option value="skill">skill</option>
+                <option value="tool">tool</option>
+                <option value="knowledge">knowledge</option>
+              </select>
+            </label>
+            <button type="submit">应用筛选</button>
+          </form>
+          <ul id="shared-assets"></ul>
+          <h4>绑定历史</h4>
+          <ul id="asset-bindings"></ul>
             </div>
             <div>
               <h4>待审核</h4>
@@ -161,6 +174,12 @@
             <button type="submit">查询</button>
           </form>
           <p id="audit-page-info" class="muted">cursor=0</p>
+          <label>导出模式
+            <select id="audit-export-mode">
+              <option value="current">当前页</option>
+              <option value="all">全量(按筛选)</option>
+            </select>
+          </label>
           <ul id="audit-list"></ul>
         </article>
 

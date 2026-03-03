@@ -4,6 +4,9 @@
     token: localStorage.getItem('dcf_admin_token') || '',
     me: null,
     instanceStateFilter: '',
+    instanceNameFilter: '',
+    instanceTenantFilter: '',
+    assetTypeFilter: '',
     instancesCache: [],
     auditQuery: {
       type: '',
@@ -37,8 +40,11 @@
     sharedAssets: document.getElementById('shared-assets'),
     pendingAssets: document.getElementById('pending-assets'),
     inlineBindTenantId: document.getElementById('inline-bind-tenant-id'),
+    assetFilterForm: document.getElementById('asset-filter-form'),
+    assetTypeFilter: document.getElementById('asset-type-filter'),
     auditList: document.getElementById('audit-list'),
     auditPageInfo: document.getElementById('audit-page-info'),
+    auditExportMode: document.getElementById('audit-export-mode'),
     releaseJson: document.getElementById('release-json'),
     releaseFailures: document.getElementById('release-failures'),
     refreshInstances: document.getElementById('btn-refresh-instances'),
@@ -58,6 +64,8 @@
     instanceStart: document.getElementById('btn-instance-start'),
     instanceStop: document.getElementById('btn-instance-stop'),
     instanceFilterForm: document.getElementById('instance-filter-form'),
+    instanceNameFilter: document.getElementById('instance-name-filter'),
+    instanceTenantFilter: document.getElementById('instance-tenant-filter'),
     instanceStateFilter: document.getElementById('instance-state-filter'),
     assetReviewForm: document.getElementById('asset-review-form'),
     reviewReportId: document.getElementById('review-report-id'),
@@ -176,9 +184,16 @@
   async function refreshInstances() {
     const instanceRes = await api('/api/control/instances');
     state.instancesCache = instanceRes.data || [];
-    const filtered = state.instanceStateFilter
-      ? state.instancesCache.filter(function (x) { return String(x.state || '') === state.instanceStateFilter; })
-      : state.instancesCache;
+    const filtered = state.instancesCache.filter(function (x) {
+      const byState = state.instanceStateFilter ? String(x.state || '') === state.instanceStateFilter : true;
+      const byName = state.instanceNameFilter
+        ? String(x.name || '').toLowerCase().includes(state.instanceNameFilter.toLowerCase())
+        : true;
+      const byTenant = state.instanceTenantFilter
+        ? String(x.tenantId || '').toLowerCase().includes(state.instanceTenantFilter.toLowerCase())
+        : true;
+      return byState && byName && byTenant;
+    });
     el.instanceTotal.textContent = String(state.instancesCache.length);
     renderInstances(filtered);
     return filtered;
@@ -188,8 +203,9 @@
     const pendingRes = await api('/api/control/assets/reviews/pending');
     const pending = pendingRes.data || [];
     el.pendingTotal.textContent = String(pending.length);
-    const sharedRes = await api('/api/control/assets/shared');
-    const bindingRes = await api('/api/control/assets/bindings');
+    const assetType = state.assetTypeFilter || '';
+    const sharedRes = await api(`/api/control/assets/shared${assetType ? `?type=${encodeURIComponent(assetType)}` : ''}`);
+    const bindingRes = await api(`/api/control/assets/bindings${assetType ? `?type=${encodeURIComponent(assetType)}` : ''}`);
     renderAssets(sharedRes.data || [], pending, bindingRes.data || []);
     return { pending, shared: sharedRes.data || [], bindings: bindingRes.data || [] };
   }
@@ -215,7 +231,12 @@
   }
 
   async function exportAuditsNdjson() {
-    const query = new URLSearchParams({ format: 'ndjson', limit: '5000', cursor: String(state.auditQuery.cursor || '0') });
+    const exportMode = (el.auditExportMode && el.auditExportMode.value) || 'current';
+    const query = new URLSearchParams({
+      format: 'ndjson',
+      limit: '5000',
+      cursor: exportMode === 'current' ? String(state.auditQuery.cursor || '0') : '0'
+    });
     if (state.auditQuery.type) query.set('type', state.auditQuery.type);
     if (state.auditQuery.actor) query.set('actor', state.auditQuery.actor);
     const headers = {};
@@ -230,7 +251,7 @@
     const a = document.createElement('a');
     const ts = new Date().toISOString().replace(/[:.]/g, '-');
     a.href = url;
-    a.download = `dcf-audits-${ts}.ndjson`;
+    a.download = `dcf-audits-${exportMode}-${ts}.ndjson`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -444,8 +465,17 @@
     el.instanceFilterForm.addEventListener('submit', async function (evt) {
       evt.preventDefault();
       state.instanceStateFilter = (el.instanceStateFilter.value || '').trim();
+      state.instanceNameFilter = (el.instanceNameFilter.value || '').trim();
+      state.instanceTenantFilter = (el.instanceTenantFilter.value || '').trim();
       await refreshInstances();
-      showToast(`已应用实例状态筛选: ${state.instanceStateFilter || 'all'}`, 'success');
+      showToast('已应用实例筛选', 'success');
+    });
+
+    el.assetFilterForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      state.assetTypeFilter = (el.assetTypeFilter.value || '').trim();
+      await refreshAssets();
+      showToast(`已应用资产类型筛选: ${state.assetTypeFilter || 'all'}`, 'success');
     });
 
     el.assetReviewForm.addEventListener('submit', async function (evt) {

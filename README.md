@@ -45,8 +45,11 @@ npm start
   - instance detail drawer (runtime/resources/error snapshot)
   - shared asset row-level quick bind to target tenant
   - instance state filter (all/running/provisioning/failed/stopped)
+  - instance search by name and tenant id
   - shared asset binding history list
+  - shared asset type filter (skill/tool/knowledge)
   - one-click copy for instance/asset/report/binding IDs
+  - audit export mode switch (current page / full by filter)
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
