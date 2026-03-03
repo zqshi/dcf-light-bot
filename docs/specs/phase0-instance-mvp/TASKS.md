@@ -21,6 +21,7 @@
 - [x] Implement runtime proxy kubernetes mode with retry/circuit-breaker/degraded fallback.
 - [x] Auto-mount tenant bound assets into OpenClaw runtime config during provision/reconcile/start.
 - [x] Add asset compatibility validation and non-blocking mount isolation.
+- [x] Add structured audit context (request/trace/correlation/actor) and export endpoint.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

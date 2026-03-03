@@ -8,9 +8,11 @@ const { buildAuthRouter } = require('./routes/auth');
 const { buildRuntimeRouter } = require('./routes/runtime');
 const { buildAssetRouter } = require('./routes/assets');
 const { buildControlAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
+const { buildRequestContextMiddleware } = require('./middleware/requestContext');
 
 function buildApiRouter(context) {
   const router = express.Router();
+  router.use(buildRequestContextMiddleware());
 
   router.use(buildHealthRouter(context));
   router.use('/api/integrations/matrix', buildMatrixRouter(context.matrixBot, context.authService));

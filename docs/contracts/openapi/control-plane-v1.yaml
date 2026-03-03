@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DCF Light Bot Control Plane API
-  version: 1.5.0
+  version: 1.6.0
 paths:
   /health:
     get:
@@ -84,3 +84,6 @@ paths:
   /api/control/audits:
     get:
       summary: List audit logs
+  /api/control/audits/export:
+    get:
+      summary: Export audit logs (json or ndjson)

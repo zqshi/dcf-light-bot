@@ -17,6 +17,7 @@
 
 ## Observability
 - [ ] Audit endpoint retained with export plan
+- [ ] Audit export endpoint verified (`/api/control/audits/export?format=ndjson`)
 - [ ] Error logs shipped to centralized sink
 - [ ] Alerting configured for failed provisioning
 

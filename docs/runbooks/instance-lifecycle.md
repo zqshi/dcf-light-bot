@@ -26,3 +26,8 @@
 2. In simulation mode, response returns `mode=simulation`.
 3. In kubernetes mode, proxy forwards to runtime endpoint + `RUNTIME_PROXY_INVOKE_PATH`.
 4. If upstream fails repeatedly, circuit breaker opens and returns `mode=degraded`.
+
+## Audit Traceability
+1. Send `x-request-id` / `x-trace-id` / `x-correlation-id` on control-plane requests.
+2. Verify audit events include these fields plus `actor`.
+3. Export for SIEM ingestion via `GET /api/control/audits/export?format=ndjson`.
