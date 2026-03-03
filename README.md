@@ -30,6 +30,15 @@ cp .env.example .env
 npm start
 ```
 
+## Local Matrix + OpenClaw Stack
+- Start: `npm run openclaw:up`
+- Check: `npm run openclaw:check`
+- Smoke: `npm run openclaw:smoke`
+- Stop: `npm run openclaw:down`
+- Exposed endpoints:
+  - Matrix Synapse: `http://127.0.0.1:8008`
+  - OpenClaw Gateway UI: `http://127.0.0.1:18789`
+
 ## Admin Console
 - URL: `http://localhost:3000/admin/`
 - Built-in static management UI (login, instance/asset/audit/release-preflight views), backed by existing control-plane APIs.

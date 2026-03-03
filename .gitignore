@@ -76,6 +76,7 @@ coverage/
 Dockerfile
 docker-compose.yml
 docker-compose.*.yml
+!deploy/local/docker-compose.openclaw-matrix.yml
 
 # Kubernetes
 k8s/*.yaml
@@ -92,3 +93,6 @@ docs/_site/
 # 其他
 .cache/
 .parcel-cache/
+
+# local stack runtime artifacts
+runtime/

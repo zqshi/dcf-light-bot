@@ -21,6 +21,10 @@
     "check:helm-chart": "bash scripts/check-helm-chart.sh",
     "check:prod-config": "node scripts/check-prod-helm-config.js",
     "check:release-preflight": "node scripts/check-release-preflight.js",
+    "openclaw:up": "bash scripts/start-openclaw-stack.sh",
+    "openclaw:down": "bash scripts/stop-openclaw-stack.sh",
+    "openclaw:check": "bash scripts/check-openclaw-stack.sh",
+    "openclaw:smoke": "bash scripts/openclaw-smoke.sh",
     "observability:up": "bash scripts/start-observability-stack.sh",
     "observability:down": "bash scripts/stop-observability-stack.sh",
     "observability:check": "bash scripts/check-observability-stack.sh"

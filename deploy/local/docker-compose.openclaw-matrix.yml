@@ -1,0 +1,40 @@
+services:
+  matrix-synapse:
+    image: matrixdotorg/synapse:latest
+    container_name: dcf-matrix-synapse
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    volumes:
+      - ../../runtime/matrix/data:/data
+    environment:
+      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
+
+  openclaw-gateway:
+    image: openclaw:local
+    container_name: dcf-openclaw-gateway
+    depends_on:
+      - matrix-synapse
+    restart: unless-stopped
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-dcf-local-token}
+    volumes:
+      - ../../runtime/openclaw/config:/home/node/.openclaw
+      - ../../runtime/openclaw/workspace:/home/node/.openclaw/workspace
+    ports:
+      - "18789:18789"
+      - "18790:18790"
+    init: true
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--allow-unconfigured",
+        "--bind",
+        "lan",
+        "--port",
+        "18789"
+      ]
