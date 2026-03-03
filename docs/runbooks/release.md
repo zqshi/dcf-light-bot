@@ -47,6 +47,9 @@
    - [grafana-dashboard-dcf-light-bot.json](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/grafana-dashboard-dcf-light-bot.json)
 8. Follow monitoring setup:
    - [monitoring README](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/README.md)
+9. Optional local validation stack:
+   - `npm run observability:up`
+   - `npm run observability:check`
 
 ## Rollback
 1. Redeploy previous tag.

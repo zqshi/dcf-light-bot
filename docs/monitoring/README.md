@@ -11,6 +11,19 @@
 4. Select your Prometheus data source for variable `DS_PROMETHEUS`.
 5. Save dashboard.
 
+## Local Observability Stack
+1. Start stack:
+   - `npm run observability:up`
+2. Check stack:
+   - `npm run observability:check`
+3. Stop stack:
+   - `npm run observability:down`
+
+Services:
+- Prometheus: `http://127.0.0.1:9090`
+- Alertmanager: `http://127.0.0.1:9093`
+- Grafana: `http://127.0.0.1:3001` (`admin/admin`)
+
 ## Recommended Alert Wiring
 1. Load alert rules into Prometheus rule files.
 2. Reload Prometheus.

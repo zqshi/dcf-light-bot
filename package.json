@@ -16,7 +16,10 @@
     "k8s:delete": "kubectl delete -f k8s/",
     "test:ci": "jest --runInBand",
     "verify:openclaw-lock": "node scripts/verify-openclaw-lock.js",
-    "check:platform-slo": "bash scripts/check-platform-slo.sh"
+    "check:platform-slo": "bash scripts/check-platform-slo.sh",
+    "observability:up": "bash scripts/start-observability-stack.sh",
+    "observability:down": "bash scripts/stop-observability-stack.sh",
+    "observability:check": "bash scripts/check-observability-stack.sh"
   },
   "keywords": [
     "openclaw",

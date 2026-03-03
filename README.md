@@ -73,3 +73,7 @@ npm run verify:openclaw-lock
 - Prometheus alert template: [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
 - Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/grafana-dashboard-dcf-light-bot.json)
 - Monitoring guide: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/README.md)
+- Local observability stack:
+  - `npm run observability:up`
+  - `npm run observability:check`
+  - `npm run observability:down`

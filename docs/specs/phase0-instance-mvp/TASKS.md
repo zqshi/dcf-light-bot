@@ -30,6 +30,7 @@
 - [x] Add instance-labeled metrics and configurable health thresholds.
 - [x] Add Prometheus alert rule template and executable platform SLO check script.
 - [x] Add Grafana dashboard template and monitoring import guide.
+- [x] Add local observability stack templates (docker-compose + prometheus + grafana + alertmanager).
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.
