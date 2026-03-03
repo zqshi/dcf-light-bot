@@ -12,6 +12,7 @@ const { AssetCompatibilityService } = require('../contexts/shared-assets/applica
 const { MatrixBot } = require('../integrations/matrix/MatrixBot');
 const { AuthService } = require('../contexts/identity-access/application/AuthService');
 const { InstanceReconciler } = require('../contexts/tenant-instance/application/InstanceReconciler');
+const { ReleasePreflightService } = require('../contexts/release-management/application/ReleasePreflightService');
 const { createServer } = require('./createServer');
 
 function createLogger() {
@@ -98,6 +99,7 @@ async function startApp() {
   const assetService = skillService;
   const matrixBot = new MatrixBot(config, logger, instanceService);
   const authService = new AuthService(config);
+  const releasePreflightService = new ReleasePreflightService({ rootDir: process.cwd() });
   const reconciler = new InstanceReconciler(repo, auditService, provisioner, {
     timeoutMs: config.bootstrapProvisioningTimeoutMs,
     reconcileRunning: config.kubernetesReconcileEnabled,
@@ -113,7 +115,8 @@ async function startApp() {
     auditService,
     metricsService,
     matrixBot,
-    authService
+    authService,
+    releasePreflightService
   });
   const server = app.listen(config.port, config.host, () => {
     logger.info('server started', { host: config.host, port: config.port });
@@ -204,6 +207,7 @@ async function startApp() {
     auditService,
     metricsService,
     authService,
+    releasePreflightService,
     async shutdown() {
       clearInterval(bootstrapTimer);
       if (auditRetentionTimer) clearInterval(auditRetentionTimer);

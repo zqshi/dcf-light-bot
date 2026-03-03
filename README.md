@@ -30,6 +30,10 @@ cp .env.example .env
 npm start
 ```
 
+## Admin Console
+- URL: `http://localhost:3000/admin/`
+- Built-in static management UI (login, instance/asset/audit/release-preflight views), backed by existing control-plane APIs.
+
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
 - `PERSISTENCE_BACKEND=postgres`: use Postgres as control-plane store backend.
@@ -71,6 +75,8 @@ npm start
 - `GET /api/control/audits`
 - `GET /api/control/audits/export?format=ndjson`
 - `GET /api/control/audits?cursor=0&limit=200&sinceId=<lastSeenId>`
+- `GET /api/control/release/preflight`
+- `POST /api/control/release/preflight/assert`
 
 ## Quality Gates
 ```bash

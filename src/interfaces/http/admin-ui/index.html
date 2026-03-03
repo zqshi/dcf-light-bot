@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DCF 管理后台</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <h1>DCF Light Bot 管理后台</h1>
+        <div class="session">
+          <span id="session-user">未登录</span>
+          <button id="btn-logout" class="ghost" type="button">退出</button>
+        </div>
+      </header>
+
+      <section id="login-card" class="card">
+        <h2>登录</h2>
+        <form id="login-form">
+          <label>
+            用户名
+            <input id="username" required value="admin" />
+          </label>
+          <label>
+            密码
+            <input id="password" type="password" required value="admin123" />
+          </label>
+          <button type="submit">登录</button>
+        </form>
+      </section>
+
+      <section id="dashboard" class="grid hidden">
+        <article class="card kpi">
+          <h3>平台健康</h3>
+          <p id="health-level" class="metric">-</p>
+          <p id="status-summary" class="muted"></p>
+        </article>
+        <article class="card kpi">
+          <h3>实例数</h3>
+          <p id="instance-total" class="metric">0</p>
+        </article>
+        <article class="card kpi">
+          <h3>待审资产</h3>
+          <p id="pending-total" class="metric">0</p>
+        </article>
+        <article class="card kpi">
+          <h3>Preflight</h3>
+          <p id="preflight-ok" class="metric">-</p>
+        </article>
+      </section>
+
+      <section id="workspace" class="hidden">
+        <div class="tabs">
+          <button class="tab active" data-tab="instances" type="button">员工实例</button>
+          <button class="tab" data-tab="assets" type="button">技能/工具/知识</button>
+          <button class="tab" data-tab="audits" type="button">审计日志</button>
+          <button class="tab" data-tab="release" type="button">发布预检</button>
+        </div>
+
+        <article id="tab-instances" class="card tab-panel active">
+          <div class="panel-head">
+            <h3>员工实例</h3>
+            <button id="btn-refresh-instances" type="button">刷新</button>
+          </div>
+          <table>
+            <thead><tr><th>ID</th><th>租户</th><th>状态</th><th>运行版本</th><th>更新时间</th></tr></thead>
+            <tbody id="instances-table"></tbody>
+          </table>
+        </article>
+
+        <article id="tab-assets" class="card tab-panel">
+          <div class="panel-head">
+            <h3>共享资产</h3>
+            <button id="btn-refresh-assets" type="button">刷新</button>
+          </div>
+          <div class="split">
+            <div>
+              <h4>已共享</h4>
+              <ul id="shared-assets"></ul>
+            </div>
+            <div>
+              <h4>待审核</h4>
+              <ul id="pending-assets"></ul>
+            </div>
+          </div>
+        </article>
+
+        <article id="tab-audits" class="card tab-panel">
+          <div class="panel-head">
+            <h3>审计日志</h3>
+            <button id="btn-refresh-audits" type="button">刷新</button>
+          </div>
+          <ul id="audit-list"></ul>
+        </article>
+
+        <article id="tab-release" class="card tab-panel">
+          <div class="panel-head">
+            <h3>发布预检</h3>
+            <button id="btn-refresh-release" type="button">刷新</button>
+          </div>
+          <pre id="release-json" class="json"></pre>
+        </article>
+      </section>
+
+      <p id="toast" class="toast"></p>
+    </main>
+    <script src="/admin/app.js"></script>
+  </body>
+</html>

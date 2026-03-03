@@ -36,6 +36,7 @@
 - [x] Add Helm chart templates with env values and CI helm lint/template validation.
 - [x] Add production helm guardrails (pinned image, external secret, min replicas) with CI check.
 - [x] Add release preflight matrix report check across dev/prod values with CI gate.
+- [x] Add built-in admin console web UI (`/admin`) and release preflight control-plane APIs.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

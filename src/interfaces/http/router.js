@@ -7,6 +7,7 @@ const { buildAuditRouter } = require('./routes/audits');
 const { buildAuthRouter } = require('./routes/auth');
 const { buildRuntimeRouter } = require('./routes/runtime');
 const { buildAssetRouter } = require('./routes/assets');
+const { buildReleaseRouter } = require('./routes/release');
 const { buildControlAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
 const { buildRequestContextMiddleware } = require('./middleware/requestContext');
 
@@ -28,6 +29,9 @@ function buildApiRouter(context) {
   router.use('/api/control/assets', buildAssetRouter(assetService, requirePermission, context.metricsService));
   router.use('/api/control/skills', buildSkillRouter(context.skillService, requirePermission));
   router.use('/api/control/runtime', buildRuntimeRouter(context.runtimeProxyService, requirePermission));
+  if (context.releasePreflightService) {
+    router.use('/api/control/release', buildReleaseRouter(context.releasePreflightService, requirePermission));
+  }
 
   router.use((error, req, res, _next) => {
     const status = Number(error.statusCode || 0) || 500;
