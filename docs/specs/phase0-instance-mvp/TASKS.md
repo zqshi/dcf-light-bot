@@ -48,6 +48,8 @@
 - [x] Add backend filters for instances/audits and batch asset binding API with UI integration.
 - [x] Add instance batch action API (`start/stop`) with admin console batch operation entry.
 - [x] Add admin console batch failure detail visualization and instance-trace export (JSON/NDJSON).
+- [x] Add Matrix room relay integration and end-to-end bootstrap script for `!create_agent` flow.
+- [x] Add provider-aware OpenClaw runtime config generation (MiniMax/DeepSeek default routing).
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.
