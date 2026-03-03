@@ -101,6 +101,10 @@ form {
   flex-wrap: wrap;
 }
 
+.inline-form {
+  margin-bottom: 10px;
+}
+
 label {
   display: flex;
   flex-direction: column;
@@ -108,7 +112,7 @@ label {
   min-width: 240px;
 }
 
-input, button {
+input, select, button {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--line);

@@ -28,7 +28,26 @@
     refreshInstances: document.getElementById('btn-refresh-instances'),
     refreshAssets: document.getElementById('btn-refresh-assets'),
     refreshAudits: document.getElementById('btn-refresh-audits'),
-    refreshRelease: document.getElementById('btn-refresh-release')
+    refreshRelease: document.getElementById('btn-refresh-release'),
+    instanceCreateForm: document.getElementById('instance-create-form'),
+    instanceName: document.getElementById('instance-name'),
+    instanceCreator: document.getElementById('instance-creator'),
+    instanceRoom: document.getElementById('instance-room'),
+    instanceActionForm: document.getElementById('instance-action-form'),
+    instanceActionId: document.getElementById('instance-action-id'),
+    instanceStart: document.getElementById('btn-instance-start'),
+    instanceStop: document.getElementById('btn-instance-stop'),
+    assetReviewForm: document.getElementById('asset-review-form'),
+    reviewReportId: document.getElementById('review-report-id'),
+    reviewDecision: document.getElementById('review-decision'),
+    reviewOpinion: document.getElementById('review-opinion'),
+    assetBindForm: document.getElementById('asset-bind-form'),
+    bindTenantId: document.getElementById('bind-tenant-id'),
+    bindAssetId: document.getElementById('bind-asset-id'),
+    bindAssetType: document.getElementById('bind-asset-type'),
+    auditFilterForm: document.getElementById('audit-filter-form'),
+    auditType: document.getElementById('audit-type'),
+    auditActor: document.getElementById('audit-actor')
   };
 
   async function api(path, options) {
@@ -102,32 +121,51 @@
     });
   }
 
+  async function refreshInstances() {
+    const instanceRes = await api('/api/control/instances');
+    const instances = instanceRes.data || [];
+    el.instanceTotal.textContent = String(instances.length);
+    renderInstances(instances);
+    return instances;
+  }
+
+  async function refreshAssets() {
+    const pendingRes = await api('/api/control/assets/reviews/pending');
+    const pending = pendingRes.data || [];
+    el.pendingTotal.textContent = String(pending.length);
+    const sharedRes = await api('/api/control/assets/shared');
+    renderAssets(sharedRes.data || [], pending);
+    return { pending, shared: sharedRes.data || [] };
+  }
+
+  async function refreshAudits(params) {
+    const query = new URLSearchParams({ limit: '50' });
+    if (params && params.type) query.set('type', params.type);
+    if (params && params.actor) query.set('actor', params.actor);
+    const auditRes = await api(`/api/control/audits?${query.toString()}`);
+    renderAudits(auditRes.data || []);
+    return auditRes.data || [];
+  }
+
+  async function refreshRelease() {
+    const releaseRes = await api('/api/control/release/preflight');
+    el.preflightOk.textContent = releaseRes.data && releaseRes.data.ok ? 'passed' : 'failed';
+    el.releaseJson.textContent = JSON.stringify(releaseRes.data || {}, null, 2);
+    return releaseRes.data || {};
+  }
+
   async function loadDashboard() {
     const statusRes = await api('/status');
     const status = statusRes || {};
     el.healthLevel.textContent = status.healthLevel || 'unknown';
     el.statusSummary.textContent = `failed=${status.failedInstances || 0}, degradedEvents=${status.recentDegradedEvents || 0}`;
 
-    const instanceRes = await api('/api/control/instances');
-    const instances = instanceRes.data || [];
-    el.instanceTotal.textContent = String(instances.length);
-    renderInstances(instances);
+    const instances = await refreshInstances();
+    const assets = await refreshAssets();
+    await refreshAudits();
+    await refreshRelease();
 
-    const pendingRes = await api('/api/control/assets/reviews/pending');
-    const pending = pendingRes.data || [];
-    el.pendingTotal.textContent = String(pending.length);
-
-    const sharedRes = await api('/api/control/assets/shared');
-    renderAssets(sharedRes.data || [], pending);
-
-    const auditRes = await api('/api/control/audits?limit=50');
-    renderAudits(auditRes.data || []);
-
-    const releaseRes = await api('/api/control/release/preflight');
-    el.preflightOk.textContent = releaseRes.data && releaseRes.data.ok ? 'passed' : 'failed';
-    el.releaseJson.textContent = JSON.stringify(releaseRes.data || {}, null, 2);
-
-    return { instances, pending };
+    return { instances, pending: assets.pending };
   }
 
   async function doLogin(evt) {
@@ -188,29 +226,116 @@
     });
 
     el.refreshInstances.addEventListener('click', async function () {
-      const res = await api('/api/control/instances');
-      renderInstances(res.data || []);
+      await refreshInstances();
       showToast('实例列表已刷新', 'success');
     });
 
     el.refreshAssets.addEventListener('click', async function () {
-      const pendingRes = await api('/api/control/assets/reviews/pending');
-      const sharedRes = await api('/api/control/assets/shared');
-      renderAssets(sharedRes.data || [], pendingRes.data || []);
+      await refreshAssets();
       showToast('资产列表已刷新', 'success');
     });
 
     el.refreshAudits.addEventListener('click', async function () {
-      const res = await api('/api/control/audits?limit=50');
-      renderAudits(res.data || []);
+      await refreshAudits();
       showToast('审计日志已刷新', 'success');
     });
 
     el.refreshRelease.addEventListener('click', async function () {
-      const res = await api('/api/control/release/preflight');
-      el.preflightOk.textContent = res.data && res.data.ok ? 'passed' : 'failed';
-      el.releaseJson.textContent = JSON.stringify(res.data || {}, null, 2);
+      await refreshRelease();
       showToast('发布预检已刷新', 'success');
+    });
+
+    el.instanceCreateForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        await api('/api/control/instances', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: el.instanceName.value.trim(),
+            creator: el.instanceCreator.value.trim() || (state.me && state.me.username) || 'admin-ui',
+            matrixRoomId: el.instanceRoom.value.trim() || null
+          })
+        });
+        await refreshInstances();
+        showToast('实例创建成功', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.instanceStart.addEventListener('click', async function () {
+      try {
+        const id = el.instanceActionId.value.trim();
+        if (!id) throw new Error('请输入实例ID');
+        await api(`/api/control/instances/${encodeURIComponent(id)}/start`, { method: 'POST', body: '{}' });
+        await refreshInstances();
+        showToast('实例已启动', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.instanceStop.addEventListener('click', async function () {
+      try {
+        const id = el.instanceActionId.value.trim();
+        if (!id) throw new Error('请输入实例ID');
+        await api(`/api/control/instances/${encodeURIComponent(id)}/stop`, { method: 'POST', body: '{}' });
+        await refreshInstances();
+        showToast('实例已停止', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.assetReviewForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        const reportId = el.reviewReportId.value.trim();
+        if (!reportId) throw new Error('请输入报告ID');
+        await api(`/api/control/assets/reports/${encodeURIComponent(reportId)}/reviews`, {
+          method: 'POST',
+          body: JSON.stringify({
+            decision: el.reviewDecision.value,
+            reviewer: (state.me && state.me.username) || 'platform_admin',
+            opinion: el.reviewOpinion.value.trim()
+          })
+        });
+        await refreshAssets();
+        showToast('审核提交成功', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.assetBindForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        await api('/api/control/assets/bindings', {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId: el.bindTenantId.value.trim(),
+            assetId: el.bindAssetId.value.trim(),
+            assetType: el.bindAssetType.value,
+            actor: (state.me && state.me.username) || 'platform_admin'
+          })
+        });
+        showToast('资产绑定成功', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.auditFilterForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        await refreshAudits({
+          type: el.auditType.value.trim(),
+          actor: el.auditActor.value.trim()
+        });
+        showToast('审计查询完成', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
     });
   }
 

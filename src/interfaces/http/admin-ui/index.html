@@ -64,6 +64,17 @@
             <h3>员工实例</h3>
             <button id="btn-refresh-instances" type="button">刷新</button>
           </div>
+          <form id="instance-create-form" class="inline-form">
+            <label>实例名<input id="instance-name" required placeholder="alice-agent" /></label>
+            <label>创建人<input id="instance-creator" value="admin-ui" /></label>
+            <label>矩阵房间<input id="instance-room" placeholder="!room:matrix.org" /></label>
+            <button type="submit">创建实例</button>
+          </form>
+          <form id="instance-action-form" class="inline-form">
+            <label>实例ID<input id="instance-action-id" required placeholder="inst_xxx" /></label>
+            <button id="btn-instance-start" type="button">启动</button>
+            <button id="btn-instance-stop" class="ghost" type="button">停止</button>
+          </form>
           <table>
             <thead><tr><th>ID</th><th>租户</th><th>状态</th><th>运行版本</th><th>更新时间</th></tr></thead>
             <tbody id="instances-table"></tbody>
@@ -75,6 +86,29 @@
             <h3>共享资产</h3>
             <button id="btn-refresh-assets" type="button">刷新</button>
           </div>
+          <form id="asset-review-form" class="inline-form">
+            <label>报告ID<input id="review-report-id" required placeholder="rep_xxx" /></label>
+            <label>审核动作
+              <select id="review-decision">
+                <option value="approve">approve</option>
+                <option value="reject">reject</option>
+              </select>
+            </label>
+            <label>意见<input id="review-opinion" placeholder="looks good" /></label>
+            <button type="submit">提交审核</button>
+          </form>
+          <form id="asset-bind-form" class="inline-form">
+            <label>租户ID<input id="bind-tenant-id" required placeholder="tenant_xxx" /></label>
+            <label>资产ID<input id="bind-asset-id" required placeholder="asset_xxx" /></label>
+            <label>资产类型
+              <select id="bind-asset-type">
+                <option value="skill">skill</option>
+                <option value="tool">tool</option>
+                <option value="knowledge">knowledge</option>
+              </select>
+            </label>
+            <button type="submit">绑定资产</button>
+          </form>
           <div class="split">
             <div>
               <h4>已共享</h4>
@@ -92,6 +126,11 @@
             <h3>审计日志</h3>
             <button id="btn-refresh-audits" type="button">刷新</button>
           </div>
+          <form id="audit-filter-form" class="inline-form">
+            <label>类型<input id="audit-type" placeholder="instance.provisioned" /></label>
+            <label>操作者<input id="audit-actor" placeholder="admin" /></label>
+            <button type="submit">查询</button>
+          </form>
           <ul id="audit-list"></ul>
         </article>
 

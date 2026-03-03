@@ -33,6 +33,11 @@ npm start
 ## Admin Console
 - URL: `http://localhost:3000/admin/`
 - Built-in static management UI (login, instance/asset/audit/release-preflight views), backed by existing control-plane APIs.
+- Supports operational actions:
+  - create/start/stop tenant instance
+  - review shared asset reports (approve/reject)
+  - bind shared assets to tenant
+  - filter audit logs by `type` / `actor`
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
