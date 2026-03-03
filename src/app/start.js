@@ -7,6 +7,7 @@ const { InstanceService } = require('../contexts/tenant-instance/application/Ins
 const { RuntimeProxyService } = require('../contexts/tenant-instance/application/RuntimeProxyService');
 const { SkillService } = require('../contexts/shared-assets/application/SkillService');
 const { TenantAssetResolver } = require('../contexts/shared-assets/application/TenantAssetResolver');
+const { AssetCompatibilityService } = require('../contexts/shared-assets/application/AssetCompatibilityService');
 const { MatrixBot } = require('../integrations/matrix/MatrixBot');
 const { AuthService } = require('../contexts/identity-access/application/AuthService');
 const { InstanceReconciler } = require('../contexts/tenant-instance/application/InstanceReconciler');
@@ -29,8 +30,11 @@ async function startApp() {
   const repo = new ControlPlaneRepository(store);
   const auditService = new AuditService(repo);
   const tenantAssetResolver = new TenantAssetResolver(repo);
+  const assetCompatibilityService = new AssetCompatibilityService();
   const provisioner = new OpenClawProvisioner(config, {
-    resolveTenantAssets: (tenantId) => tenantAssetResolver.resolveByTenant(tenantId)
+    resolveTenantAssets: (tenantId) => tenantAssetResolver.resolveByTenant(tenantId),
+    validateMountedAssets: (runtimeVersion, mountedAssets) =>
+      assetCompatibilityService.validate(runtimeVersion, mountedAssets)
   });
   const instanceService = new InstanceService(repo, provisioner, auditService, config);
   const runtimeProxyService = new RuntimeProxyService(instanceService, config, { auditService });

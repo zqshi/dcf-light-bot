@@ -77,6 +77,7 @@ function loadConfig() {
     kubernetesRollbackOnProvisionFailure: parseBoolean(process.env.KUBERNETES_ROLLBACK_ON_PROVISION_FAILURE, true),
     kubernetesNamespacePrefix: String(process.env.KUBERNETES_NAMESPACE_PREFIX || 'dcf'),
     openclawImage: String(process.env.OPENCLAW_IMAGE || 'openclaw/openclaw:2026.2.27'),
+    openclawRuntimeVersion: String(process.env.OPENCLAW_RUNTIME_VERSION || '2026.2.27'),
     openclawSourcePath: String(process.env.OPENCLAW_SOURCE_PATH || '/Users/zqs/Downloads/project/dependencies/openclaw'),
     matrixHomeserver: String(process.env.MATRIX_HOMESERVER || 'https://matrix.org'),
     matrixUserId: String(process.env.MATRIX_USER_ID || '@dcf-light-bot:matrix.org'),

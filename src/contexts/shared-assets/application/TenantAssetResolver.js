@@ -33,6 +33,7 @@ class TenantAssetResolver {
           name: asset.name,
           description: asset.description,
           version: asset.version,
+          minOpenclawVersion: String(asset.minOpenclawVersion || '').trim() || null,
           contentRef: asset.contentRef || null,
           tags: Array.isArray(asset.tags) ? asset.tags : []
         };

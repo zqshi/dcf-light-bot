@@ -46,8 +46,17 @@ class InstanceService {
         tenantId: instance.tenantId,
         namespace: instance.runtime.namespace,
         podName: instance.runtime.podName,
-        providerKeysInjected: Boolean(runtime.providerKeysInjected)
+        providerKeysInjected: Boolean(runtime.providerKeysInjected),
+        mountedAssetCount: Number(runtime.mountedAssetCount || 0),
+        mountIssues: Array.isArray(runtime.mountIssues) ? runtime.mountIssues : []
       });
+      if (Array.isArray(runtime.mountIssues) && runtime.mountIssues.length) {
+        await this.audit.log('instance.asset.mount.degraded', {
+          instanceId: instance.id,
+          tenantId: instance.tenantId,
+          mountIssues: runtime.mountIssues
+        });
+      }
       return instance;
     } catch (error) {
       instance.state = STATE.FAILED;
@@ -85,6 +94,13 @@ class InstanceService {
     const saved = touch(instance);
     await this.repo.saveInstance(saved);
     await this.audit.log('instance.started', { instanceId, tenantId: saved.tenantId });
+    if (Array.isArray(runtime.mountIssues) && runtime.mountIssues.length) {
+      await this.audit.log('instance.asset.mount.degraded', {
+        instanceId,
+        tenantId: saved.tenantId,
+        mountIssues: runtime.mountIssues
+      });
+    }
     return saved;
   }
 

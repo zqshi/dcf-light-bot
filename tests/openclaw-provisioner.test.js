@@ -9,6 +9,7 @@ function baseConfig(overrides = {}) {
     kubernetesNamespacePrefix: 'dcf',
     platformBaseUrl: 'http://localhost:3000',
     openclawImage: 'openclaw/openclaw:test',
+    openclawRuntimeVersion: '2026.2.27',
     matrixHomeserver: 'https://matrix.org',
     matrixUserId: '@bot:matrix.org',
     providers: [{ name: 'openai', key: 'k1' }],
@@ -70,5 +71,31 @@ describe('OpenClawProvisioner', () => {
     const parsed = yaml.parse(configContent);
     expect(parsed.sharedAssets.byType.tool).toHaveLength(1);
     expect(parsed.sharedAssets.byType.tool[0].name).toBe('doc-reader');
+  });
+
+  test('continues provisioning when asset resolve fails and records mount issue', async () => {
+    const provisioner = new OpenClawProvisioner(
+      baseConfig({ kubernetesSimulationMode: false }),
+      { resolveTenantAssets: async () => { throw new Error('resolver down'); } }
+    );
+
+    provisioner.ensureK8sClients = () => ({ core: {}, networking: {} });
+    provisioner.ensureNamespace = async () => {};
+    provisioner.upsertSecret = async () => {};
+    provisioner.upsertPod = async () => {};
+    provisioner.upsertService = async () => {};
+    provisioner.upsertNetworkPolicy = async () => {};
+    provisioner.upsertConfigMap = async () => {};
+
+    const out = await provisioner.provision({
+      id: 'i4',
+      tenantId: 't4',
+      name: 'n4',
+      resources: { cpu: '200m', memory: '512Mi' }
+    });
+
+    expect(out.mode).toBe('kubernetes');
+    expect(Array.isArray(out.mountIssues)).toBe(true);
+    expect(out.mountIssues[0].code).toBe('ASSET_RESOLVE_FAILED');
   });
 });

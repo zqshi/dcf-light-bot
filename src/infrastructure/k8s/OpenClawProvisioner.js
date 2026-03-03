@@ -7,6 +7,7 @@ class OpenClawProvisioner {
     this.simulation = Boolean(config.kubernetesSimulationMode);
     this.k8s = null;
     this.resolveTenantAssets = typeof options.resolveTenantAssets === 'function' ? options.resolveTenantAssets : null;
+    this.validateMountedAssets = typeof options.validateMountedAssets === 'function' ? options.validateMountedAssets : null;
   }
 
   buildRuntimeNames(instance) {
@@ -282,7 +283,46 @@ class OpenClawProvisioner {
     const names = this.buildRuntimeNames(instance);
     const clients = this.ensureK8sClients();
     const providerSecrets = this.getProviderSecretData();
-    const mountedAssets = this.resolveTenantAssets ? await this.resolveTenantAssets(instance.tenantId) : { all: [], byType: {} };
+    const mountIssues = [];
+    let mountedAssets = { all: [], byType: { skill: [], tool: [], knowledge: [] } };
+
+    if (this.resolveTenantAssets) {
+      try {
+        const resolved = await this.resolveTenantAssets(instance.tenantId);
+        mountedAssets = {
+          all: Array.isArray(resolved && resolved.all) ? resolved.all : [],
+          byType: resolved && resolved.byType ? resolved.byType : { skill: [], tool: [], knowledge: [] }
+        };
+      } catch (error) {
+        mountIssues.push({
+          code: 'ASSET_RESOLVE_FAILED',
+          message: String(error.message || error)
+        });
+      }
+    }
+
+    if (this.validateMountedAssets) {
+      try {
+        const validated = await this.validateMountedAssets(this.config.openclawRuntimeVersion || '', mountedAssets);
+        if (validated && validated.accepted) {
+          mountedAssets = validated.accepted;
+        }
+        const rejected = Array.isArray(validated && validated.rejected) ? validated.rejected : [];
+        if (rejected.length) {
+          mountIssues.push({
+            code: 'ASSET_COMPATIBILITY_REJECTED',
+            count: rejected.length,
+            rejected
+          });
+        }
+      } catch (error) {
+        mountIssues.push({
+          code: 'ASSET_VALIDATE_FAILED',
+          message: String(error.message || error)
+        });
+      }
+    }
+
     const configText = this.buildOpenClawConfig(instance, names, mountedAssets);
     const secretName = `${names.namespace}-providers`;
     const configMapName = `${names.namespace}-config`;
@@ -297,7 +337,7 @@ class OpenClawProvisioner {
     await this.upsertService(clients.core, names.namespace, names.serviceName, instance);
     await this.upsertNetworkPolicy(clients.networking, names.namespace, policyName, instance.tenantId);
 
-    return { names, secretName, configMapName, policyName, mountedAssets };
+    return { names, secretName, configMapName, policyName, mountedAssets, mountIssues };
   }
 
   async safeDelete(work, ...args) {
@@ -335,12 +375,18 @@ class OpenClawProvisioner {
   async provision(instance) {
     const names = this.buildRuntimeNames(instance);
     if (this.simulation) {
-      return { ...names, mode: 'simulation', providerKeysInjected: true };
+      return { ...names, mode: 'simulation', providerKeysInjected: true, mountIssues: [] };
     }
 
     try {
-      await this.applyDesiredResources(instance);
-      return { ...names, mode: 'kubernetes', providerKeysInjected: true };
+      const out = await this.applyDesiredResources(instance);
+      return {
+        ...names,
+        mode: 'kubernetes',
+        providerKeysInjected: true,
+        mountedAssetCount: Array.isArray(out.mountedAssets && out.mountedAssets.all) ? out.mountedAssets.all.length : 0,
+        mountIssues: Array.isArray(out.mountIssues) ? out.mountIssues : []
+      };
     } catch (error) {
       if (this.config.kubernetesRollbackOnProvisionFailure !== false) {
         try {
@@ -360,11 +406,17 @@ class OpenClawProvisioner {
   async reconcile(instance) {
     const names = this.buildRuntimeNames(instance);
     if (this.simulation) {
-      return { ok: true, mode: 'simulation', driftRepaired: false, names };
+      return { ok: true, mode: 'simulation', driftRepaired: false, names, mountIssues: [] };
     }
     try {
-      await this.applyDesiredResources(instance);
-      return { ok: true, mode: 'kubernetes', driftRepaired: true, names };
+      const out = await this.applyDesiredResources(instance);
+      return {
+        ok: true,
+        mode: 'kubernetes',
+        driftRepaired: true,
+        names,
+        mountIssues: Array.isArray(out.mountIssues) ? out.mountIssues : []
+      };
     } catch (error) {
       throw new AppError(`kubernetes reconcile failed: ${error.message}`, 500, 'K8S_RECONCILE_FAILED');
     }

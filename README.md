@@ -11,6 +11,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - JWT + RBAC control-plane auth (legacy admin token compatible).
 - K8s real-mode idempotent reconcile and rollback on provision failure.
 - Runtime proxy in kubernetes mode with retry, circuit breaker, and degraded fallback.
+- Asset compatibility validation (`version` / `minOpenclawVersion`) with non-blocking mount isolation.
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.
