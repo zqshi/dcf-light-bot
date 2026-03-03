@@ -1,4 +1,5 @@
-const { mergeDeep, validateProdValues } = require('../scripts/check-prod-helm-config');
+const { mergeDeep } = require('../scripts/helm-values-utils');
+const { validateProdValues } = require('../scripts/check-prod-helm-config');
 
 describe('prod helm config validation', () => {
   test('mergeDeep applies overlay recursively', () => {

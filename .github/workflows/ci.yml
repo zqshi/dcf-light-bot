@@ -36,5 +36,7 @@ jobs:
         run: npm run check:helm-chart
       - name: Validate Production Config Guardrails
         run: npm run check:prod-config
+      - name: Validate Release Preflight Matrix
+        run: npm run check:release-preflight
       - name: Verify OpenClaw Lock
         run: npm run verify:openclaw-lock

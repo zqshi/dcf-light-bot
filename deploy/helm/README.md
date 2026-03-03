@@ -8,6 +8,8 @@ Chart path: `deploy/helm/dcf-light-bot`
    - `npm run check:helm-chart`
 3. Validate production guardrails:
    - `npm run check:prod-config`
+4. Validate release matrix preflight:
+   - `npm run check:release-preflight`
 
 ## Install/Upgrade
 ```bash

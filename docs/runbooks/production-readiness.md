@@ -19,6 +19,7 @@
 - [ ] Helm chart values reviewed and customized (`deploy/helm/dcf-light-bot/values-*.yaml`)
 - [ ] Helm chart check passed (`npm run check:helm-chart`)
 - [ ] Production config guardrail check passed (`npm run check:prod-config`)
+- [ ] Release preflight matrix check passed (`npm run check:release-preflight`)
 
 ## Observability
 - [ ] Audit endpoint retained with export plan

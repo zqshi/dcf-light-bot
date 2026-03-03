@@ -8,29 +8,30 @@
 5. `npm run check:k8s-manifests`
 6. `npm run check:helm-chart`
 7. `npm run check:prod-config`
-8. Validate `.env` production secrets:
+8. `npm run check:release-preflight`
+9. Validate `.env` production secrets:
    - `CONTROL_PLANE_ADMIN_TOKEN`
    - `MATRIX_WEBHOOK_SECRET`
    - at least one provider API key
-9. Validate persistence backend:
+10. Validate persistence backend:
    - `PERSISTENCE_BACKEND=file` with writable `CONTROL_PLANE_STORE`, or
    - `PERSISTENCE_BACKEND=postgres` with valid `POSTGRES_URL`
-10. If `postgres`, run migration [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
-11. Confirm reconcile flags:
+11. If `postgres`, run migration [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
+12. Confirm reconcile flags:
    - `KUBERNETES_RECONCILE_ENABLED=true`
    - `KUBERNETES_ROLLBACK_ON_PROVISION_FAILURE=true`
-12. Confirm audit retention policy:
+13. Confirm audit retention policy:
    - `AUDIT_RETENTION_ENABLED=true`
    - `AUDIT_RETENTION_TTL_DAYS` / `AUDIT_RETENTION_MAX_ROWS`
    - `AUDIT_ARCHIVE_ENABLED` / `AUDIT_ARCHIVE_MAX_ROWS`
-13. Confirm asset review SLA policy:
+14. Confirm asset review SLA policy:
    - `ASSET_REVIEW_SLA_ENABLED=true`
    - `ASSET_REVIEW_SLA_HOURS` / `ASSET_REVIEW_SLA_INTERVAL_MS`
    - `ASSET_REVIEW_ESCALATION_MAX_LEVEL` / `ASSET_REVIEW_ESCALATION_COOLDOWN_HOURS`
-14. Confirm metrics exposure:
+15. Confirm metrics exposure:
    - `METRICS_ENABLED=true`
    - `METRICS_REFRESH_INTERVAL_MS`
-15. Confirm health thresholds:
+16. Confirm health thresholds:
    - `HEALTH_UNHEALTHY_*` and `HEALTH_DEGRADED_*`
 
 ## Release Steps

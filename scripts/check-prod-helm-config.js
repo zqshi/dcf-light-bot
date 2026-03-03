@@ -1,30 +1,5 @@
-const fs = require('fs');
 const path = require('path');
-const yaml = require('yaml');
-
-function readYaml(filePath) {
-  const content = fs.readFileSync(path.resolve(filePath), 'utf8');
-  return yaml.parse(content) || {};
-}
-
-function isObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value);
-}
-
-function mergeDeep(base, overlay) {
-  if (!isObject(base) || !isObject(overlay)) {
-    return overlay === undefined ? base : overlay;
-  }
-  const out = { ...base };
-  for (const [key, value] of Object.entries(overlay)) {
-    if (isObject(value) && isObject(base[key])) {
-      out[key] = mergeDeep(base[key], value);
-    } else {
-      out[key] = value;
-    }
-  }
-  return out;
-}
+const { loadEnvValues } = require('./helm-values-utils');
 
 function validateProdValues(values) {
   const errors = [];
@@ -69,12 +44,7 @@ function validateProdValues(values) {
 
 function run() {
   const root = path.resolve(__dirname, '..');
-  const baseFile = path.join(root, 'deploy/helm/dcf-light-bot/values.yaml');
-  const prodFile = path.join(root, 'deploy/helm/dcf-light-bot/values-prod.yaml');
-
-  const baseValues = readYaml(baseFile);
-  const prodOverlay = readYaml(prodFile);
-  const mergedProd = mergeDeep(baseValues, prodOverlay);
+  const { prodValues: mergedProd } = loadEnvValues(root);
   const errors = validateProdValues(mergedProd);
 
   if (errors.length > 0) {
@@ -90,6 +60,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-  mergeDeep,
   validateProdValues,
 };

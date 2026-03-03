@@ -84,6 +84,7 @@ npm run verify:openclaw-lock
 - K8s manifest static check: `npm run check:k8s-manifests`
 - Helm chart static check: `npm run check:helm-chart`
 - Production helm guardrail check: `npm run check:prod-config`
+- Release preflight matrix check: `npm run check:release-preflight`
 - Prometheus alert template: [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
 - Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/grafana-dashboard-dcf-light-bot.json)
 - Monitoring guide: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/README.md)
