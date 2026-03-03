@@ -6,10 +6,29 @@ COMPOSE_FILE="$ROOT_DIR/deploy/local/docker-compose.openclaw-matrix.yml"
 MATRIX_DATA_DIR="$ROOT_DIR/runtime/matrix/data"
 OPENCLAW_CONFIG_DIR="$ROOT_DIR/runtime/openclaw/config"
 OPENCLAW_WORKSPACE_DIR="$ROOT_DIR/runtime/openclaw/workspace"
+MATRIX_RESTART_ON_START="${MATRIX_RESTART_ON_START:-true}"
 
 mkdir -p "$MATRIX_DATA_DIR" "$OPENCLAW_CONFIG_DIR" "$OPENCLAW_WORKSPACE_DIR"
 
-if ! docker info >/dev/null 2>&1; then
+wait_for_docker() {
+  if docker info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "[start] docker daemon unavailable, trying to launch Docker Desktop"
+  open -a Docker >/dev/null 2>&1 || true
+
+  for _ in $(seq 1 90); do
+    if docker info >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  return 1
+}
+
+if ! wait_for_docker; then
   echo "[error] docker daemon not available"
   exit 1
 fi
@@ -35,6 +54,11 @@ fi
 
 echo "[start] starting matrix + openclaw"
 docker compose -f "$COMPOSE_FILE" up -d
+
+if [ "${MATRIX_RESTART_ON_START}" = "true" ]; then
+  echo "[start] restarting matrix-synapse to clear stale throttling state"
+  docker restart dcf-matrix-synapse >/dev/null
+fi
 
 for i in $(seq 1 60); do
   if curl -fsS http://127.0.0.1:8008/_matrix/client/versions >/dev/null 2>&1; then

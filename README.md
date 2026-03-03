@@ -39,6 +39,15 @@ npm start
   - Matrix Synapse: `http://127.0.0.1:8008`
   - OpenClaw Gateway UI: `http://127.0.0.1:18789`
 
+## Local All-In-One Ops
+- Start all (`matrix + openclaw + dcf app`): `npm run start:all`
+- Check all (includes Matrix E2E create-agent): `npm run check:all`
+- Stop all: `npm run stop:all`
+- App-only:
+  - Start: `npm run start:app`
+  - Check: `npm run check:app`
+  - Stop: `npm run stop:app`
+
 ## Admin Console
 - URL: `http://localhost:3000/admin/`
 - Built-in static management UI (login, instance/asset/audit/release-preflight views), backed by existing control-plane APIs.
