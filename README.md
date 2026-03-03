@@ -8,6 +8,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - Tenant asset report (skill/tool/knowledge) -> review -> shared publish -> cross-tenant binding workflow.
 - Audit trail for instance lifecycle and shared-asset operations.
 - JWT + RBAC control-plane auth (legacy admin token compatible).
+- K8s real-mode idempotent reconcile and rollback on provision failure.
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.

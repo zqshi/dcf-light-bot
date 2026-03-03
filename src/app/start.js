@@ -34,7 +34,11 @@ async function startApp() {
   const assetService = skillService;
   const matrixBot = new MatrixBot(config, logger, instanceService);
   const authService = new AuthService(config);
-  const reconciler = new InstanceReconciler(repo, auditService, config.bootstrapProvisioningTimeoutMs);
+  const reconciler = new InstanceReconciler(repo, auditService, provisioner, {
+    timeoutMs: config.bootstrapProvisioningTimeoutMs,
+    reconcileRunning: config.kubernetesReconcileEnabled,
+    rollbackOnTimeout: config.kubernetesRollbackOnProvisionFailure
+  });
 
   const app = createServer({
     config,

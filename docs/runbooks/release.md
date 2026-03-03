@@ -13,6 +13,9 @@
    - `PERSISTENCE_BACKEND=file` with writable `CONTROL_PLANE_STORE`, or
    - `PERSISTENCE_BACKEND=postgres` with valid `POSTGRES_URL`
 7. If `postgres`, run migration [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
+8. Confirm reconcile flags:
+   - `KUBERNETES_RECONCILE_ENABLED=true`
+   - `KUBERNETES_ROLLBACK_ON_PROVISION_FAILURE=true`
 
 ## Release Steps
 1. Update `versions.lock.json` if OpenClaw dependency changed.

@@ -73,6 +73,8 @@ function loadConfig() {
     postgresTable: String(process.env.POSTGRES_TABLE || 'control_plane_store').trim(),
     postgresRowKey: String(process.env.POSTGRES_ROW_KEY || 'main').trim(),
     kubernetesSimulationMode: parseBoolean(process.env.KUBERNETES_SIMULATION_MODE, true),
+    kubernetesReconcileEnabled: parseBoolean(process.env.KUBERNETES_RECONCILE_ENABLED, true),
+    kubernetesRollbackOnProvisionFailure: parseBoolean(process.env.KUBERNETES_ROLLBACK_ON_PROVISION_FAILURE, true),
     kubernetesNamespacePrefix: String(process.env.KUBERNETES_NAMESPACE_PREFIX || 'dcf'),
     openclawImage: String(process.env.OPENCLAW_IMAGE || 'openclaw/openclaw:2026.2.27'),
     openclawSourcePath: String(process.env.OPENCLAW_SOURCE_PATH || '/Users/zqs/Downloads/project/dependencies/openclaw'),

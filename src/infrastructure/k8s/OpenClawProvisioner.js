@@ -79,13 +79,16 @@ class OpenClawProvisioner {
     }
   }
 
+  isNotFound(error) {
+    return Number(error && error.response && error.response.statusCode) === 404;
+  }
+
   async ensureNamespace(coreApi, namespace) {
     try {
       await coreApi.readNamespace(namespace);
       return;
     } catch (error) {
-      const code = Number(error && error.response && error.response.statusCode);
-      if (code !== 404) throw error;
+      if (!this.isNotFound(error)) throw error;
     }
     await coreApi.createNamespace({
       metadata: {
@@ -113,8 +116,7 @@ class OpenClawProvisioner {
         }
       });
     } catch (error) {
-      const code = Number(error && error.response && error.response.statusCode);
-      if (code === 404) {
+      if (this.isNotFound(error)) {
         await coreApi.createNamespacedSecret(namespace, payload);
         return;
       }
@@ -137,8 +139,7 @@ class OpenClawProvisioner {
         }
       });
     } catch (error) {
-      const code = Number(error && error.response && error.response.statusCode);
-      if (code === 404) {
+      if (this.isNotFound(error)) {
         await coreApi.createNamespacedConfigMap(namespace, payload);
         return;
       }
@@ -194,8 +195,7 @@ class OpenClawProvisioner {
         }
       });
     } catch (error) {
-      const code = Number(error && error.response && error.response.statusCode);
-      if (code === 404) {
+      if (this.isNotFound(error)) {
         await coreApi.createNamespacedPod(namespace, payload);
         return;
       }
@@ -232,8 +232,7 @@ class OpenClawProvisioner {
         }
       });
     } catch (error) {
-      const code = Number(error && error.response && error.response.statusCode);
-      if (code === 404) {
+      if (this.isNotFound(error)) {
         await coreApi.createNamespacedService(namespace, payload);
         return;
       }
@@ -269,12 +268,64 @@ class OpenClawProvisioner {
         }
       });
     } catch (error) {
-      const code = Number(error && error.response && error.response.statusCode);
-      if (code === 404) {
+      if (this.isNotFound(error)) {
         await networkingApi.createNamespacedNetworkPolicy(namespace, payload);
         return;
       }
       throw error;
+    }
+  }
+
+  async applyDesiredResources(instance) {
+    const names = this.buildRuntimeNames(instance);
+    const clients = this.ensureK8sClients();
+    const providerSecrets = this.getProviderSecretData();
+    const configText = this.buildOpenClawConfig(instance, names);
+    const secretName = `${names.namespace}-providers`;
+    const configMapName = `${names.namespace}-config`;
+    const policyName = `${names.namespace}-isolation`;
+
+    await this.ensureNamespace(clients.core, names.namespace);
+    await this.upsertSecret(clients.core, names.namespace, secretName, providerSecrets);
+    await this.upsertConfigMap(clients.core, names.namespace, configMapName, {
+      'openclaw-config.yaml': configText
+    });
+    await this.upsertPod(clients.core, names.namespace, names.podName, names.serviceName, instance, secretName, configMapName);
+    await this.upsertService(clients.core, names.namespace, names.serviceName, instance);
+    await this.upsertNetworkPolicy(clients.networking, names.namespace, policyName, instance.tenantId);
+
+    return { names, secretName, configMapName, policyName };
+  }
+
+  async safeDelete(work, ...args) {
+    try {
+      await work(...args);
+      return { deleted: true };
+    } catch (error) {
+      if (this.isNotFound(error)) return { deleted: false, notFound: true };
+      throw error;
+    }
+  }
+
+  async rollback(instance) {
+    const names = this.buildRuntimeNames(instance);
+    if (this.simulation) {
+      return { ok: true, mode: 'simulation', names };
+    }
+    const clients = this.ensureK8sClients();
+    const secretName = `${names.namespace}-providers`;
+    const configMapName = `${names.namespace}-config`;
+    const policyName = `${names.namespace}-isolation`;
+
+    try {
+      await this.safeDelete(clients.core.deleteNamespacedPod.bind(clients.core), names.podName, names.namespace);
+      await this.safeDelete(clients.core.deleteNamespacedService.bind(clients.core), names.serviceName, names.namespace);
+      await this.safeDelete(clients.core.deleteNamespacedConfigMap.bind(clients.core), configMapName, names.namespace);
+      await this.safeDelete(clients.core.deleteNamespacedSecret.bind(clients.core), secretName, names.namespace);
+      await this.safeDelete(clients.networking.deleteNamespacedNetworkPolicy.bind(clients.networking), policyName, names.namespace);
+      return { ok: true, mode: 'kubernetes', names };
+    } catch (error) {
+      throw new AppError(`kubernetes rollback failed: ${error.message}`, 500, 'K8S_ROLLBACK_FAILED');
     }
   }
 
@@ -284,26 +335,35 @@ class OpenClawProvisioner {
       return { ...names, mode: 'simulation', providerKeysInjected: true };
     }
 
-    const clients = this.ensureK8sClients();
     try {
-      await this.ensureNamespace(clients.core, names.namespace);
-      const providerSecrets = this.getProviderSecretData();
-      const configText = this.buildOpenClawConfig(instance, names);
-      const secretName = `${names.namespace}-providers`;
-      const configMapName = `${names.namespace}-config`;
-      const policyName = `${names.namespace}-isolation`;
-
-      await this.upsertSecret(clients.core, names.namespace, secretName, providerSecrets);
-      await this.upsertConfigMap(clients.core, names.namespace, configMapName, {
-        'openclaw-config.yaml': configText
-      });
-      await this.upsertPod(clients.core, names.namespace, names.podName, names.serviceName, instance, secretName, configMapName);
-      await this.upsertService(clients.core, names.namespace, names.serviceName, instance);
-      await this.upsertNetworkPolicy(clients.networking, names.namespace, policyName, instance.tenantId);
-
+      await this.applyDesiredResources(instance);
       return { ...names, mode: 'kubernetes', providerKeysInjected: true };
     } catch (error) {
+      if (this.config.kubernetesRollbackOnProvisionFailure !== false) {
+        try {
+          await this.rollback(instance);
+        } catch (rollbackError) {
+          throw new AppError(
+            `kubernetes provision failed: ${error.message}; rollback failed: ${rollbackError.message}`,
+            500,
+            'K8S_PROVISION_AND_ROLLBACK_FAILED'
+          );
+        }
+      }
       throw new AppError(`kubernetes provision failed: ${error.message}`, 500, 'K8S_PROVISION_FAILED');
+    }
+  }
+
+  async reconcile(instance) {
+    const names = this.buildRuntimeNames(instance);
+    if (this.simulation) {
+      return { ok: true, mode: 'simulation', driftRepaired: false, names };
+    }
+    try {
+      await this.applyDesiredResources(instance);
+      return { ok: true, mode: 'kubernetes', driftRepaired: true, names };
+    } catch (error) {
+      throw new AppError(`kubernetes reconcile failed: ${error.message}`, 500, 'K8S_RECONCILE_FAILED');
     }
   }
 
@@ -327,8 +387,7 @@ class OpenClawProvisioner {
       await clients.core.deleteNamespacedPod(names.podName, names.namespace);
       return { ok: true, mode: 'kubernetes' };
     } catch (error) {
-      const code = Number(error && error.response && error.response.statusCode);
-      if (code === 404) return { ok: true, mode: 'kubernetes', alreadyStopped: true };
+      if (this.isNotFound(error)) return { ok: true, mode: 'kubernetes', alreadyStopped: true };
       throw new AppError(`kubernetes stop failed: ${error.message}`, 500, 'K8S_STOP_FAILED');
     }
   }

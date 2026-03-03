@@ -20,5 +20,5 @@
 - [x] Add `/api/control/assets/*` routes for enterprise shared assets.
 
 ## Next
-- [ ] Real Kubernetes reconciler and idempotent apply.
+- [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.
 - [x] Postgres repository adapter and migration scripts.
