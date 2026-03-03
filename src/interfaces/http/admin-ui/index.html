@@ -2,245 +2,88 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DCF 管理后台</title>
-    <link rel="stylesheet" href="/admin/styles.css" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DCF Light Bot 管理后台</title>
+    <link rel="stylesheet" href="/admin/layout.css" />
   </head>
-  <body>
-    <main class="shell">
-      <header class="header">
-        <h1>DCF Light Bot 管理后台</h1>
-        <div class="session">
-          <span id="session-user">未登录</span>
-          <button id="btn-logout" class="ghost" type="button">退出</button>
-        </div>
-      </header>
-
-      <section id="login-card" class="card">
-        <h2>登录</h2>
-        <form id="login-form">
-          <label>
-            用户名
-            <input id="username" required value="admin" />
-          </label>
-          <label>
-            密码
-            <input id="password" type="password" required value="admin123" />
-          </label>
-          <button type="submit">登录</button>
-        </form>
-      </section>
-
-      <section id="dashboard" class="grid hidden">
-        <article class="card kpi">
-          <h3>平台健康</h3>
-          <p id="health-level" class="metric">-</p>
-          <p id="status-summary" class="muted"></p>
-        </article>
-        <article class="card kpi">
-          <h3>实例数</h3>
-          <p id="instance-total" class="metric">0</p>
-        </article>
-        <article class="card kpi">
-          <h3>待审资产</h3>
-          <p id="pending-total" class="metric">0</p>
-        </article>
-        <article class="card kpi">
-          <h3>Preflight</h3>
-          <p id="preflight-ok" class="metric">-</p>
-        </article>
-      </section>
-
-      <section id="workspace" class="hidden">
-        <div class="tabs">
-          <button class="tab active" data-tab="instances" type="button">员工实例</button>
-          <button class="tab" data-tab="assets" type="button">技能/工具/知识</button>
-          <button class="tab" data-tab="audits" type="button">审计日志</button>
-          <button class="tab" data-tab="release" type="button">发布预检</button>
-        </div>
-
-        <article id="tab-instances" class="card tab-panel active">
-          <div class="panel-head">
-            <h3>员工实例</h3>
-            <button id="btn-refresh-instances" type="button">刷新</button>
-          </div>
-          <form id="instance-create-form" class="inline-form">
-            <label>实例名<input id="instance-name" required placeholder="alice-agent" /></label>
-            <label>创建人<input id="instance-creator" value="admin-ui" /></label>
-            <label>矩阵房间<input id="instance-room" placeholder="!room:matrix.org" /></label>
-            <button type="submit">创建实例</button>
-          </form>
-          <form id="instance-action-form" class="inline-form">
-            <label>实例ID<input id="instance-action-id" required placeholder="inst_xxx" /></label>
-            <button id="btn-instance-start" type="button">启动</button>
-            <button id="btn-instance-stop" class="ghost" type="button">停止</button>
-          </form>
-          <form id="instance-batch-action-form" class="inline-form">
-            <label>实例ID列表(逗号/换行)<textarea id="instance-batch-ids" rows="3" placeholder="inst_a,inst_b"></textarea></label>
-            <label>动作
-              <select id="instance-batch-action">
-                <option value="start">start</option>
-                <option value="stop">stop</option>
-              </select>
-            </label>
-            <button type="submit">批量执行</button>
-          </form>
-          <ul id="instance-batch-failures" class="fail-list"></ul>
-          <form id="instance-filter-form" class="inline-form">
-            <label>名称搜索<input id="instance-name-filter" placeholder="alice" /></label>
-            <label>租户搜索<input id="instance-tenant-filter" placeholder="tenant_xxx" /></label>
-            <label>状态筛选
-              <select id="instance-state-filter">
-                <option value="">all</option>
-                <option value="running">running</option>
-                <option value="provisioning">provisioning</option>
-                <option value="failed">failed</option>
-                <option value="stopped">stopped</option>
-              </select>
-            </label>
-            <button type="submit">应用筛选</button>
-          </form>
-          <table>
-            <thead><tr><th>ID</th><th>租户</th><th>状态</th><th>运行版本</th><th>更新时间</th><th>操作</th></tr></thead>
-            <tbody id="instances-table"></tbody>
-          </table>
-          <section id="instance-detail" class="detail-card hidden">
-            <div class="panel-head">
-              <h4>实例详情</h4>
-              <button id="btn-close-instance-detail" class="ghost" type="button">关闭</button>
-            </div>
-            <pre id="instance-detail-json" class="json"></pre>
-          </section>
-        </article>
-
-        <article id="tab-assets" class="card tab-panel">
-          <div class="panel-head">
-            <h3>共享资产</h3>
-            <button id="btn-refresh-assets" type="button">刷新</button>
-          </div>
-          <form id="asset-review-form" class="inline-form">
-            <label>报告ID<input id="review-report-id" required placeholder="rep_xxx" /></label>
-            <label>审核动作
-              <select id="review-decision">
-                <option value="approve">approve</option>
-                <option value="reject">reject</option>
-              </select>
-            </label>
-            <label>意见<input id="review-opinion" placeholder="looks good" /></label>
-            <button type="submit">提交审核</button>
-          </form>
-          <form id="asset-batch-review-form" class="inline-form">
-            <label>批量报告ID(逗号/换行分隔)<textarea id="batch-review-report-ids" rows="3" placeholder="rep_a,rep_b"></textarea></label>
-            <label>审核动作
-              <select id="batch-review-decision">
-                <option value="approve">approve</option>
-                <option value="reject">reject</option>
-              </select>
-            </label>
-            <label>意见<input id="batch-review-opinion" placeholder="batch reviewed by admin-ui" /></label>
-            <button type="submit">批量审核</button>
-          </form>
-          <ul id="asset-batch-review-failures" class="fail-list"></ul>
-          <form id="asset-bind-form" class="inline-form">
-            <label>租户ID<input id="bind-tenant-id" required placeholder="tenant_xxx" /></label>
-            <label>资产ID<input id="bind-asset-id" required placeholder="asset_xxx" /></label>
-            <label>资产类型
-              <select id="bind-asset-type">
-                <option value="skill">skill</option>
-                <option value="tool">tool</option>
-                <option value="knowledge">knowledge</option>
-              </select>
-            </label>
-            <button type="submit">绑定资产</button>
-          </form>
-          <form id="asset-batch-bind-form" class="inline-form">
-            <label>租户ID<input id="batch-bind-tenant-id" placeholder="tenant_xxx" /></label>
-            <label>资产ID列表(逗号/换行)<textarea id="batch-bind-asset-ids" rows="3" placeholder="asset_a,asset_b"></textarea></label>
-            <label>资产类型
-              <select id="batch-bind-asset-type">
-                <option value="skill">skill</option>
-                <option value="tool">tool</option>
-                <option value="knowledge">knowledge</option>
-              </select>
-            </label>
-            <button type="submit">批量绑定</button>
-          </form>
-          <ul id="asset-batch-bind-failures" class="fail-list"></ul>
-          <div class="split">
+  <body data-required-permission="admin.runtime.page.platform-overview.read" data-hide-content-topbar="1">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <h2>管理后台</h2>
+        <a class="active" href="/admin/index.html">总览</a>
+        <a href="/admin/runtime.html">运行诊断</a>
+        <a href="/admin/strategy-center.html">治理中心</a>
+        <a href="/admin/employees.html">员工管理</a>
+        <a href="/admin/skills.html">技能管理</a>
+        <a href="/admin/tasks.html">任务台账</a>
+        <a href="/admin/logs.html">行为日志</a>
+        <a href="/admin/oss.html">开源检索</a>
+        <a href="/admin/auth-members.html">成员管理</a>
+        <a href="/front.html">用户工作台</a>
+      </aside>
+      <main class="content">
+        <section class="page-head">
+          <div class="page-head-layout">
             <div>
-              <h4>已共享</h4>
-          <form id="asset-inline-bind-form" class="inline-form">
-            <label>目标租户ID<input id="inline-bind-tenant-id" placeholder="tenant_xxx" /></label>
-          </form>
-          <form id="asset-filter-form" class="inline-form">
-            <label>资产类型
-              <select id="asset-type-filter">
-                <option value="">all</option>
-                <option value="skill">skill</option>
-                <option value="tool">tool</option>
-                <option value="knowledge">knowledge</option>
-              </select>
-            </label>
-            <button type="submit">应用筛选</button>
-          </form>
-          <ul id="shared-assets"></ul>
-          <h4>绑定历史</h4>
-          <ul id="asset-bindings"></ul>
-            </div>
-            <div>
-              <h4>待审核</h4>
-              <ul id="pending-assets"></ul>
+              <h1 class="page-title">后台总览</h1>
+              <p class="page-subtitle">聚焦平台对业务的实际产出：任务交付、员工协作、能力沉淀与风险治理。</p>
+              <div class="stat-strip">
+                <div class="stat-item">
+                  <div class="stat-label">数字员工</div>
+                  <div id="employeesTotal" class="stat-value">0</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">任务总量</div>
+                  <div id="tasksTotal" class="stat-value">0</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">交付成功率</div>
+                  <div id="successRate" class="stat-value">0%</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">审批待处理</div>
+                  <div id="approvalPendingTotal" class="stat-value">0</div>
+                </div>
+              </div>
             </div>
           </div>
-        </article>
+        </section>
 
-        <article id="tab-audits" class="card tab-panel">
-          <div class="panel-head">
-            <h3>审计日志</h3>
-            <div>
-              <button id="btn-refresh-audits" type="button">刷新</button>
-              <button id="btn-audit-prev" class="ghost" type="button">上一页</button>
-              <button id="btn-audit-next" class="ghost" type="button">下一页</button>
-              <button id="btn-audit-export" type="button">导出NDJSON</button>
+        <section class="card">
+          <div class="section-head">
+            <h3>平台运营全景</h3>
+          </div>
+          <div class="panel-grid-2">
+            <div class="list-panel">
+              <div id="summary" class="overview-summary">加载中...</div>
+              <div class="overview-kpis">
+                <div><span>进行中任务</span><strong id="tasksInProgress">0</strong></div>
+                <div><span>补偿待处理</span><strong id="compensationPending">0</strong></div>
+                <div><span>回滚任务</span><strong id="rollbackCount">0</strong></div>
+                <div><span>P1 事件</span><strong id="p1IncidentCount">0</strong></div>
+              </div>
+            </div>
+            <div class="list-panel">
+              <div id="bootstrapHeadline" class="overview-summary">加载中...</div>
+              <div class="overview-list" id="bootstrapChecklist"></div>
             </div>
           </div>
-          <form id="audit-filter-form" class="inline-form">
-            <label>类型<input id="audit-type" placeholder="instance.provisioned" /></label>
-            <label>操作者<input id="audit-actor" placeholder="admin" /></label>
-            <button type="submit">查询</button>
-          </form>
-          <form id="audit-instance-trace-form" class="inline-form">
-            <label>实例ID追踪<input id="audit-instance-id" placeholder="inst_xxx" /></label>
-            <button type="submit">按实例聚合</button>
-            <button id="btn-audit-trace-export-json" class="ghost" type="button">导出追踪JSON</button>
-            <button id="btn-audit-trace-export-ndjson" class="ghost" type="button">导出追踪NDJSON</button>
-          </form>
-          <p id="audit-page-info" class="muted">cursor=0</p>
-          <pre id="audit-instance-summary" class="json hidden"></pre>
-          <label>导出模式
-            <select id="audit-export-mode">
-              <option value="current">当前页</option>
-              <option value="all">全量(按筛选)</option>
-            </select>
-          </label>
-          <ul id="audit-list"></ul>
-        </article>
+        </section>
 
-        <article id="tab-release" class="card tab-panel">
-          <div class="panel-head">
-            <h3>发布预检</h3>
-            <div>
-              <button id="btn-refresh-release" type="button">刷新</button>
-              <button id="btn-assert-release" type="button">Assert</button>
-            </div>
-          </div>
-          <ul id="release-failures" class="fail-list"></ul>
-          <pre id="release-json" class="json"></pre>
-        </article>
-      </section>
+        <section class="overview-grid">
+          <article class="card">
+            <h3>风险与稳定</h3>
+            <div class="overview-list" id="qualityList"></div>
+          </article>
 
-      <p id="toast" class="toast"></p>
-    </main>
-    <script src="/admin/app.js"></script>
+          <article class="card">
+            <h3>治理态势</h3>
+            <div class="overview-list" id="focusList"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="/admin/auth.js"></script>
+    <script src="/admin/index.js"></script>
   </body>
 </html>

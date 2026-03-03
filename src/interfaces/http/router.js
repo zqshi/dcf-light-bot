@@ -8,6 +8,7 @@ const { buildAuthRouter } = require('./routes/auth');
 const { buildRuntimeRouter } = require('./routes/runtime');
 const { buildAssetRouter } = require('./routes/assets');
 const { buildReleaseRouter } = require('./routes/release');
+const { buildAdminCompatRouter } = require('./routes/adminCompat');
 const { buildControlAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
 const { buildRequestContextMiddleware } = require('./middleware/requestContext');
 
@@ -16,6 +17,7 @@ function buildApiRouter(context) {
   router.use(buildRequestContextMiddleware());
 
   router.use(buildHealthRouter(context));
+  router.use(buildAdminCompatRouter(context));
   router.use('/api/integrations/matrix', buildMatrixRouter(context.matrixBot, context.authService));
   router.use('/api/control/auth', buildAuthRouter(context.authService, context.auditService));
 
