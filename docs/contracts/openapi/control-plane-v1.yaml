@@ -1,14 +1,17 @@
 openapi: 3.0.3
 info:
   title: DCF Light Bot Control Plane API
-  version: 1.9.0
+  version: 1.10.0
 paths:
   /health:
     get:
       summary: Health probe
   /status:
     get:
-      summary: Runtime status summary
+      summary: Runtime status summary with health level
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint
   /api/integrations/matrix/commands:
     post:
       summary: Receive matrix command webhook

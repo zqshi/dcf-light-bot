@@ -1,6 +1,6 @@
 const express = require('express');
 
-function buildAssetRouter(assetService, requirePermission) {
+function buildAssetRouter(assetService, requirePermission, metricsService) {
   const router = express.Router();
 
   router.post('/reports', requirePermission('control:asset:write'), async (req, res, next) => {
@@ -40,6 +40,9 @@ function buildAssetRouter(assetService, requirePermission) {
         slaHours: req.query.slaHours,
         reviewer: req.query.reviewer || req.principal.username || ''
       });
+      if (metricsService && typeof metricsService.setReviewDashboard === 'function') {
+        metricsService.setReviewDashboard(out);
+      }
       res.json({ success: true, data: out });
     } catch (error) {
       next(error);
@@ -55,6 +58,9 @@ function buildAssetRouter(assetService, requirePermission) {
         escalateTo: req.body.escalateTo,
         trigger: req.body.trigger || `manual:${req.principal.username || 'reviewer'}`
       });
+      if (metricsService && typeof metricsService.recordEscalationEvents === 'function') {
+        metricsService.recordEscalationEvents(out.escalated, 'manual');
+      }
       res.json({ success: true, data: out });
     } catch (error) {
       next(error);

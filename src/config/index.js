@@ -105,6 +105,8 @@ function loadConfig() {
     assetReviewEscalationMaxLevel: Number(process.env.ASSET_REVIEW_ESCALATION_MAX_LEVEL || 3),
     assetReviewEscalationCooldownHours: Number(process.env.ASSET_REVIEW_ESCALATION_COOLDOWN_HOURS || 4),
     assetReviewEscalationRole: String(process.env.ASSET_REVIEW_ESCALATION_ROLE || 'platform_admin'),
+    metricsEnabled: parseBoolean(process.env.METRICS_ENABLED, true),
+    metricsRefreshIntervalMs: Number(process.env.METRICS_REFRESH_INTERVAL_MS || 60_000),
     runtimeProxyInvokePath: String(process.env.RUNTIME_PROXY_INVOKE_PATH || '/api/runtime/invoke'),
     runtimeProxyTimeoutMs: Number(process.env.RUNTIME_PROXY_TIMEOUT_MS || 10_000),
     runtimeProxyMaxRetries: Number(process.env.RUNTIME_PROXY_MAX_RETRIES || 2),

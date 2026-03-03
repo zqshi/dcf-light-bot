@@ -24,6 +24,9 @@
    - `ASSET_REVIEW_SLA_ENABLED=true`
    - `ASSET_REVIEW_SLA_HOURS` / `ASSET_REVIEW_SLA_INTERVAL_MS`
    - `ASSET_REVIEW_ESCALATION_MAX_LEVEL` / `ASSET_REVIEW_ESCALATION_COOLDOWN_HOURS`
+11. Confirm metrics exposure:
+   - `METRICS_ENABLED=true`
+   - `METRICS_REFRESH_INTERVAL_MS`
 
 ## Release Steps
 1. Update `versions.lock.json` if OpenClaw dependency changed.
@@ -32,6 +35,7 @@
 4. Run smoke checks:
    - `GET /health`
    - `GET /status`
+   - `GET /metrics`
    - create instance via matrix webhook
 
 ## Rollback

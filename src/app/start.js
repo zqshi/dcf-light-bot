@@ -3,6 +3,7 @@ const { createStore } = require('../infrastructure/persistence/createStore');
 const { ControlPlaneRepository } = require('../infrastructure/persistence/ControlPlaneRepository');
 const { OpenClawProvisioner } = require('../infrastructure/k8s/OpenClawProvisioner');
 const { AuditService } = require('../contexts/audit-observability/application/AuditService');
+const { PlatformMetricsService } = require('../contexts/audit-observability/application/PlatformMetricsService');
 const { InstanceService } = require('../contexts/tenant-instance/application/InstanceService');
 const { RuntimeProxyService } = require('../contexts/tenant-instance/application/RuntimeProxyService');
 const { SkillService } = require('../contexts/shared-assets/application/SkillService');
@@ -34,6 +35,7 @@ async function startApp() {
     archiveEnabled: config.auditArchiveEnabled,
     archiveMaxRows: config.auditArchiveMaxRows
   });
+  const metricsService = new PlatformMetricsService();
   const tenantAssetResolver = new TenantAssetResolver(repo);
   const assetCompatibilityService = new AssetCompatibilityService();
   const provisioner = new OpenClawProvisioner(config, {
@@ -60,6 +62,7 @@ async function startApp() {
     skillService,
     assetService,
     auditService,
+    metricsService,
     matrixBot,
     authService
   });
@@ -91,12 +94,41 @@ async function startApp() {
         trigger: 'scheduler'
       }).then((summary) => {
         if (summary && Number(summary.escalated || 0) > 0) {
+          metricsService.recordEscalationEvents(summary.escalated, 'scheduler');
           logger.warn('asset review sla escalated overdue reviews', summary);
         }
       }).catch((error) => {
         logger.error('asset review sla tick failed', { error: error.message });
       });
     }, Math.max(10_000, Number(config.assetReviewSlaIntervalMs || 300000)))
+    : null;
+
+  const metricsRefreshTimer = config.metricsEnabled
+    ? setInterval(() => {
+      Promise.all([
+        assetService.getReviewDashboard({ reviewer: '' }),
+        instanceService.list(),
+        auditService.list(100)
+      ]).then(([dashboard, instances, audits]) => {
+        const degradedEvents = audits.filter((x) => {
+          const t = String(x.type || '');
+          return t.includes('degraded') || t.includes('failed');
+        });
+        const overdue = Number(dashboard.overdueTotal || 0);
+        const escalated = Number(dashboard.escalatedTotal || 0);
+        const healthLevel = (overdue >= 20 || degradedEvents.length >= 20)
+          ? 'unhealthy'
+          : ((overdue > 0 || escalated > 0 || degradedEvents.length > 0) ? 'degraded' : 'healthy');
+        metricsService.setReviewDashboard(dashboard);
+        metricsService.setStatusSnapshot({
+          instances: instances.length,
+          recentAuditCount: audits.length,
+          healthLevel
+        });
+      }).catch((error) => {
+        logger.error('metrics refresh tick failed', { error: error.message });
+      });
+    }, Math.max(10_000, Number(config.metricsRefreshIntervalMs || 60000)))
     : null;
 
   return {
@@ -108,11 +140,13 @@ async function startApp() {
     skillService,
     assetService,
     auditService,
+    metricsService,
     authService,
     async shutdown() {
       clearInterval(bootstrapTimer);
       if (auditRetentionTimer) clearInterval(auditRetentionTimer);
       if (assetReviewSlaTimer) clearInterval(assetReviewSlaTimer);
+      if (metricsRefreshTimer) clearInterval(metricsRefreshTimer);
       await matrixBot.stop();
       await new Promise((resolve) => server.close(resolve));
       if (store && typeof store.close === 'function') {

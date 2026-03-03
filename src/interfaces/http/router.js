@@ -25,7 +25,7 @@ function buildApiRouter(context) {
   router.use('/api/control/instances', buildInstanceRouter(context.instanceService, requirePermission));
   router.use('/api/control/audits', buildAuditRouter(context.auditService, requirePermission));
   const assetService = context.assetService || context.skillService;
-  router.use('/api/control/assets', buildAssetRouter(assetService, requirePermission));
+  router.use('/api/control/assets', buildAssetRouter(assetService, requirePermission, context.metricsService));
   router.use('/api/control/skills', buildSkillRouter(context.skillService, requirePermission));
   router.use('/api/control/runtime', buildRuntimeRouter(context.runtimeProxyService, requirePermission));
 

@@ -15,6 +15,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - Audit retention lifecycle: TTL + max rows + archive ring with scheduled cleanup.
 - Multi-level asset review (`requiredApprovals`) with review opinion trail and pending-review queue.
 - Review SLA automation (overdue escalation) and review workload dashboard API.
+- Prometheus metrics endpoint (`/metrics`) and graded health status (`healthy/degraded/unhealthy`).
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.
@@ -45,6 +46,7 @@ npm start
 ## Key APIs
 - `GET /health`
 - `GET /status`
+- `GET /metrics`
 - `POST /api/control/instances`
 - `GET /api/control/instances`
 - `POST /api/control/assets/reports`
