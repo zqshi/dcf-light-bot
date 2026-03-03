@@ -23,7 +23,11 @@ function ctxFromAuth(authService) {
       bindSharedSkill: async () => ({}),
       listBindings: async () => []
     },
-    auditService: { list: async () => [] },
+    auditService: {
+      list: async () => [],
+      queryPage: async () => ({ rows: [], total: 0, cursor: '0', nextCursor: null, hasMore: false }),
+      export: async () => ({ contentType: 'application/json; charset=utf-8', body: '{"success":true,"data":[]}' })
+    },
     matrixBot: { processTextMessage: async () => ({ ignored: true }) }
   };
 }

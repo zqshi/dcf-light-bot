@@ -10,14 +10,25 @@ function buildAuditRouter(auditService, requirePermission) {
     if (query.tenantId) out.tenantId = query.tenantId;
     if (query.from) out.from = query.from;
     if (query.to) out.to = query.to;
+    if (query.sinceId) out.sinceId = query.sinceId;
+    if (query.sinceAt) out.sinceAt = query.sinceAt;
+    if (query.untilAt) out.untilAt = query.untilAt;
     return out;
   }
 
   router.get('/', requirePermission('control:audit:read'), async (req, res, next) => {
     try {
       const limit = Math.max(1, Math.min(500, Number(req.query.limit || 100)));
-      const rows = await auditService.list(limit, collectFilters(req.query || {}));
-      res.json({ success: true, data: rows, total: rows.length });
+      const cursor = String(req.query.cursor || '').trim() || '0';
+      const page = await auditService.queryPage(limit, collectFilters(req.query || {}), cursor);
+      res.json({
+        success: true,
+        data: page.rows,
+        total: page.total,
+        cursor: page.cursor,
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore
+      });
     } catch (error) {
       next(error);
     }
@@ -27,8 +38,11 @@ function buildAuditRouter(auditService, requirePermission) {
     try {
       const limit = Math.max(1, Math.min(5000, Number(req.query.limit || 1000)));
       const format = String(req.query.format || 'json').trim().toLowerCase();
-      const out = await auditService.export(limit, collectFilters(req.query || {}), format);
+      const cursor = String(req.query.cursor || '').trim() || '0';
+      const out = await auditService.export(limit, collectFilters(req.query || {}), format, cursor);
       res.set('content-type', out.contentType);
+      if (out.nextCursor) res.set('x-next-cursor', out.nextCursor);
+      res.set('x-has-more', String(Boolean(out.hasMore)));
       res.status(200).send(out.body);
     } catch (error) {
       next(error);

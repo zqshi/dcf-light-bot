@@ -28,4 +28,30 @@ describe('AuditService', () => {
     expect(filtered).toHaveLength(1);
     expect(filtered[0].type).toBe('instance.started');
   });
+
+  test('supports incremental filters and cursor pagination', async () => {
+    const events = [
+      { id: 'a5', type: 'x', at: '2026-03-03T10:05:00.000Z', payload: { tenantId: 't1' } },
+      { id: 'a4', type: 'x', at: '2026-03-03T10:04:00.000Z', payload: { tenantId: 't1' } },
+      { id: 'a3', type: 'x', at: '2026-03-03T10:03:00.000Z', payload: { tenantId: 't1' } },
+      { id: 'a2', type: 'x', at: '2026-03-03T10:02:00.000Z', payload: { tenantId: 't1' } },
+      { id: 'a1', type: 'x', at: '2026-03-03T10:01:00.000Z', payload: { tenantId: 't1' } }
+    ];
+    const repo = {
+      appendAudit: async () => {},
+      listAudits: async (limit) => events.slice(0, limit)
+    };
+    const service = new AuditService(repo);
+
+    const p1 = await service.queryPage(2, { sinceId: 'a3' }, '0');
+    expect(p1.rows.map((x) => x.id)).toEqual(['a5', 'a4']);
+    expect(p1.nextCursor).toBeNull();
+
+    const p2 = await service.queryPage(2, {}, '0');
+    expect(p2.rows.map((x) => x.id)).toEqual(['a5', 'a4']);
+    expect(p2.nextCursor).toBe('2');
+
+    const p3 = await service.queryPage(2, {}, p2.nextCursor);
+    expect(p3.rows.map((x) => x.id)).toEqual(['a3', 'a2']);
+  });
 });

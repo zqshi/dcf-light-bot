@@ -34,10 +34,18 @@ describe('audit export route', () => {
         listAssetBindings: async () => []
       },
       auditService: {
-        list: async () => [{ id: 'a1', type: 'instance.started' }],
-        export: async () => ({
+        queryPage: async () => ({
+          rows: [{ id: 'a1', type: 'instance.started' }],
+          total: 1,
+          cursor: '0',
+          nextCursor: null,
+          hasMore: false
+        }),
+        export: async (_limit, filters, _format, cursor) => ({
           contentType: 'application/x-ndjson; charset=utf-8',
-          body: '{"id":"a1","type":"instance.started"}'
+          body: '{"id":"a1","type":"instance.started"}',
+          nextCursor: cursor === '0' ? '1' : null,
+          hasMore: cursor === '0'
         }),
         log: async () => ({})
       },
@@ -47,11 +55,13 @@ describe('audit export route', () => {
     const login = await request(app).post('/api/control/auth/login').send({ username: 'auditor', password: 'audit123' });
     const token = login.body.data.token;
     const res = await request(app)
-      .get('/api/control/audits/export?format=ndjson')
+      .get('/api/control/audits/export?format=ndjson&sinceId=a0&cursor=0')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('application/x-ndjson');
+    expect(res.headers['x-next-cursor']).toBe('1');
+    expect(res.headers['x-has-more']).toBe('true');
     expect(res.text).toContain('instance.started');
   });
 });

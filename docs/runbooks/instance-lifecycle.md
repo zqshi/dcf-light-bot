@@ -31,3 +31,4 @@
 1. Send `x-request-id` / `x-trace-id` / `x-correlation-id` on control-plane requests.
 2. Verify audit events include these fields plus `actor`.
 3. Export for SIEM ingestion via `GET /api/control/audits/export?format=ndjson`.
+4. For incremental pull use `sinceId` or `sinceAt` and page with `cursor/nextCursor`.

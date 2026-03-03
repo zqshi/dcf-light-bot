@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DCF Light Bot Control Plane API
-  version: 1.6.0
+  version: 1.7.0
 paths:
   /health:
     get:
@@ -83,7 +83,7 @@ paths:
       summary: Invoke tenant runtime through control-plane proxy
   /api/control/audits:
     get:
-      summary: List audit logs
+      summary: List audit logs with cursor pagination and incremental filters
   /api/control/audits/export:
     get:
-      summary: Export audit logs (json or ndjson)
+      summary: Export audit logs (json or ndjson) with incremental filters

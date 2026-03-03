@@ -14,6 +14,44 @@ class AuditService {
     return ts;
   }
 
+  normalizeCursor(input) {
+    const raw = String(input || '').trim();
+    if (!raw) return 0;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0) return 0;
+    return Math.floor(value);
+  }
+
+  encodeCursor(offset) {
+    return String(Math.max(0, Math.floor(Number(offset || 0))));
+  }
+
+  applyIncrementalFilters(rows, filters = {}) {
+    const sinceId = String(filters.sinceId || '').trim();
+    const sinceAtTs = this.normalizeTime(filters.sinceAt);
+    const untilAtTs = this.normalizeTime(filters.untilAt);
+    let out = Array.isArray(rows) ? rows.slice() : [];
+
+    if (sinceId) {
+      const idx = out.findIndex((x) => String(x.id || '') === sinceId);
+      if (idx >= 0) out = out.slice(0, idx);
+    }
+    if (sinceAtTs) {
+      out = out.filter((x) => {
+        const ts = this.normalizeTime(x.at);
+        return !ts || ts >= sinceAtTs;
+      });
+    }
+    if (untilAtTs) {
+      out = out.filter((x) => {
+        const ts = this.normalizeTime(x.at);
+        return !ts || ts <= untilAtTs;
+      });
+    }
+
+    return out;
+  }
+
   matchesFilters(event, filters = {}) {
     const type = String(filters.type || '').trim();
     const actor = String(filters.actor || '').trim();
@@ -61,29 +99,59 @@ class AuditService {
     return event;
   }
 
-  async list(limit = 100, filters = {}) {
+  async queryPage(limit = 100, filters = {}, cursor = 0) {
     const effectiveLimit = Math.max(1, Math.min(5000, Number(limit || 100)));
+    const offset = this.normalizeCursor(cursor);
     const rows = await this.repo.listAudits(5000);
-    const filtered = rows.filter((event) => this.matchesFilters(event, filters));
-    return filtered.slice(0, effectiveLimit);
+    const incremental = this.applyIncrementalFilters(rows, filters);
+    const filtered = incremental.filter((event) => this.matchesFilters(event, filters));
+    const page = filtered.slice(offset, offset + effectiveLimit);
+    const nextOffset = offset + page.length;
+    const hasMore = nextOffset < filtered.length;
+    return {
+      rows: page,
+      total: filtered.length,
+      cursor: this.encodeCursor(offset),
+      nextCursor: hasMore ? this.encodeCursor(nextOffset) : null,
+      hasMore
+    };
+  }
+
+  async list(limit = 100, filters = {}) {
+    const page = await this.queryPage(limit, filters, 0);
+    return page.rows;
   }
 
   toNdjson(events) {
     return events.map((event) => JSON.stringify(event)).join('\n');
   }
 
-  async export(limit = 1000, filters = {}, format = 'json') {
-    const rows = await this.list(limit, filters);
+  async export(limit = 1000, filters = {}, format = 'json', cursor = 0) {
+    const page = await this.queryPage(limit, filters, cursor);
+    const rows = page.rows;
     const targetFormat = String(format || 'json').trim().toLowerCase();
     if (targetFormat === 'ndjson') {
       return {
         contentType: 'application/x-ndjson; charset=utf-8',
-        body: this.toNdjson(rows)
+        body: this.toNdjson(rows),
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+        total: page.total
       };
     }
     return {
       contentType: 'application/json; charset=utf-8',
-      body: JSON.stringify({ success: true, data: rows, total: rows.length }, null, 2)
+      body: JSON.stringify({
+        success: true,
+        data: rows,
+        total: page.total,
+        cursor: page.cursor,
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore
+      }, null, 2),
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      total: page.total
     };
   }
 }

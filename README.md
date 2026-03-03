@@ -53,6 +53,7 @@ npm start
 - `POST /api/control/runtime/instances/{instanceId}/invoke`
 - `GET /api/control/audits`
 - `GET /api/control/audits/export?format=ndjson`
+- `GET /api/control/audits?cursor=0&limit=200&sinceId=<lastSeenId>`
 
 ## Quality Gates
 ```bash

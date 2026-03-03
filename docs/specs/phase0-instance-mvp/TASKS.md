@@ -22,6 +22,7 @@
 - [x] Auto-mount tenant bound assets into OpenClaw runtime config during provision/reconcile/start.
 - [x] Add asset compatibility validation and non-blocking mount isolation.
 - [x] Add structured audit context (request/trace/correlation/actor) and export endpoint.
+- [x] Add audit incremental pull (`sinceId/sinceAt/untilAt`) and cursor pagination.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.
