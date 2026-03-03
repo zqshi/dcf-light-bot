@@ -43,6 +43,10 @@
    - `npm run check:platform-slo`
 6. Ensure alert rules are loaded:
    - [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
+7. Import Grafana dashboard:
+   - [grafana-dashboard-dcf-light-bot.json](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/grafana-dashboard-dcf-light-bot.json)
+8. Follow monitoring setup:
+   - [monitoring README](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/README.md)
 
 ## Rollback
 1. Redeploy previous tag.

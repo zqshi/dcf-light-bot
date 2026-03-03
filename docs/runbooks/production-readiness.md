@@ -23,6 +23,8 @@
 - [ ] Instance label metrics verified (`dcf_instance_state_total`, `dcf_instance_failure_reason_total`)
 - [ ] Health threshold config validated (`HEALTH_UNHEALTHY_*`, `HEALTH_DEGRADED_*`)
 - [ ] Prometheus alerts loaded from [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
+- [ ] Grafana dashboard imported from [grafana-dashboard-dcf-light-bot.json](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/grafana-dashboard-dcf-light-bot.json)
+- [ ] Monitoring guide followed: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/README.md)
 - [ ] Scripted check passed (`npm run check:platform-slo`)
 - [ ] Error logs shipped to centralized sink
 - [ ] Alerting configured for failed provisioning
