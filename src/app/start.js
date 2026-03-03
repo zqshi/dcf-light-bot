@@ -29,7 +29,7 @@ async function startApp() {
   const auditService = new AuditService(repo);
   const provisioner = new OpenClawProvisioner(config);
   const instanceService = new InstanceService(repo, provisioner, auditService, config);
-  const runtimeProxyService = new RuntimeProxyService(instanceService, config);
+  const runtimeProxyService = new RuntimeProxyService(instanceService, config, { auditService });
   const skillService = new SkillService(repo, auditService);
   const assetService = skillService;
   const matrixBot = new MatrixBot(config, logger, instanceService);

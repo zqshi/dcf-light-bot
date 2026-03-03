@@ -92,6 +92,13 @@ function loadConfig() {
     tenantDefaultStorage: String(process.env.TENANT_DEFAULT_STORAGE || '20Gi'),
     bootstrapIntervalMs: Number(process.env.BOOTSTRAP_INTERVAL_MS || 5000),
     bootstrapProvisioningTimeoutMs: Number(process.env.BOOTSTRAP_PROVISIONING_TIMEOUT_MS || 2 * 60 * 1000),
+    runtimeProxyInvokePath: String(process.env.RUNTIME_PROXY_INVOKE_PATH || '/api/runtime/invoke'),
+    runtimeProxyTimeoutMs: Number(process.env.RUNTIME_PROXY_TIMEOUT_MS || 10_000),
+    runtimeProxyMaxRetries: Number(process.env.RUNTIME_PROXY_MAX_RETRIES || 2),
+    runtimeProxyRetryBackoffMs: Number(process.env.RUNTIME_PROXY_RETRY_BACKOFF_MS || 200),
+    runtimeProxyFailureThreshold: Number(process.env.RUNTIME_PROXY_FAILURE_THRESHOLD || 3),
+    runtimeProxyBreakerCoolOffMs: Number(process.env.RUNTIME_PROXY_BREAKER_COOLOFF_MS || 30_000),
+    runtimeProxySharedToken: String(process.env.RUNTIME_PROXY_SHARED_TOKEN || '').trim(),
     providers
   };
 

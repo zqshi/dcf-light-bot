@@ -18,6 +18,7 @@
 - [x] Upgrade auth to JWT + RBAC permissions with legacy admin token compatibility.
 - [x] Generalize shared center to assets: skill/tool/knowledge report-review-bind workflow.
 - [x] Add `/api/control/assets/*` routes for enterprise shared assets.
+- [x] Implement runtime proxy kubernetes mode with retry/circuit-breaker/degraded fallback.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

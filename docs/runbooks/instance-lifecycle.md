@@ -18,3 +18,9 @@
 ## Start Instance
 1. POST `/api/control/instances/{id}/start` with admin bearer.
 2. Confirm state becomes `running`.
+
+## Invoke Runtime
+1. POST `/api/control/runtime/instances/{id}/invoke` with JWT bearing `control:instance:invoke`.
+2. In simulation mode, response returns `mode=simulation`.
+3. In kubernetes mode, proxy forwards to runtime endpoint + `RUNTIME_PROXY_INVOKE_PATH`.
+4. If upstream fails repeatedly, circuit breaker opens and returns `mode=degraded`.

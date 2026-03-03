@@ -9,6 +9,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - Audit trail for instance lifecycle and shared-asset operations.
 - JWT + RBAC control-plane auth (legacy admin token compatible).
 - K8s real-mode idempotent reconcile and rollback on provision failure.
+- Runtime proxy in kubernetes mode with retry, circuit breaker, and degraded fallback.
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.
@@ -47,6 +48,7 @@ npm start
 - `POST /api/control/skills/reports`
 - `POST /api/control/skills/reports/{reportId}/approve`
 - `POST /api/control/skills/bindings`
+- `POST /api/control/runtime/instances/{instanceId}/invoke`
 - `GET /api/control/audits`
 
 ## Quality Gates

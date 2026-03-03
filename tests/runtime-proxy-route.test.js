@@ -26,7 +26,7 @@ describe('runtime proxy route', () => {
         buildMatrixCard: () => ({})
       },
       runtimeProxyService: {
-        invoke: async () => ({ mode: 'simulation', ok: true })
+        invoke: async () => ({ mode: 'kubernetes', response: { ok: true } })
       },
       skillService: {
         report: async () => ({}),

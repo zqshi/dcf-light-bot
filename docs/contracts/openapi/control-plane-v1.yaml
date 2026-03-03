@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DCF Light Bot Control Plane API
-  version: 1.4.0
+  version: 1.5.0
 paths:
   /health:
     get:
@@ -78,6 +78,9 @@ paths:
       summary: Bind shared asset to tenant
     get:
       summary: List asset bindings by type
+  /api/control/runtime/instances/{instanceId}/invoke:
+    post:
+      summary: Invoke tenant runtime through control-plane proxy
   /api/control/audits:
     get:
       summary: List audit logs
