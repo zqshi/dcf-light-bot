@@ -57,6 +57,8 @@ npm start
   - server-side audit `instanceId` filter
   - batch asset binding API
   - batch instance action API (`start/stop`) and admin console batch action form
+  - batch failure detail panels (instance action / asset review / asset binding)
+  - audit trace export (JSON / NDJSON) from instance trace view
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.

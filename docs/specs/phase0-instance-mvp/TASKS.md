@@ -47,6 +47,7 @@
 - [x] Add backend APIs for instance audit trace and batch asset reviews.
 - [x] Add backend filters for instances/audits and batch asset binding API with UI integration.
 - [x] Add instance batch action API (`start/stop`) with admin console batch operation entry.
+- [x] Add admin console batch failure detail visualization and instance-trace export (JSON/NDJSON).
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

@@ -15,7 +15,8 @@
       nextCursor: null,
       hasMore: false,
       history: []
-    }
+    },
+    lastTraceSummary: null
   };
 
   const el = {
@@ -66,6 +67,7 @@
     instanceBatchActionForm: document.getElementById('instance-batch-action-form'),
     instanceBatchIds: document.getElementById('instance-batch-ids'),
     instanceBatchAction: document.getElementById('instance-batch-action'),
+    instanceBatchFailures: document.getElementById('instance-batch-failures'),
     instanceFilterForm: document.getElementById('instance-filter-form'),
     instanceNameFilter: document.getElementById('instance-name-filter'),
     instanceTenantFilter: document.getElementById('instance-tenant-filter'),
@@ -78,6 +80,7 @@
     batchReviewReportIds: document.getElementById('batch-review-report-ids'),
     batchReviewDecision: document.getElementById('batch-review-decision'),
     batchReviewOpinion: document.getElementById('batch-review-opinion'),
+    assetBatchReviewFailures: document.getElementById('asset-batch-review-failures'),
     assetBindForm: document.getElementById('asset-bind-form'),
     bindTenantId: document.getElementById('bind-tenant-id'),
     bindAssetId: document.getElementById('bind-asset-id'),
@@ -86,13 +89,16 @@
     batchBindTenantId: document.getElementById('batch-bind-tenant-id'),
     batchBindAssetIds: document.getElementById('batch-bind-asset-ids'),
     batchBindAssetType: document.getElementById('batch-bind-asset-type'),
+    assetBatchBindFailures: document.getElementById('asset-batch-bind-failures'),
     assetBindings: document.getElementById('asset-bindings'),
     auditFilterForm: document.getElementById('audit-filter-form'),
     auditInstanceTraceForm: document.getElementById('audit-instance-trace-form'),
     auditType: document.getElementById('audit-type'),
     auditActor: document.getElementById('audit-actor'),
     auditInstanceId: document.getElementById('audit-instance-id'),
-    auditInstanceSummary: document.getElementById('audit-instance-summary')
+    auditInstanceSummary: document.getElementById('audit-instance-summary'),
+    auditTraceExportJson: document.getElementById('btn-audit-trace-export-json'),
+    auditTraceExportNdjson: document.getElementById('btn-audit-trace-export-ndjson')
   };
 
   async function api(path, options) {
@@ -228,6 +234,8 @@
     renderAudits(rows);
     el.auditInstanceSummary.classList.add('hidden');
     el.auditInstanceSummary.textContent = '';
+    state.lastTraceSummary = null;
+    setTraceExportButtonsEnabled(false);
     state.auditQuery = {
       type: String(merged.type || ''),
       actor: String(merged.actor || ''),
@@ -339,6 +347,55 @@
     return Array.from(new Set(parts));
   }
 
+  function setTraceExportButtonsEnabled(enabled) {
+    if (el.auditTraceExportJson) el.auditTraceExportJson.disabled = !enabled;
+    if (el.auditTraceExportNdjson) el.auditTraceExportNdjson.disabled = !enabled;
+  }
+
+  function collectFailedBatchRows(payload) {
+    const rows = Array.isArray(payload && payload.results) ? payload.results : [];
+    return rows.filter(function (item) { return !item.ok; });
+  }
+
+  function renderFailureList(listEl, rows) {
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    const failedRows = Array.isArray(rows) ? rows : [];
+    failedRows.forEach(function (row) {
+      const li = document.createElement('li');
+      const id = row.instanceId || row.reportId || row.assetId || row.id || 'unknown';
+      const error = row.error || row.message || 'unknown error';
+      li.textContent = `${id}: ${error}`;
+      listEl.appendChild(li);
+    });
+  }
+
+  function triggerFileDownload(filename, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportTraceSummary(format) {
+    const summary = state.lastTraceSummary;
+    if (!summary) throw new Error('请先执行实例追踪');
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const instanceId = String(summary.instanceId || 'instance').replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (format === 'json') {
+      triggerFileDownload(`dcf-audit-trace-${instanceId}-${ts}.json`, JSON.stringify(summary, null, 2), 'application/json;charset=utf-8');
+      return;
+    }
+    const events = Array.isArray(summary.events) ? summary.events : [];
+    const ndjson = events.map(function (item) { return JSON.stringify(item); }).join('\n');
+    triggerFileDownload(`dcf-audit-trace-${instanceId}-${ts}.ndjson`, ndjson, 'application/x-ndjson;charset=utf-8');
+  }
+
   async function loadDashboard() {
     const statusRes = await api('/status');
     const status = statusRes || {};
@@ -394,6 +451,7 @@
   }
 
   function bindEvents() {
+    setTraceExportButtonsEnabled(false);
     el.loginForm.addEventListener('submit', doLogin);
     el.logout.addEventListener('click', function () {
       state.token = '';
@@ -500,6 +558,7 @@
           })
         });
         await refreshInstances();
+        renderFailureList(el.instanceBatchFailures, collectFailedBatchRows(out.data || {}));
         const failed = Number(out.data && out.data.failed || 0);
         showToast(`批量实例操作完成: 成功${out.data.succeeded} 失败${failed}`, failed > 0 ? 'error' : 'success');
       } catch (error) {
@@ -559,6 +618,7 @@
         });
         const success = Number(out.data && out.data.succeeded || 0);
         const failedCount = Number(out.data && out.data.failed || 0);
+        renderFailureList(el.assetBatchReviewFailures, collectFailedBatchRows(out.data || {}));
         await refreshAssets();
         if (failedCount > 0) {
           showToast(`批量审核完成: 成功${success} 失败${failedCount}`, 'error');
@@ -605,6 +665,7 @@
           })
         });
         await refreshAssets();
+        renderFailureList(el.assetBatchBindFailures, collectFailedBatchRows(out.data || {}));
         showToast(`批量绑定完成: 成功${out.data.succeeded} 失败${out.data.failed}`, out.data.failed > 0 ? 'error' : 'success');
       } catch (error) {
         showToast(error.message, 'error');
@@ -632,11 +693,31 @@
         const instanceId = (el.auditInstanceId.value || '').trim();
         if (!instanceId) throw new Error('请输入实例ID');
         const summary = await fetchInstanceTrace(instanceId);
+        state.lastTraceSummary = summary;
+        setTraceExportButtonsEnabled(true);
         const events = Array.isArray(summary.events) ? summary.events : [];
         renderAudits(events.slice(0, 200));
         el.auditInstanceSummary.textContent = JSON.stringify(summary, null, 2);
         el.auditInstanceSummary.classList.remove('hidden');
         showToast(`实例 ${instanceId} 聚合完成: ${summary.total} 条`, 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.auditTraceExportJson.addEventListener('click', function () {
+      try {
+        exportTraceSummary('json');
+        showToast('追踪JSON导出已开始', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.auditTraceExportNdjson.addEventListener('click', function () {
+      try {
+        exportTraceSummary('ndjson');
+        showToast('追踪NDJSON导出已开始', 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }

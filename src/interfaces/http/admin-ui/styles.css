@@ -231,6 +231,10 @@ li {
   border-bottom-style: solid;
 }
 
+.fail-list:empty {
+  display: none;
+}
+
 .toast {
   min-height: 20px;
   color: var(--muted);

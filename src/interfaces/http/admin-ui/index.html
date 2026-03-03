@@ -85,6 +85,7 @@
             </label>
             <button type="submit">批量执行</button>
           </form>
+          <ul id="instance-batch-failures" class="fail-list"></ul>
           <form id="instance-filter-form" class="inline-form">
             <label>名称搜索<input id="instance-name-filter" placeholder="alice" /></label>
             <label>租户搜索<input id="instance-tenant-filter" placeholder="tenant_xxx" /></label>
@@ -139,6 +140,7 @@
             <label>意见<input id="batch-review-opinion" placeholder="batch reviewed by admin-ui" /></label>
             <button type="submit">批量审核</button>
           </form>
+          <ul id="asset-batch-review-failures" class="fail-list"></ul>
           <form id="asset-bind-form" class="inline-form">
             <label>租户ID<input id="bind-tenant-id" required placeholder="tenant_xxx" /></label>
             <label>资产ID<input id="bind-asset-id" required placeholder="asset_xxx" /></label>
@@ -163,6 +165,7 @@
             </label>
             <button type="submit">批量绑定</button>
           </form>
+          <ul id="asset-batch-bind-failures" class="fail-list"></ul>
           <div class="split">
             <div>
               <h4>已共享</h4>
@@ -209,6 +212,8 @@
           <form id="audit-instance-trace-form" class="inline-form">
             <label>实例ID追踪<input id="audit-instance-id" placeholder="inst_xxx" /></label>
             <button type="submit">按实例聚合</button>
+            <button id="btn-audit-trace-export-json" class="ghost" type="button">导出追踪JSON</button>
+            <button id="btn-audit-trace-export-ndjson" class="ghost" type="button">导出追踪NDJSON</button>
           </form>
           <p id="audit-page-info" class="muted">cursor=0</p>
           <pre id="audit-instance-summary" class="json hidden"></pre>
