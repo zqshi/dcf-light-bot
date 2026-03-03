@@ -1,0 +1,44 @@
+const express = require('express');
+const { buildInstanceRouter } = require('./routes/instances');
+const { buildSkillRouter } = require('./routes/skills');
+const { buildHealthRouter } = require('./routes/health');
+const { buildMatrixRouter } = require('./routes/matrix');
+const { buildAuditRouter } = require('./routes/audits');
+const { buildAuthRouter } = require('./routes/auth');
+const { buildRuntimeRouter } = require('./routes/runtime');
+const { buildAssetRouter } = require('./routes/assets');
+const { buildControlAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
+
+function buildApiRouter(context) {
+  const router = express.Router();
+
+  router.use(buildHealthRouter(context));
+  router.use('/api/integrations/matrix', buildMatrixRouter(context.matrixBot, context.authService));
+  router.use('/api/control/auth', buildAuthRouter(context.authService, context.auditService));
+
+  const controlAuth = buildControlAuthMiddleware(context.authService);
+  const requirePermission = (permission) => buildPermissionMiddleware(context.authService, permission);
+
+  router.use('/api/control', controlAuth);
+  router.use('/api/control/instances', buildInstanceRouter(context.instanceService, requirePermission));
+  router.use('/api/control/audits', buildAuditRouter(context.auditService, requirePermission));
+  const assetService = context.assetService || context.skillService;
+  router.use('/api/control/assets', buildAssetRouter(assetService, requirePermission));
+  router.use('/api/control/skills', buildSkillRouter(context.skillService, requirePermission));
+  router.use('/api/control/runtime', buildRuntimeRouter(context.runtimeProxyService, requirePermission));
+
+  router.use((error, req, res, _next) => {
+    const status = Number(error.statusCode || 0) || 500;
+    res.status(status).json({
+      success: false,
+      error: {
+        message: error.message || 'internal error',
+        code: error.code || 'INTERNAL_ERROR'
+      }
+    });
+  });
+
+  return router;
+}
+
+module.exports = { buildApiRouter };

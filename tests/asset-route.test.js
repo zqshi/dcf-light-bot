@@ -1,0 +1,68 @@
+const request = require('supertest');
+const { createServer } = require('../src/app/createServer');
+const { AuthService } = require('../src/contexts/identity-access/application/AuthService');
+
+function makeCtx(authService) {
+  return {
+    config: { kubernetesSimulationMode: true },
+    authService,
+    instanceService: {
+      list: async () => [],
+      get: async () => ({}),
+      start: async () => ({}),
+      stop: async () => ({}),
+      createFromMatrix: async () => ({}),
+      buildMatrixCard: () => ({})
+    },
+    runtimeProxyService: { invoke: async () => ({ ok: true }) },
+    assetService: {
+      reportAsset: async (body) => ({ id: 'r1', ...body, status: 'pending' }),
+      listReportsByType: async () => [{ id: 'r1', assetType: 'tool' }],
+      approveReport: async () => ({ report: { id: 'r1', status: 'approved' }, sharedSkill: { id: 'a1', assetType: 'tool' } }),
+      rejectReport: async () => ({ id: 'r1', status: 'rejected' }),
+      listSharedAssets: async () => [{ id: 'a1', assetType: 'tool' }],
+      bindSharedAsset: async () => ({ id: 'b1', tenantId: 't1', assetId: 'a1', assetType: 'tool' }),
+      listAssetBindings: async () => [{ id: 'b1', assetType: 'tool' }]
+    },
+    skillService: {
+      reportAsset: async () => ({}),
+      listReportsByType: async () => [],
+      approveReport: async () => ({}),
+      rejectReport: async () => ({}),
+      listSharedAssets: async () => [],
+      bindSharedSkill: async () => ({}),
+      listAssetBindings: async () => []
+    },
+    auditService: { list: async () => [], log: async () => ({}) },
+    matrixBot: { processTextMessage: async () => ({ ignored: true }) }
+  };
+}
+
+describe('Asset route', () => {
+  const auth = new AuthService({
+    controlPlaneAdminToken: 'admintoken',
+    controlPlaneJwtSecret: 'jwtsecret',
+    controlPlaneJwtExpiresInSec: 3600,
+    matrixWebhookSecret: 'mx',
+    controlPlaneUsers: [{ username: 'ops', role: 'ops_admin', password: 'plain:ops123', disabled: false }]
+  });
+
+  test('ops can list and bind tool assets', async () => {
+    const app = createServer(makeCtx(auth));
+    const login = await request(app).post('/api/control/auth/login').send({ username: 'ops', password: 'ops123' });
+    const token = login.body.data.token;
+
+    const listRes = await request(app)
+      .get('/api/control/assets/shared?type=tool')
+      .set('Authorization', `Bearer ${token}`);
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.data[0].assetType).toBe('tool');
+
+    const bindRes = await request(app)
+      .post('/api/control/assets/bindings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tenantId: 't1', assetId: 'a1', assetType: 'tool' });
+    expect(bindRes.status).toBe(201);
+    expect(bindRes.body.data.assetType).toBe('tool');
+  });
+});
