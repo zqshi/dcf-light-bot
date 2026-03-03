@@ -42,6 +42,55 @@ class ControlPlaneRepository {
     return (doc.audits || []).slice(0, limit);
   }
 
+  async pruneAudits(options = {}) {
+    const ttlMs = Math.max(0, Number(options.ttlMs || 0));
+    const maxRows = Math.max(0, Number(options.maxRows || 0));
+    const archiveEnabled = options.archiveEnabled !== false;
+    const archiveMaxRows = Math.max(0, Number(options.archiveMaxRows || 0));
+    const now = Date.now();
+    let result = {
+      before: 0,
+      kept: 0,
+      archived: 0,
+      deleted: 0
+    };
+
+    await this.store.update((doc) => {
+      const rows = Array.isArray(doc.audits) ? doc.audits : [];
+      const archiveRows = Array.isArray(doc.auditArchive) ? doc.auditArchive : [];
+      result.before = rows.length;
+
+      const kept = [];
+      const pruned = [];
+      for (let i = 0; i < rows.length; i += 1) {
+        const row = rows[i];
+        const ts = Date.parse(String(row && row.at || ''));
+        const expired = ttlMs > 0 && Number.isFinite(ts) && (now - ts) > ttlMs;
+        const overflow = maxRows > 0 && kept.length >= maxRows;
+        if (expired || overflow) pruned.push(row);
+        else kept.push(row);
+      }
+
+      let nextArchive = archiveRows;
+      if (archiveEnabled && pruned.length) {
+        nextArchive = [...pruned, ...archiveRows];
+        if (archiveMaxRows > 0) nextArchive = nextArchive.slice(0, archiveMaxRows);
+      }
+
+      result.kept = kept.length;
+      result.archived = archiveEnabled ? Math.min(pruned.length, archiveMaxRows > 0 ? archiveMaxRows : pruned.length) : 0;
+      result.deleted = pruned.length - result.archived;
+
+      return {
+        ...doc,
+        audits: kept,
+        auditArchive: nextArchive
+      };
+    });
+
+    return result;
+  }
+
   async addSkillReport(report) {
     return this.addAssetReport(report);
   }

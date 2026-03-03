@@ -28,7 +28,12 @@ async function startApp() {
   const store = createStore(config);
   await store.init();
   const repo = new ControlPlaneRepository(store);
-  const auditService = new AuditService(repo);
+  const auditService = new AuditService(repo, {
+    retentionTtlDays: config.auditRetentionTtlDays,
+    retentionMaxRows: config.auditRetentionMaxRows,
+    archiveEnabled: config.auditArchiveEnabled,
+    archiveMaxRows: config.auditArchiveMaxRows
+  });
   const tenantAssetResolver = new TenantAssetResolver(repo);
   const assetCompatibilityService = new AssetCompatibilityService();
   const provisioner = new OpenClawProvisioner(config, {
@@ -68,6 +73,14 @@ async function startApp() {
     reconciler.tick().catch((error) => logger.error('bootstrap tick failed', { error: error.message }));
   }, config.bootstrapIntervalMs);
 
+  const auditRetentionTimer = config.auditRetentionEnabled
+    ? setInterval(() => {
+      auditService.pruneRetention('scheduler').catch((error) => {
+        logger.error('audit retention tick failed', { error: error.message });
+      });
+    }, Math.max(10_000, Number(config.auditRetentionIntervalMs || 600000)))
+    : null;
+
   return {
     config,
     logger,
@@ -80,6 +93,7 @@ async function startApp() {
     authService,
     async shutdown() {
       clearInterval(bootstrapTimer);
+      if (auditRetentionTimer) clearInterval(auditRetentionTimer);
       await matrixBot.stop();
       await new Promise((resolve) => server.close(resolve));
       if (store && typeof store.close === 'function') {

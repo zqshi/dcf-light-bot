@@ -18,6 +18,7 @@
 ## Observability
 - [ ] Audit endpoint retained with export plan
 - [ ] Audit export endpoint verified (`/api/control/audits/export?format=ndjson`)
+- [ ] Audit retention configured (`AUDIT_RETENTION_*`, `AUDIT_ARCHIVE_*`)
 - [ ] Error logs shipped to centralized sink
 - [ ] Alerting configured for failed provisioning
 

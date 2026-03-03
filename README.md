@@ -12,6 +12,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - K8s real-mode idempotent reconcile and rollback on provision failure.
 - Runtime proxy in kubernetes mode with retry, circuit breaker, and degraded fallback.
 - Asset compatibility validation (`version` / `minOpenclawVersion`) with non-blocking mount isolation.
+- Audit retention lifecycle: TTL + max rows + archive ring with scheduled cleanup.
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.

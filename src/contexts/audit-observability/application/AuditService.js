@@ -3,8 +3,14 @@ const { nowIso } = require('../../../shared/time');
 const { getRequestContext } = require('../../../shared/requestContext');
 
 class AuditService {
-  constructor(repo) {
+  constructor(repo, options = {}) {
     this.repo = repo;
+    this.retention = {
+      ttlDays: Math.max(0, Number(options.retentionTtlDays || 0)),
+      maxRows: Math.max(0, Number(options.retentionMaxRows || 0)),
+      archiveEnabled: options.archiveEnabled !== false,
+      archiveMaxRows: Math.max(0, Number(options.archiveMaxRows || 0))
+    };
   }
 
   normalizeTime(input) {
@@ -153,6 +159,30 @@ class AuditService {
       hasMore: page.hasMore,
       total: page.total
     };
+  }
+
+  async pruneRetention(trigger = 'manual') {
+    const ttlDays = this.retention.ttlDays;
+    const ttlMs = ttlDays > 0 ? ttlDays * 24 * 3600 * 1000 : 0;
+    const stats = await this.repo.pruneAudits({
+      ttlMs,
+      maxRows: this.retention.maxRows,
+      archiveEnabled: this.retention.archiveEnabled,
+      archiveMaxRows: this.retention.archiveMaxRows
+    });
+
+    await this.log('audit.retention.pruned', {
+      trigger,
+      ttlDays,
+      maxRows: this.retention.maxRows,
+      archiveEnabled: this.retention.archiveEnabled,
+      archiveMaxRows: this.retention.archiveMaxRows,
+      before: stats.before,
+      kept: stats.kept,
+      archived: stats.archived,
+      deleted: stats.deleted
+    });
+    return stats;
   }
 }
 

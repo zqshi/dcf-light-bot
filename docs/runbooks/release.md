@@ -16,6 +16,10 @@
 8. Confirm reconcile flags:
    - `KUBERNETES_RECONCILE_ENABLED=true`
    - `KUBERNETES_ROLLBACK_ON_PROVISION_FAILURE=true`
+9. Confirm audit retention policy:
+   - `AUDIT_RETENTION_ENABLED=true`
+   - `AUDIT_RETENTION_TTL_DAYS` / `AUDIT_RETENTION_MAX_ROWS`
+   - `AUDIT_ARCHIVE_ENABLED` / `AUDIT_ARCHIVE_MAX_ROWS`
 
 ## Release Steps
 1. Update `versions.lock.json` if OpenClaw dependency changed.
