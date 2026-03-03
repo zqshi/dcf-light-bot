@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DCF Light Bot Control Plane API
-  version: 1.8.0
+  version: 1.9.0
 paths:
   /health:
     get:
@@ -67,6 +67,12 @@ paths:
   /api/control/assets/reviews/pending:
     get:
       summary: List pending reviews for reviewer
+  /api/control/assets/reviews/dashboard:
+    get:
+      summary: Review workload dashboard with overdue/escalation metrics
+  /api/control/assets/reviews/escalate:
+    post:
+      summary: Run SLA-based review escalation
   /api/control/assets/reports/{reportId}/reviews:
     get:
       summary: List review history of report

@@ -81,6 +81,24 @@ async function startApp() {
     }, Math.max(10_000, Number(config.auditRetentionIntervalMs || 600000)))
     : null;
 
+  const assetReviewSlaTimer = config.assetReviewSlaEnabled
+    ? setInterval(() => {
+      skillService.escalateOverdueReviews({
+        slaHours: config.assetReviewSlaHours,
+        maxLevel: config.assetReviewEscalationMaxLevel,
+        cooldownHours: config.assetReviewEscalationCooldownHours,
+        escalateTo: config.assetReviewEscalationRole,
+        trigger: 'scheduler'
+      }).then((summary) => {
+        if (summary && Number(summary.escalated || 0) > 0) {
+          logger.warn('asset review sla escalated overdue reviews', summary);
+        }
+      }).catch((error) => {
+        logger.error('asset review sla tick failed', { error: error.message });
+      });
+    }, Math.max(10_000, Number(config.assetReviewSlaIntervalMs || 300000)))
+    : null;
+
   return {
     config,
     logger,
@@ -94,6 +112,7 @@ async function startApp() {
     async shutdown() {
       clearInterval(bootstrapTimer);
       if (auditRetentionTimer) clearInterval(auditRetentionTimer);
+      if (assetReviewSlaTimer) clearInterval(assetReviewSlaTimer);
       await matrixBot.stop();
       await new Promise((resolve) => server.close(resolve));
       if (store && typeof store.close === 'function') {

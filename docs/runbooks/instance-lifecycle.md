@@ -38,3 +38,5 @@
 2. Reviewer checks queue: `GET /api/control/assets/reviews/pending`.
 3. Submit review with opinion: `POST /api/control/assets/reports/{reportId}/reviews`.
 4. Query full opinion trail: `GET /api/control/assets/reports/{reportId}/reviews`.
+5. Monitor backlog/overdue metrics: `GET /api/control/assets/reviews/dashboard`.
+6. Manual SLA escalation run: `POST /api/control/assets/reviews/escalate`.

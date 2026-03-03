@@ -19,6 +19,14 @@ function makeCtx(authService) {
       reportAsset: async (body) => ({ id: 'r1', ...body, status: 'pending' }),
       listReportsByType: async () => [{ id: 'r1', assetType: 'tool' }],
       listPendingReviews: async () => [{ id: 'r_pending', status: 'pending_review' }],
+      getReviewDashboard: async () => ({
+        pendingTotal: 3,
+        overdueTotal: 1,
+        escalatedTotal: 1,
+        reviewerQueue: 2,
+        byAssetType: { skill: 1, tool: 1, knowledge: 1 }
+      }),
+      escalateOverdueReviews: async () => ({ pendingTotal: 3, escalated: 1 }),
       listReviewHistory: async () => [{ reviewer: 'reviewer_1', decision: 'approve' }],
       reviewReport: async () => ({ report: { id: 'r1', status: 'pending_review' }, stage: { remainingApprovals: 1 } }),
       approveReport: async () => ({ report: { id: 'r1', status: 'approved' }, sharedSkill: { id: 'a1', assetType: 'tool' } }),
@@ -88,5 +96,18 @@ describe('Asset route', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(historyRes.status).toBe(200);
     expect(historyRes.body.data[0].reviewer).toBe('reviewer_1');
+
+    const dashboardRes = await request(app)
+      .get('/api/control/assets/reviews/dashboard')
+      .set('Authorization', `Bearer ${token}`);
+    expect(dashboardRes.status).toBe(200);
+    expect(dashboardRes.body.data.pendingTotal).toBe(3);
+
+    const escalateRes = await request(app)
+      .post('/api/control/assets/reviews/escalate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ slaHours: 24, maxLevel: 3, cooldownHours: 4 });
+    expect(escalateRes.status).toBe(200);
+    expect(escalateRes.body.data.escalated).toBe(1);
   });
 });

@@ -10,6 +10,26 @@ class SkillService {
     this.audit = audit;
   }
 
+  nowMs() {
+    return Date.now();
+  }
+
+  parseTime(input) {
+    const ts = Date.parse(String(input || ''));
+    if (!Number.isFinite(ts)) return null;
+    return ts;
+  }
+
+  ageHoursFrom(isoString) {
+    const ts = this.parseTime(isoString);
+    if (!ts) return 0;
+    return Math.max(0, (this.nowMs() - ts) / (3600 * 1000));
+  }
+
+  toIsoFromMs(ms) {
+    return new Date(ms).toISOString();
+  }
+
   async report(input) {
     return this.reportAsset({ ...input, assetType: input.assetType || 'skill' });
   }
@@ -26,6 +46,10 @@ class SkillService {
     }
 
     const report = createSkillReport(input);
+    report.slaDueAt = this.toIsoFromMs(this.nowMs() + (Math.max(1, Number(input.slaHours || 24)) * 3600 * 1000));
+    report.reviewEscalationLevel = 0;
+    report.lastEscalatedAt = null;
+    report.escalationHistory = [];
     await this.repo.addAssetReport(report);
     await this.audit.log('skill.reported', {
       reportId: report.id,
@@ -162,6 +186,113 @@ class SkillService {
     const report = await this.repo.getAssetReport(reportId);
     if (!report) throw new AppError('skill report not found', 404, 'SKILL_REPORT_NOT_FOUND');
     return Array.isArray(report.reviewHistory) ? report.reviewHistory : [];
+  }
+
+  isOverdue(report, slaHours) {
+    const directDueTs = this.parseTime(report.slaDueAt);
+    if (directDueTs) return this.nowMs() > directDueTs;
+    const createdTs = this.parseTime(report.createdAt);
+    if (!createdTs) return false;
+    return this.nowMs() > (createdTs + Math.max(1, Number(slaHours || 24)) * 3600 * 1000);
+  }
+
+  async escalateOverdueReviews(options = {}) {
+    const slaHours = Math.max(1, Number(options.slaHours || 24));
+    const maxLevel = Math.max(1, Number(options.maxLevel || 3));
+    const cooldownHours = Math.max(0, Number(options.cooldownHours || 4));
+    const cooldownMs = cooldownHours * 3600 * 1000;
+    const trigger = String(options.trigger || 'manual');
+    const escalateTo = String(options.escalateTo || 'platform_admin');
+    const nowMs = this.nowMs();
+
+    const rows = await this.listReportsByStatus('pending_review');
+    let escalated = 0;
+    for (const report of rows) {
+      const dueTs = this.parseTime(report.slaDueAt)
+        || (() => {
+          const createdTs = this.parseTime(report.createdAt);
+          if (!createdTs) return null;
+          return createdTs + slaHours * 3600 * 1000;
+        })();
+      if (!dueTs) continue;
+      if (nowMs <= dueTs) continue;
+
+      const currentLevel = Math.max(0, Number(report.reviewEscalationLevel || 0));
+      if (currentLevel >= maxLevel) continue;
+
+      const lastEscTs = this.parseTime(report.lastEscalatedAt);
+      if (lastEscTs && (nowMs - lastEscTs) < cooldownMs) continue;
+
+      report.reviewEscalationLevel = currentLevel + 1;
+      report.lastEscalatedAt = nowIso();
+      const history = Array.isArray(report.escalationHistory) ? report.escalationHistory : [];
+      history.push({
+        at: report.lastEscalatedAt,
+        level: report.reviewEscalationLevel,
+        trigger,
+        escalateTo
+      });
+      report.escalationHistory = history;
+      report.updatedAt = nowIso();
+      await this.repo.updateAssetReport(report);
+      escalated += 1;
+
+      await this.audit.log('skill.review.escalated', {
+        reportId: report.id,
+        assetType: report.assetType,
+        escalationLevel: report.reviewEscalationLevel,
+        escalateTo,
+        trigger
+      });
+    }
+
+    return {
+      pendingTotal: rows.length,
+      escalated,
+      slaHours,
+      maxLevel,
+      cooldownHours
+    };
+  }
+
+  async getReviewDashboard(options = {}) {
+    const slaHours = Math.max(1, Number(options.slaHours || 24));
+    const reviewer = String(options.reviewer || '').trim();
+    const rows = await this.listReportsByStatus('pending_review');
+    const nowMs = this.nowMs();
+    const byAssetType = {};
+    let overdueTotal = 0;
+    let escalatedTotal = 0;
+    let sumPendingHours = 0;
+    let oldestTs = null;
+
+    for (const report of rows) {
+      const type = String(report.assetType || 'skill');
+      byAssetType[type] = (byAssetType[type] || 0) + 1;
+      const createdTs = this.parseTime(report.createdAt);
+      if (createdTs) {
+        sumPendingHours += Math.max(0, (nowMs - createdTs) / (3600 * 1000));
+        oldestTs = oldestTs === null ? createdTs : Math.min(oldestTs, createdTs);
+      }
+      if (this.isOverdue(report, slaHours)) overdueTotal += 1;
+      if (Number(report.reviewEscalationLevel || 0) > 0) escalatedTotal += 1;
+    }
+
+    const reviewerQueue = reviewer
+      ? rows.filter((x) => !(Array.isArray(x.approvals) && x.approvals.includes(reviewer))).length
+      : rows.length;
+
+    return {
+      generatedAt: nowIso(),
+      slaHours,
+      pendingTotal: rows.length,
+      overdueTotal,
+      escalatedTotal,
+      avgPendingHours: rows.length ? Number((sumPendingHours / rows.length).toFixed(2)) : 0,
+      oldestPendingAt: oldestTs ? new Date(oldestTs).toISOString() : null,
+      reviewerQueue,
+      byAssetType
+    };
   }
 
   async listSharedSkills() {

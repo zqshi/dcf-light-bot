@@ -28,3 +28,4 @@
 - [ ] Runbooks reviewed
 - [ ] Asset governance process enabled (`/api/control/assets/*`: report/review/bind)
 - [ ] Multi-level review policy verified (`requiredApprovals`, reviewer opinions, pending queue)
+- [ ] Review SLA policy verified (`ASSET_REVIEW_SLA_*`, escalation audit, dashboard metrics)

@@ -34,6 +34,33 @@ function buildAssetRouter(assetService, requirePermission) {
     }
   });
 
+  router.get('/reviews/dashboard', requirePermission('control:asset:review'), async (req, res, next) => {
+    try {
+      const out = await assetService.getReviewDashboard({
+        slaHours: req.query.slaHours,
+        reviewer: req.query.reviewer || req.principal.username || ''
+      });
+      res.json({ success: true, data: out });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/reviews/escalate', requirePermission('control:asset:review'), async (req, res, next) => {
+    try {
+      const out = await assetService.escalateOverdueReviews({
+        slaHours: req.body.slaHours,
+        maxLevel: req.body.maxLevel,
+        cooldownHours: req.body.cooldownHours,
+        escalateTo: req.body.escalateTo,
+        trigger: req.body.trigger || `manual:${req.principal.username || 'reviewer'}`
+      });
+      res.json({ success: true, data: out });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get('/reports/:reportId/reviews', requirePermission('control:asset:review'), async (req, res, next) => {
     try {
       const rows = await assetService.listReviewHistory(req.params.reportId);

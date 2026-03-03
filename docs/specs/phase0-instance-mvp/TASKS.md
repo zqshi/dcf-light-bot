@@ -25,6 +25,7 @@
 - [x] Add audit incremental pull (`sinceId/sinceAt/untilAt`) and cursor pagination.
 - [x] Add audit TTL/archive retention policy with scheduled cleanup task.
 - [x] Add multi-level asset approval with opinion trail and pending review query.
+- [x] Add review SLA escalation scheduler and review workload dashboard API.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

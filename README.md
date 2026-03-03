@@ -14,6 +14,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - Asset compatibility validation (`version` / `minOpenclawVersion`) with non-blocking mount isolation.
 - Audit retention lifecycle: TTL + max rows + archive ring with scheduled cleanup.
 - Multi-level asset review (`requiredApprovals`) with review opinion trail and pending-review queue.
+- Review SLA automation (overdue escalation) and review workload dashboard API.
 
 ## Architecture
 - Control Plane: instance lifecycle, auth, audit, shared assets.
