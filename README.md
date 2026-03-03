@@ -6,6 +6,7 @@ Control-plane-first multi-tenant OpenClaw hosting platform.
 - Matrix command creates one isolated OpenClaw tenant instance.
 - Platform-managed provider API keys; tenant users never configure API keys.
 - Tenant asset report (skill/tool/knowledge) -> review -> shared publish -> cross-tenant binding workflow.
+- Tenant bound assets auto-mounted into OpenClaw runtime config during provision/reconcile/start.
 - Audit trail for instance lifecycle and shared-asset operations.
 - JWT + RBAC control-plane auth (legacy admin token compatible).
 - K8s real-mode idempotent reconcile and rollback on provision failure.

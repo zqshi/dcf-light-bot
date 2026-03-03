@@ -5,6 +5,7 @@
 2. Include `Authorization: Bearer <CONTROL_PLANE_ADMIN_TOKEN>` for control API.
 3. Check audit entry `instance.requested` then `instance.provisioned`.
 4. Validate returned card has `chatUrl`.
+5. Confirm runtime config contains tenant `sharedAssets` (from `/api/control/assets/bindings`).
 
 ## Matrix Webhook
 1. Call `POST /api/integrations/matrix/commands`.

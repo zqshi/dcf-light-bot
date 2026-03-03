@@ -2,10 +2,11 @@ const yaml = require('yaml');
 const { AppError } = require('../../shared/errors');
 
 class OpenClawProvisioner {
-  constructor(config) {
+  constructor(config, options = {}) {
     this.config = config;
     this.simulation = Boolean(config.kubernetesSimulationMode);
     this.k8s = null;
+    this.resolveTenantAssets = typeof options.resolveTenantAssets === 'function' ? options.resolveTenantAssets : null;
   }
 
   buildRuntimeNames(instance) {
@@ -29,7 +30,7 @@ class OpenClawProvisioner {
     return data;
   }
 
-  buildOpenClawConfig(instance, names) {
+  buildOpenClawConfig(instance, names, mountedAssets) {
     return yaml.stringify({
       runtime: {
         agent: 'main',
@@ -50,8 +51,9 @@ class OpenClawProvisioner {
       },
       platform: {
         controlPlaneBaseUrl: this.config.platformBaseUrl,
-        skillReportEndpoint: `${this.config.platformBaseUrl}/api/control/skills/reports`
+        assetReportEndpoint: `${this.config.platformBaseUrl}/api/control/assets/reports`
       },
+      sharedAssets: mountedAssets || { all: [], byType: { skill: [], tool: [], knowledge: [] } },
       matrix: {
         homeserver: this.config.matrixHomeserver,
         userId: this.config.matrixUserId
@@ -280,7 +282,8 @@ class OpenClawProvisioner {
     const names = this.buildRuntimeNames(instance);
     const clients = this.ensureK8sClients();
     const providerSecrets = this.getProviderSecretData();
-    const configText = this.buildOpenClawConfig(instance, names);
+    const mountedAssets = this.resolveTenantAssets ? await this.resolveTenantAssets(instance.tenantId) : { all: [], byType: {} };
+    const configText = this.buildOpenClawConfig(instance, names, mountedAssets);
     const secretName = `${names.namespace}-providers`;
     const configMapName = `${names.namespace}-config`;
     const policyName = `${names.namespace}-isolation`;
@@ -294,7 +297,7 @@ class OpenClawProvisioner {
     await this.upsertService(clients.core, names.namespace, names.serviceName, instance);
     await this.upsertNetworkPolicy(clients.networking, names.namespace, policyName, instance.tenantId);
 
-    return { names, secretName, configMapName, policyName };
+    return { names, secretName, configMapName, policyName, mountedAssets };
   }
 
   async safeDelete(work, ...args) {

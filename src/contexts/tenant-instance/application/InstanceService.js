@@ -76,7 +76,11 @@ class InstanceService {
   async start(instanceId) {
     const instance = await this.get(instanceId);
     if (instance.state === STATE.RUNNING) return instance;
-    await this.provisioner.start(instance);
+    const runtime = await this.provisioner.provision(instance);
+    instance.runtime = {
+      ...instance.runtime,
+      ...runtime
+    };
     instance.state = STATE.RUNNING;
     const saved = touch(instance);
     await this.repo.saveInstance(saved);

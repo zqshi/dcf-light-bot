@@ -6,6 +6,7 @@ const { AuditService } = require('../contexts/audit-observability/application/Au
 const { InstanceService } = require('../contexts/tenant-instance/application/InstanceService');
 const { RuntimeProxyService } = require('../contexts/tenant-instance/application/RuntimeProxyService');
 const { SkillService } = require('../contexts/shared-assets/application/SkillService');
+const { TenantAssetResolver } = require('../contexts/shared-assets/application/TenantAssetResolver');
 const { MatrixBot } = require('../integrations/matrix/MatrixBot');
 const { AuthService } = require('../contexts/identity-access/application/AuthService');
 const { InstanceReconciler } = require('../contexts/tenant-instance/application/InstanceReconciler');
@@ -27,7 +28,10 @@ async function startApp() {
   await store.init();
   const repo = new ControlPlaneRepository(store);
   const auditService = new AuditService(repo);
-  const provisioner = new OpenClawProvisioner(config);
+  const tenantAssetResolver = new TenantAssetResolver(repo);
+  const provisioner = new OpenClawProvisioner(config, {
+    resolveTenantAssets: (tenantId) => tenantAssetResolver.resolveByTenant(tenantId)
+  });
   const instanceService = new InstanceService(repo, provisioner, auditService, config);
   const runtimeProxyService = new RuntimeProxyService(instanceService, config, { auditService });
   const skillService = new SkillService(repo, auditService);
