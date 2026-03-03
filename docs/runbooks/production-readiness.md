@@ -18,6 +18,7 @@
 - [ ] Kubernetes manifest check passed (`npm run check:k8s-manifests`)
 - [ ] Helm chart values reviewed and customized (`deploy/helm/dcf-light-bot/values-*.yaml`)
 - [ ] Helm chart check passed (`npm run check:helm-chart`)
+- [ ] Production config guardrail check passed (`npm run check:prod-config`)
 
 ## Observability
 - [ ] Audit endpoint retained with export plan

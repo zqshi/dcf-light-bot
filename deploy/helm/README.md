@@ -6,6 +6,8 @@ Chart path: `deploy/helm/dcf-light-bot`
 1. Ensure `helm` is installed (`helm version`)
 2. Render and lint:
    - `npm run check:helm-chart`
+3. Validate production guardrails:
+   - `npm run check:prod-config`
 
 ## Install/Upgrade
 ```bash
@@ -25,3 +27,4 @@ helm upgrade --install dcf-light-bot deploy/helm/dcf-light-bot \
 - If external secret manager is used:
   - set `secrets.create=false`
   - set `secrets.name=<existing-secret-name>`
+- `values-prod.yaml` uses external secret by default (`secrets.create=false`).

@@ -34,5 +34,7 @@ jobs:
         run: npm run check:k8s-manifests
       - name: Validate Helm Chart
         run: npm run check:helm-chart
+      - name: Validate Production Config Guardrails
+        run: npm run check:prod-config
       - name: Verify OpenClaw Lock
         run: npm run verify:openclaw-lock

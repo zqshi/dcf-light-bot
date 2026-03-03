@@ -19,14 +19,19 @@ pdb:
 
 ingress:
   hosts:
-    - host: dcf.example.com
+    - host: dcf.prod.company.internal
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: dcf-light-bot-tls
       hosts:
-        - dcf.example.com
+        - dcf.prod.company.internal
+
+secrets:
+  create: false
+  name: dcf-light-bot-secret
+  data: null
 
 config:
   AUDIT_RETENTION_TTL_DAYS: "90"
