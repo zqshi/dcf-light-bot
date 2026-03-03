@@ -33,6 +33,7 @@
 - [x] Add local observability stack templates (docker-compose + prometheus + grafana + alertmanager).
 - [x] Add Kubernetes deployment templates (deployment/service/ingress/hpa/networkpolicy/pdb).
 - [x] Add CI kubernetes manifest validation (`kustomize build` + YAML checks).
+- [x] Add Helm chart templates with env values and CI helm lint/template validation.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.

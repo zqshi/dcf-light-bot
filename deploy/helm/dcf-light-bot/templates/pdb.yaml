@@ -1,0 +1,14 @@
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "dcf-light-bot.fullname" . }}
+  namespace: {{ include "dcf-light-bot.namespace" . }}
+  labels:
+    {{- include "dcf-light-bot.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "dcf-light-bot.selectorLabels" . | nindent 6 }}
+{{- end }}

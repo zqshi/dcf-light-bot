@@ -18,6 +18,7 @@
     "verify:openclaw-lock": "node scripts/verify-openclaw-lock.js",
     "check:platform-slo": "bash scripts/check-platform-slo.sh",
     "check:k8s-manifests": "bash scripts/check-k8s-manifests.sh",
+    "check:helm-chart": "bash scripts/check-helm-chart.sh",
     "observability:up": "bash scripts/start-observability-stack.sh",
     "observability:down": "bash scripts/stop-observability-stack.sh",
     "observability:check": "bash scripts/check-observability-stack.sh"

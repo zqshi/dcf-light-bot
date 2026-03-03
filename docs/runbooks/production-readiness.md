@@ -16,6 +16,8 @@
 - [ ] Matrix `!create_agent` load tested for idempotent instance creation
 - [ ] Kubernetes manifests reviewed and customized (`deploy/k8s/base`)
 - [ ] Kubernetes manifest check passed (`npm run check:k8s-manifests`)
+- [ ] Helm chart values reviewed and customized (`deploy/helm/dcf-light-bot/values-*.yaml`)
+- [ ] Helm chart check passed (`npm run check:helm-chart`)
 
 ## Observability
 - [ ] Audit endpoint retained with export plan

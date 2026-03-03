@@ -26,7 +26,13 @@ jobs:
         uses: azure/setup-kubectl@v4
         with:
           version: v1.31.0
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
       - name: Validate K8s Manifests
         run: npm run check:k8s-manifests
+      - name: Validate Helm Chart
+        run: npm run check:helm-chart
       - name: Verify OpenClaw Lock
         run: npm run verify:openclaw-lock

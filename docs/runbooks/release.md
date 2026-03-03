@@ -6,29 +6,30 @@
 3. `npm test`
 4. `npm run verify:openclaw-lock`
 5. `npm run check:k8s-manifests`
-6. Validate `.env` production secrets:
+6. `npm run check:helm-chart`
+7. Validate `.env` production secrets:
    - `CONTROL_PLANE_ADMIN_TOKEN`
    - `MATRIX_WEBHOOK_SECRET`
    - at least one provider API key
-7. Validate persistence backend:
+8. Validate persistence backend:
    - `PERSISTENCE_BACKEND=file` with writable `CONTROL_PLANE_STORE`, or
    - `PERSISTENCE_BACKEND=postgres` with valid `POSTGRES_URL`
-8. If `postgres`, run migration [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
-9. Confirm reconcile flags:
+9. If `postgres`, run migration [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
+10. Confirm reconcile flags:
    - `KUBERNETES_RECONCILE_ENABLED=true`
    - `KUBERNETES_ROLLBACK_ON_PROVISION_FAILURE=true`
-10. Confirm audit retention policy:
+11. Confirm audit retention policy:
    - `AUDIT_RETENTION_ENABLED=true`
    - `AUDIT_RETENTION_TTL_DAYS` / `AUDIT_RETENTION_MAX_ROWS`
    - `AUDIT_ARCHIVE_ENABLED` / `AUDIT_ARCHIVE_MAX_ROWS`
-11. Confirm asset review SLA policy:
+12. Confirm asset review SLA policy:
    - `ASSET_REVIEW_SLA_ENABLED=true`
    - `ASSET_REVIEW_SLA_HOURS` / `ASSET_REVIEW_SLA_INTERVAL_MS`
    - `ASSET_REVIEW_ESCALATION_MAX_LEVEL` / `ASSET_REVIEW_ESCALATION_COOLDOWN_HOURS`
-12. Confirm metrics exposure:
+13. Confirm metrics exposure:
    - `METRICS_ENABLED=true`
    - `METRICS_REFRESH_INTERVAL_MS`
-13. Confirm health thresholds:
+14. Confirm health thresholds:
    - `HEALTH_UNHEALTHY_*` and `HEALTH_DEGRADED_*`
 
 ## Release Steps
@@ -36,6 +37,7 @@
 2. Tag and push.
 3. Deploy control plane.
    - `npm run k8s:apply`
+   - or `helm upgrade --install dcf-light-bot deploy/helm/dcf-light-bot --namespace dcf-system --create-namespace -f deploy/helm/dcf-light-bot/values-prod.yaml`
 4. Run smoke checks:
    - `GET /health`
    - `GET /status`

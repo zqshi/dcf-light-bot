@@ -1,0 +1,16 @@
+apiVersion: v2
+name: dcf-light-bot
+description: Control-plane-first multi-tenant OpenClaw hosting platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - openclaw
+  - multi-tenant
+  - matrix
+  - control-plane
+home: https://github.com/zqshi/dcf-light-bot
+sources:
+  - https://github.com/zqshi/dcf-light-bot
+maintainers:
+  - name: zqshi

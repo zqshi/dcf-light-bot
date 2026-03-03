@@ -40,6 +40,12 @@ npm start
 - Apply: `npm run k8s:apply`
 - Delete: `npm run k8s:delete`
 
+## Helm Deploy
+- Chart guide: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/deploy/helm/README.md)
+- Validate chart: `npm run check:helm-chart`
+- Install/upgrade:
+  - `helm upgrade --install dcf-light-bot deploy/helm/dcf-light-bot --namespace dcf-system --create-namespace -f deploy/helm/dcf-light-bot/values-prod.yaml`
+
 ## Auth
 - Login: `POST /api/control/auth/login`
 - Control APIs: `Authorization: Bearer <jwt-or-admin-token>`
@@ -76,6 +82,7 @@ npm run verify:openclaw-lock
 ## Ops Checks
 - SLO self-check script: `npm run check:platform-slo`
 - K8s manifest static check: `npm run check:k8s-manifests`
+- Helm chart static check: `npm run check:helm-chart`
 - Prometheus alert template: [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
 - Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/grafana-dashboard-dcf-light-bot.json)
 - Monitoring guide: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/README.md)
