@@ -21,4 +21,4 @@
 
 ## Next
 - [ ] Real Kubernetes reconciler and idempotent apply.
-- [ ] Postgres repository adapter and migration scripts.
+- [x] Postgres repository adapter and migration scripts.

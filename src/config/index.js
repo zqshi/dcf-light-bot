@@ -67,6 +67,11 @@ function loadConfig() {
     dataDir,
     logsDir,
     storeFile,
+    persistenceBackend: String(process.env.PERSISTENCE_BACKEND || 'file').toLowerCase(),
+    postgresUrl: String(process.env.POSTGRES_URL || '').trim(),
+    postgresSchema: String(process.env.POSTGRES_SCHEMA || 'public').trim(),
+    postgresTable: String(process.env.POSTGRES_TABLE || 'control_plane_store').trim(),
+    postgresRowKey: String(process.env.POSTGRES_ROW_KEY || 'main').trim(),
     kubernetesSimulationMode: parseBoolean(process.env.KUBERNETES_SIMULATION_MODE, true),
     kubernetesNamespacePrefix: String(process.env.KUBERNETES_NAMESPACE_PREFIX || 'dcf'),
     openclawImage: String(process.env.OPENCLAW_IMAGE || 'openclaw/openclaw:2026.2.27'),
@@ -90,6 +95,13 @@ function loadConfig() {
 
   if (!providers.length) {
     throw new Error('At least one provider key is required in platform config.');
+  }
+
+  if (cfg.persistenceBackend === 'postgres' && !cfg.postgresUrl) {
+    throw new Error('POSTGRES_URL must be set when PERSISTENCE_BACKEND=postgres');
+  }
+  if (!['file', 'postgres'].includes(cfg.persistenceBackend)) {
+    throw new Error('PERSISTENCE_BACKEND must be one of: file, postgres');
   }
 
   if (cfg.nodeEnv === 'production') {

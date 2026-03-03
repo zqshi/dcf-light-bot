@@ -1,5 +1,5 @@
 const { loadConfig } = require('../config');
-const { FileStore } = require('../infrastructure/persistence/FileStore');
+const { createStore } = require('../infrastructure/persistence/createStore');
 const { ControlPlaneRepository } = require('../infrastructure/persistence/ControlPlaneRepository');
 const { OpenClawProvisioner } = require('../infrastructure/k8s/OpenClawProvisioner');
 const { AuditService } = require('../contexts/audit-observability/application/AuditService');
@@ -23,7 +23,7 @@ async function startApp() {
   const config = loadConfig();
   const logger = createLogger();
 
-  const store = new FileStore(config.storeFile);
+  const store = createStore(config);
   await store.init();
   const repo = new ControlPlaneRepository(store);
   const auditService = new AuditService(repo);
@@ -70,6 +70,9 @@ async function startApp() {
       clearInterval(bootstrapTimer);
       await matrixBot.stop();
       await new Promise((resolve) => server.close(resolve));
+      if (store && typeof store.close === 'function') {
+        await store.close();
+      }
     }
   };
 }

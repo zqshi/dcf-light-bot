@@ -21,6 +21,11 @@ cp .env.example .env
 npm start
 ```
 
+## Persistence Backend
+- `PERSISTENCE_BACKEND=file` (default): local JSON file store.
+- `PERSISTENCE_BACKEND=postgres`: use Postgres as control-plane store backend.
+- When using Postgres, set `POSTGRES_URL` and run migration SQL in [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
+
 ## Auth
 - Login: `POST /api/control/auth/login`
 - Control APIs: `Authorization: Bearer <jwt-or-admin-token>`

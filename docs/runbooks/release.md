@@ -9,6 +9,10 @@
    - `CONTROL_PLANE_ADMIN_TOKEN`
    - `MATRIX_WEBHOOK_SECRET`
    - at least one provider API key
+6. Validate persistence backend:
+   - `PERSISTENCE_BACKEND=file` with writable `CONTROL_PLANE_STORE`, or
+   - `PERSISTENCE_BACKEND=postgres` with valid `POSTGRES_URL`
+7. If `postgres`, run migration [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
 
 ## Release Steps
 1. Update `versions.lock.json` if OpenClaw dependency changed.
