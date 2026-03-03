@@ -160,6 +160,29 @@ li {
   border-bottom: 1px dashed var(--line);
 }
 
+.pending-row {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pending-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pending-actions button {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.pending-actions .danger {
+  background: #fff;
+  color: var(--bad);
+  border-color: #f4c7c3;
+}
+
 .json {
   max-height: 420px;
   overflow: auto;
@@ -168,6 +191,20 @@ li {
   color: #d2e1ff;
   border-radius: 8px;
   padding: 12px;
+}
+
+.json.failed {
+  border: 1px solid #f4c7c3;
+  box-shadow: inset 0 0 0 1px rgba(180, 35, 24, 0.3);
+}
+
+.fail-list {
+  margin-bottom: 10px;
+}
+
+.fail-list li {
+  color: var(--bad);
+  border-bottom-style: solid;
 }
 
 .toast {

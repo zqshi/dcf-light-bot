@@ -137,8 +137,12 @@
         <article id="tab-release" class="card tab-panel">
           <div class="panel-head">
             <h3>发布预检</h3>
-            <button id="btn-refresh-release" type="button">刷新</button>
+            <div>
+              <button id="btn-refresh-release" type="button">刷新</button>
+              <button id="btn-assert-release" type="button">Assert</button>
+            </div>
           </div>
+          <ul id="release-failures" class="fail-list"></ul>
           <pre id="release-json" class="json"></pre>
         </article>
       </section>

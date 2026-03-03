@@ -36,8 +36,10 @@ npm start
 - Supports operational actions:
   - create/start/stop tenant instance
   - review shared asset reports (approve/reject)
+  - one-click quick approve/reject on pending asset rows
   - bind shared assets to tenant
   - filter audit logs by `type` / `actor`
+  - run release preflight assert and highlight failed checks
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.

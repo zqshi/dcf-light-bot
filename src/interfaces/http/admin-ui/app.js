@@ -25,10 +25,12 @@
     pendingAssets: document.getElementById('pending-assets'),
     auditList: document.getElementById('audit-list'),
     releaseJson: document.getElementById('release-json'),
+    releaseFailures: document.getElementById('release-failures'),
     refreshInstances: document.getElementById('btn-refresh-instances'),
     refreshAssets: document.getElementById('btn-refresh-assets'),
     refreshAudits: document.getElementById('btn-refresh-audits'),
     refreshRelease: document.getElementById('btn-refresh-release'),
+    assertRelease: document.getElementById('btn-assert-release'),
     instanceCreateForm: document.getElementById('instance-create-form'),
     instanceName: document.getElementById('instance-name'),
     instanceCreator: document.getElementById('instance-creator'),
@@ -107,7 +109,12 @@
     el.pendingAssets.innerHTML = '';
     (pendingRows || []).slice(0, 20).forEach(function (item) {
       const li = document.createElement('li');
-      li.textContent = `${item.assetType || 'skill'} | ${item.name || item.id} | 状态 ${item.status || '-'}`;
+      li.className = 'pending-row';
+      li.innerHTML = `<span>${item.assetType || 'skill'} | ${item.name || item.id} | 状态 ${item.status || '-'}</span>
+        <span class="pending-actions">
+          <button type="button" data-action="approve" data-report-id="${item.id || ''}">approve</button>
+          <button type="button" class="danger" data-action="reject" data-report-id="${item.id || ''}">reject</button>
+        </span>`;
       el.pendingAssets.appendChild(li);
     });
   }
@@ -150,8 +157,30 @@
   async function refreshRelease() {
     const releaseRes = await api('/api/control/release/preflight');
     el.preflightOk.textContent = releaseRes.data && releaseRes.data.ok ? 'passed' : 'failed';
+    el.releaseJson.classList.toggle('failed', !(releaseRes.data && releaseRes.data.ok));
+    el.releaseFailures.innerHTML = '';
+    const failedChecks = (releaseRes.data && releaseRes.data.checks || []).filter(function (x) {
+      return x.status === 'failed';
+    });
+    failedChecks.forEach(function (item) {
+      const li = document.createElement('li');
+      li.textContent = `${item.name}: ${item.detail}`;
+      el.releaseFailures.appendChild(li);
+    });
     el.releaseJson.textContent = JSON.stringify(releaseRes.data || {}, null, 2);
     return releaseRes.data || {};
+  }
+
+  async function doAssetReview(reportId, decision, opinion) {
+    if (!reportId) throw new Error('报告ID不能为空');
+    await api(`/api/control/assets/reports/${encodeURIComponent(reportId)}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({
+        decision: decision,
+        reviewer: (state.me && state.me.username) || 'platform_admin',
+        opinion: String(opinion || '').trim()
+      })
+    });
   }
 
   async function loadDashboard() {
@@ -245,6 +274,18 @@
       showToast('发布预检已刷新', 'success');
     });
 
+    el.assertRelease.addEventListener('click', async function () {
+      try {
+        const result = await api('/api/control/release/preflight/assert', { method: 'POST', body: '{}' });
+        el.preflightOk.textContent = result.data && result.data.ok ? 'passed' : 'failed';
+        await refreshRelease();
+        showToast('发布预检 assert 通过', 'success');
+      } catch (error) {
+        await refreshRelease().catch(function () {});
+        showToast(`发布预检 assert 失败: ${error.message}`, 'error');
+      }
+    });
+
     el.instanceCreateForm.addEventListener('submit', async function (evt) {
       evt.preventDefault();
       try {
@@ -333,6 +374,22 @@
           actor: el.auditActor.value.trim()
         });
         showToast('审计查询完成', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.pendingAssets.addEventListener('click', async function (evt) {
+      const btn = evt.target && evt.target.closest ? evt.target.closest('button[data-action]') : null;
+      if (!btn) return;
+      const decision = btn.getAttribute('data-action');
+      const reportId = btn.getAttribute('data-report-id');
+      if (!decision || !reportId) return;
+      try {
+        const opinion = decision === 'reject' ? 'rejected by admin-ui quick action' : 'approved by admin-ui quick action';
+        await doAssetReview(reportId, decision, opinion);
+        await refreshAssets();
+        showToast(`已${decision} ${reportId}`, 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }
