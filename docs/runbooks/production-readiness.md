@@ -15,6 +15,7 @@
 - [ ] Reconciler loop enabled and monitored
 - [ ] Matrix `!create_agent` load tested for idempotent instance creation
 - [ ] Kubernetes manifests reviewed and customized (`deploy/k8s/base`)
+- [ ] Kubernetes manifest check passed (`npm run check:k8s-manifests`)
 
 ## Observability
 - [ ] Audit endpoint retained with export plan

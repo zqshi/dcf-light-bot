@@ -22,5 +22,11 @@ jobs:
         run: npm run lint
       - name: Unit Tests
         run: npm test
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+      - name: Validate K8s Manifests
+        run: npm run check:k8s-manifests
       - name: Verify OpenClaw Lock
         run: npm run verify:openclaw-lock

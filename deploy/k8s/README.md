@@ -10,6 +10,8 @@
 3. Replace host/tls values in `ingress.yaml`.
 4. Apply:
    - `kubectl apply -k deploy/k8s/base`
+5. Validate manifests:
+   - `npm run check:k8s-manifests`
 
 ## Remove
 - `kubectl delete -k deploy/k8s/base`
