@@ -52,6 +52,7 @@ npm start
   - audit export mode switch (current page / full by filter)
   - audit trace aggregation by instance id
   - batch asset review (approve/reject multiple report IDs)
+  - server-side audit trace API and server-side batch review API
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
@@ -94,8 +95,10 @@ npm start
 - `GET /api/control/audits`
 - `GET /api/control/audits/export?format=ndjson`
 - `GET /api/control/audits?cursor=0&limit=200&sinceId=<lastSeenId>`
+- `GET /api/control/audits/trace/instances/{instanceId}`
 - `GET /api/control/release/preflight`
 - `POST /api/control/release/preflight/assert`
+- `POST /api/control/assets/reviews/batch`
 
 ## Quality Gates
 ```bash

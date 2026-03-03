@@ -49,6 +49,18 @@ function buildAuditRouter(auditService, requirePermission) {
     }
   });
 
+  router.get('/trace/instances/:instanceId', requirePermission('control:audit:read'), async (req, res, next) => {
+    try {
+      const summary = await auditService.traceByInstance(req.params.instanceId, {
+        limit: req.query.limit,
+        filters: collectFilters(req.query || {})
+      });
+      res.json({ success: true, data: summary });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   return router;
 }
 

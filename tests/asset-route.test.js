@@ -109,5 +109,13 @@ describe('Asset route', () => {
       .send({ slaHours: 24, maxLevel: 3, cooldownHours: 4 });
     expect(escalateRes.status).toBe(200);
     expect(escalateRes.body.data.escalated).toBe(1);
+
+    const batchRes = await request(app)
+      .post('/api/control/assets/reviews/batch')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ reportIds: ['r1', 'r2'], decision: 'approve', opinion: 'batch ok' });
+    expect(batchRes.status).toBe(200);
+    expect(batchRes.body.data.total).toBe(2);
+    expect(batchRes.body.data.succeeded).toBe(2);
   });
 });

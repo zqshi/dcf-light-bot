@@ -267,58 +267,12 @@
     URL.revokeObjectURL(url);
   }
 
-  async function fetchAuditsNdjsonPage(cursor, filters) {
-    const query = new URLSearchParams({ format: 'ndjson', limit: '5000', cursor: String(cursor || '0') });
-    if (filters && filters.type) query.set('type', filters.type);
-    if (filters && filters.actor) query.set('actor', filters.actor);
-    const headers = {};
-    if (state.token) headers.Authorization = `Bearer ${state.token}`;
-    const response = await fetch(`/api/control/audits/export?${query.toString()}`, { method: 'GET', headers: headers });
-    if (!response.ok) throw new Error(`审计查询失败: ${response.status}`);
-    const text = await response.text();
-    const lines = text.split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
-    const rows = lines.map(function (line) {
-      try { return JSON.parse(line); } catch { return null; }
-    }).filter(Boolean);
-    return {
-      rows: rows,
-      nextCursor: response.headers.get('x-next-cursor') || null,
-      hasMore: String(response.headers.get('x-has-more') || 'false') === 'true'
-    };
-  }
-
-  async function fetchAllAuditsByFilters(filters) {
-    let cursor = '0';
-    let hasMore = true;
-    const out = [];
-    let guard = 0;
-    while (hasMore && guard < 20) {
-      const page = await fetchAuditsNdjsonPage(cursor, filters);
-      out.push.apply(out, page.rows);
-      hasMore = Boolean(page.hasMore && page.nextCursor);
-      cursor = page.nextCursor || '0';
-      guard += 1;
-    }
-    return out;
-  }
-
-  function buildInstanceAuditSummary(instanceId, rows) {
-    const target = String(instanceId || '').trim();
-    const filtered = (rows || []).filter(function (event) {
-      const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
-      return String(payload.instanceId || '') === target || String(payload.sourceInstanceId || '') === target;
-    });
-    const byType = {};
-    filtered.forEach(function (event) {
-      const type = String(event.type || 'unknown');
-      byType[type] = (byType[type] || 0) + 1;
-    });
-    return {
-      instanceId: target,
-      total: filtered.length,
-      byType: byType,
-      latestAt: filtered.length ? filtered[0].at : null
-    };
+  async function fetchInstanceTrace(instanceId) {
+    const query = new URLSearchParams({ limit: '5000' });
+    if (state.auditQuery.type) query.set('type', state.auditQuery.type);
+    if (state.auditQuery.actor) query.set('actor', state.auditQuery.actor);
+    const res = await api(`/api/control/audits/trace/instances/${encodeURIComponent(instanceId)}?${query.toString()}`);
+    return res.data || { events: [], total: 0, byType: {}, latestAt: null, instanceId: instanceId };
   }
 
   async function runInstanceAction(id, action) {
@@ -572,19 +526,20 @@
       try {
         const ids = parseBatchIds(el.batchReviewReportIds.value);
         if (!ids.length) throw new Error('请填写至少一个报告ID');
-        let success = 0;
-        const failed = [];
-        for (const id of ids) {
-          try {
-            await doAssetReview(id, el.batchReviewDecision.value, el.batchReviewOpinion.value.trim());
-            success += 1;
-          } catch (error) {
-            failed.push({ id: id, error: error.message });
-          }
-        }
+        const out = await api('/api/control/assets/reviews/batch', {
+          method: 'POST',
+          body: JSON.stringify({
+            reportIds: ids,
+            decision: el.batchReviewDecision.value,
+            opinion: el.batchReviewOpinion.value.trim(),
+            reviewer: (state.me && state.me.username) || 'platform_admin'
+          })
+        });
+        const success = Number(out.data && out.data.succeeded || 0);
+        const failedCount = Number(out.data && out.data.failed || 0);
         await refreshAssets();
-        if (failed.length) {
-          showToast(`批量审核完成: 成功${success} 失败${failed.length}`, 'error');
+        if (failedCount > 0) {
+          showToast(`批量审核完成: 成功${success} 失败${failedCount}`, 'error');
         } else {
           showToast(`批量审核成功: ${success}`, 'success');
         }
@@ -631,16 +586,9 @@
       try {
         const instanceId = (el.auditInstanceId.value || '').trim();
         if (!instanceId) throw new Error('请输入实例ID');
-        const allRows = await fetchAllAuditsByFilters({
-          type: state.auditQuery.type,
-          actor: state.auditQuery.actor
-        });
-        const summary = buildInstanceAuditSummary(instanceId, allRows);
-        const filtered = allRows.filter(function (event) {
-          const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
-          return String(payload.instanceId || '') === instanceId || String(payload.sourceInstanceId || '') === instanceId;
-        });
-        renderAudits(filtered.slice(0, 200));
+        const summary = await fetchInstanceTrace(instanceId);
+        const events = Array.isArray(summary.events) ? summary.events : [];
+        renderAudits(events.slice(0, 200));
         el.auditInstanceSummary.textContent = JSON.stringify(summary, null, 2);
         el.auditInstanceSummary.classList.remove('hidden');
         showToast(`实例 ${instanceId} 聚合完成: ${summary.total} 条`, 'success');

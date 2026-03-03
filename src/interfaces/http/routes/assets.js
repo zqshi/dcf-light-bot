@@ -67,6 +67,40 @@ function buildAssetRouter(assetService, requirePermission, metricsService) {
     }
   });
 
+  router.post('/reviews/batch', requirePermission('control:asset:review'), async (req, res, next) => {
+    try {
+      const body = req.body || {};
+      const ids = Array.isArray(body.reportIds) ? body.reportIds : [];
+      const decision = body.decision || 'approve';
+      const reviewer = body.reviewer || req.principal.username || 'platform_admin';
+      const opinion = body.opinion || '';
+      const results = [];
+      for (const id of ids) {
+        const reportId = String(id || '').trim();
+        if (!reportId) continue;
+        try {
+          const out = await assetService.reviewReport(reportId, reviewer, decision, opinion);
+          results.push({ reportId, ok: true, data: out });
+        } catch (error) {
+          results.push({ reportId, ok: false, error: String(error.message || 'review failed') });
+        }
+      }
+      const succeeded = results.filter((x) => x.ok).length;
+      const failed = results.length - succeeded;
+      res.json({
+        success: true,
+        data: {
+          total: results.length,
+          succeeded,
+          failed,
+          results
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get('/reports/:reportId/reviews', requirePermission('control:asset:review'), async (req, res, next) => {
     try {
       const rows = await assetService.listReviewHistory(req.params.reportId);

@@ -161,6 +161,34 @@ class AuditService {
     };
   }
 
+  buildInstanceTraceSummary(instanceId, rows) {
+    const target = String(instanceId || '').trim();
+    const events = (Array.isArray(rows) ? rows : []).filter((event) => {
+      const payload = event && typeof event.payload === 'object' ? event.payload : {};
+      return String(payload.instanceId || '') === target || String(payload.sourceInstanceId || '') === target;
+    });
+    const byType = {};
+    events.forEach((event) => {
+      const type = String(event.type || 'unknown');
+      byType[type] = (byType[type] || 0) + 1;
+    });
+    return {
+      instanceId: target,
+      total: events.length,
+      byType,
+      latestAt: events.length ? events[0].at : null,
+      events
+    };
+  }
+
+  async traceByInstance(instanceId, options = {}) {
+    const target = String(instanceId || '').trim();
+    const limit = Math.max(1, Math.min(5000, Number(options.limit || 5000)));
+    const filters = options.filters && typeof options.filters === 'object' ? options.filters : {};
+    const page = await this.queryPage(limit, filters, 0);
+    return this.buildInstanceTraceSummary(target, page.rows);
+  }
+
   async pruneRetention(trigger = 'manual') {
     const ttlDays = this.retention.ttlDays;
     const ttlMs = ttlDays > 0 ? ttlDays * 24 * 3600 * 1000 : 0;

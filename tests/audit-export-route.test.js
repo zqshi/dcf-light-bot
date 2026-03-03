@@ -47,6 +47,13 @@ describe('audit export route', () => {
           nextCursor: cursor === '0' ? '1' : null,
           hasMore: cursor === '0'
         }),
+        traceByInstance: async (instanceId) => ({
+          instanceId,
+          total: 1,
+          byType: { 'instance.started': 1 },
+          latestAt: '2026-03-03T00:00:00.000Z',
+          events: [{ id: 'a1', type: 'instance.started', payload: { instanceId } }]
+        }),
         log: async () => ({})
       },
       matrixBot: { processTextMessage: async () => ({ ignored: true }) }
@@ -63,5 +70,12 @@ describe('audit export route', () => {
     expect(res.headers['x-next-cursor']).toBe('1');
     expect(res.headers['x-has-more']).toBe('true');
     expect(res.text).toContain('instance.started');
+
+    const traceRes = await request(app)
+      .get('/api/control/audits/trace/instances/inst_1')
+      .set('Authorization', `Bearer ${token}`);
+    expect(traceRes.status).toBe(200);
+    expect(traceRes.body.data.instanceId).toBe('inst_1');
+    expect(traceRes.body.data.total).toBe(1);
   });
 });
