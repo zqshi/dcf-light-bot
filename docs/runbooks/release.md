@@ -39,6 +39,10 @@
    - `GET /status`
    - `GET /metrics`
    - create instance via matrix webhook
+5. Run scripted platform check:
+   - `npm run check:platform-slo`
+6. Ensure alert rules are loaded:
+   - [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
 
 ## Rollback
 1. Redeploy previous tag.

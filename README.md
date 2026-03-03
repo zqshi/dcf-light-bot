@@ -67,3 +67,7 @@ npm run lint
 npm test
 npm run verify:openclaw-lock
 ```
+
+## Ops Checks
+- SLO self-check script: `npm run check:platform-slo`
+- Prometheus alert template: [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)

@@ -22,6 +22,8 @@
 - [ ] Prometheus metrics endpoint verified (`/metrics`)
 - [ ] Instance label metrics verified (`dcf_instance_state_total`, `dcf_instance_failure_reason_total`)
 - [ ] Health threshold config validated (`HEALTH_UNHEALTHY_*`, `HEALTH_DEGRADED_*`)
+- [ ] Prometheus alerts loaded from [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
+- [ ] Scripted check passed (`npm run check:platform-slo`)
 - [ ] Error logs shipped to centralized sink
 - [ ] Alerting configured for failed provisioning
 

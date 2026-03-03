@@ -28,6 +28,7 @@
 - [x] Add review SLA escalation scheduler and review workload dashboard API.
 - [x] Add Prometheus metrics endpoint and graded health status output.
 - [x] Add instance-labeled metrics and configurable health thresholds.
+- [x] Add Prometheus alert rule template and executable platform SLO check script.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.
