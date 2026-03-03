@@ -31,12 +31,54 @@ class OpenClawProvisioner {
     return data;
   }
 
+  getRuntimeModelRef() {
+    const names = new Set((this.config.providers || []).map((x) => String(x && x.name || '').toLowerCase()));
+    if (names.has('minimax')) return `minimax/${this.config.minimaxModel}`;
+    if (names.has('deepseek')) return `deepseek/${this.config.deepseekModel}`;
+    if (names.has('openai')) return 'openai/gpt-4.1-mini';
+    if (names.has('anthropic')) return 'anthropic/claude-sonnet-4-5';
+    return 'openai/gpt-4.1-mini';
+  }
+
+  buildProviderModelsConfig() {
+    const out = {};
+    const names = new Set((this.config.providers || []).map((x) => String(x && x.name || '').toLowerCase()));
+    if (names.has('minimax')) {
+      out.minimax = {
+        baseUrl: this.config.minimaxApiBase,
+        apiKey: '${MINIMAX_API_KEY}',
+        api: 'anthropic-messages',
+        models: [{ id: this.config.minimaxModel, name: this.config.minimaxModel }]
+      };
+    }
+    if (names.has('deepseek')) {
+      out.deepseek = {
+        baseUrl: this.config.deepseekApiBase,
+        apiKey: '${DEEPSEEK_API_KEY}',
+        api: 'openai-responses',
+        models: [{ id: this.config.deepseekModel, name: this.config.deepseekModel }]
+      };
+    }
+    return out;
+  }
+
   buildOpenClawConfig(instance, names, mountedAssets) {
+    const runtimeModel = this.getRuntimeModelRef();
+    const providersConfig = this.buildProviderModelsConfig();
     return yaml.stringify({
       runtime: {
         agent: 'main',
-        model: 'openai/gpt-4.1-mini',
-        default_model: 'openai/gpt-4.1-mini'
+        model: runtimeModel,
+        default_model: runtimeModel
+      },
+      agents: {
+        defaults: {
+          model: { primary: runtimeModel }
+        }
+      },
+      models: {
+        mode: 'merge',
+        providers: providersConfig
       },
       workspace: {
         directory: '/data/workspace'

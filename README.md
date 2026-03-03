@@ -94,6 +94,19 @@ npm start
 - header: `x-matrix-webhook-secret`
 - body: `{ "sender": "@u:matrix", "roomId": "!r:matrix", "text": "!create_agent alice" }`
 
+## Matrix Relay (Real Room Message Inbound)
+- Set `.env`:
+  - `MATRIX_HOMESERVER` (example: `http://127.0.0.1:8008`)
+  - `MATRIX_USER_ID` (example: `@dcfbot:localhost`)
+  - `MATRIX_ACCESS_TOKEN`
+  - `MATRIX_RELAY_ENABLED=true`
+- Optional provider defaults for OpenClaw tenant config:
+  - `MINIMAX_API_BASE`, `MINIMAX_MODEL`
+  - `DEEPSEEK_API_BASE`, `DEEPSEEK_MODEL`
+- Start app and relay will auto-bridge room text message to control-plane command handler.
+- Run E2E bootstrap/validation:
+  - `npm run matrix:e2e`
+
 ## Key APIs
 - `GET /health`
 - `GET /status`

@@ -10,6 +10,7 @@ const { SkillService } = require('../contexts/shared-assets/application/SkillSer
 const { TenantAssetResolver } = require('../contexts/shared-assets/application/TenantAssetResolver');
 const { AssetCompatibilityService } = require('../contexts/shared-assets/application/AssetCompatibilityService');
 const { MatrixBot } = require('../integrations/matrix/MatrixBot');
+const { MatrixRelay } = require('../integrations/matrix/MatrixRelay');
 const { AuthService } = require('../contexts/identity-access/application/AuthService');
 const { InstanceReconciler } = require('../contexts/tenant-instance/application/InstanceReconciler');
 const { ReleasePreflightService } = require('../contexts/release-management/application/ReleasePreflightService');
@@ -98,6 +99,7 @@ async function startApp() {
   const skillService = new SkillService(repo, auditService);
   const assetService = skillService;
   const matrixBot = new MatrixBot(config, logger, instanceService);
+  const matrixRelay = new MatrixRelay(config, logger, matrixBot);
   const authService = new AuthService(config);
   const releasePreflightService = new ReleasePreflightService({ rootDir: process.cwd() });
   const reconciler = new InstanceReconciler(repo, auditService, provisioner, {
@@ -123,6 +125,7 @@ async function startApp() {
   });
 
   await matrixBot.start();
+  await matrixRelay.start();
 
   const bootstrapTimer = setInterval(() => {
     reconciler.tick().catch((error) => logger.error('bootstrap tick failed', { error: error.message }));
@@ -201,6 +204,7 @@ async function startApp() {
     logger,
     server,
     matrixBot,
+    matrixRelay,
     instanceService,
     skillService,
     assetService,
@@ -213,6 +217,7 @@ async function startApp() {
       if (auditRetentionTimer) clearInterval(auditRetentionTimer);
       if (assetReviewSlaTimer) clearInterval(assetReviewSlaTimer);
       if (metricsRefreshTimer) clearInterval(metricsRefreshTimer);
+      await matrixRelay.stop();
       await matrixBot.stop();
       await new Promise((resolve) => server.close(resolve));
       if (store && typeof store.close === 'function') {

@@ -73,6 +73,30 @@ describe('OpenClawProvisioner', () => {
     expect(parsed.sharedAssets.byType.tool[0].name).toBe('doc-reader');
   });
 
+  test('uses configured minimax/deepseek providers as runtime defaults', () => {
+    const provisioner = new OpenClawProvisioner(
+      baseConfig({
+        providers: [
+          { name: 'minimax', key: 'k_minimax' },
+          { name: 'deepseek', key: 'k_deepseek' }
+        ],
+        minimaxApiBase: 'https://api.minimaxi.com/anthropic',
+        minimaxModel: 'MiniMax-M2.5',
+        deepseekApiBase: 'https://api.deepseek.com/v1',
+        deepseekModel: 'deepseek-chat'
+      })
+    );
+    const configText = provisioner.buildOpenClawConfig(
+      { id: 'i9', tenantId: 't9', name: 'n9' },
+      { namespace: 'n9', serviceName: 'n9-svc' },
+      { all: [], byType: { skill: [], tool: [], knowledge: [] } }
+    );
+    const parsed = yaml.parse(configText);
+    expect(parsed.runtime.model).toBe('minimax/MiniMax-M2.5');
+    expect(parsed.models.providers.minimax.baseUrl).toBe('https://api.minimaxi.com/anthropic');
+    expect(parsed.models.providers.deepseek.baseUrl).toBe('https://api.deepseek.com/v1');
+  });
+
   test('continues provisioning when asset resolve fails and records mount issue', async () => {
     const provisioner = new OpenClawProvisioner(
       baseConfig({ kubernetesSimulationMode: false }),
