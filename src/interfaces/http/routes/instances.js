@@ -5,7 +5,20 @@ function buildInstanceRouter(instanceService, requirePermission) {
 
   router.get('/', requirePermission('control:instance:read'), async (req, res, next) => {
     try {
-      res.json({ success: true, data: await instanceService.list() });
+      let rows = await instanceService.list();
+      const state = String(req.query.state || '').trim();
+      const name = String(req.query.name || '').trim().toLowerCase();
+      const tenantId = String(req.query.tenantId || '').trim().toLowerCase();
+      if (state) {
+        rows = rows.filter((x) => String(x.state || '') === state);
+      }
+      if (name) {
+        rows = rows.filter((x) => String(x.name || '').toLowerCase().includes(name));
+      }
+      if (tenantId) {
+        rows = rows.filter((x) => String(x.tenantId || '').toLowerCase().includes(tenantId));
+      }
+      res.json({ success: true, data: rows });
     } catch (error) {
       next(error);
     }

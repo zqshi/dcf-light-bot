@@ -78,6 +78,14 @@ describe('Asset route', () => {
       .send({ tenantId: 't1', assetId: 'a1', assetType: 'tool' });
     expect(bindRes.status).toBe(201);
     expect(bindRes.body.data.assetType).toBe('tool');
+
+    const batchBindRes = await request(app)
+      .post('/api/control/assets/bindings/batch')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tenantId: 't1', assetIds: ['a1', 'a2'], assetType: 'tool' });
+    expect(batchBindRes.status).toBe(200);
+    expect(batchBindRes.body.data.total).toBe(2);
+    expect(batchBindRes.body.data.succeeded).toBe(2);
   });
 
   test('reviewer can query pending reviews and review history', async () => {

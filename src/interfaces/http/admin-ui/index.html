@@ -141,6 +141,18 @@
             </label>
             <button type="submit">绑定资产</button>
           </form>
+          <form id="asset-batch-bind-form" class="inline-form">
+            <label>租户ID<input id="batch-bind-tenant-id" placeholder="tenant_xxx" /></label>
+            <label>资产ID列表(逗号/换行)<textarea id="batch-bind-asset-ids" rows="3" placeholder="asset_a,asset_b"></textarea></label>
+            <label>资产类型
+              <select id="batch-bind-asset-type">
+                <option value="skill">skill</option>
+                <option value="tool">tool</option>
+                <option value="knowledge">knowledge</option>
+              </select>
+            </label>
+            <button type="submit">批量绑定</button>
+          </form>
           <div class="split">
             <div>
               <h4>已共享</h4>

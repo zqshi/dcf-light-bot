@@ -8,6 +8,7 @@ function buildAuditRouter(auditService, requirePermission) {
     if (query.type) out.type = query.type;
     if (query.actor) out.actor = query.actor;
     if (query.tenantId) out.tenantId = query.tenantId;
+    if (query.instanceId) out.instanceId = query.instanceId;
     if (query.from) out.from = query.from;
     if (query.to) out.to = query.to;
     if (query.sinceId) out.sinceId = query.sinceId;

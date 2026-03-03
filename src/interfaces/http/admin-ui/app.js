@@ -79,6 +79,10 @@
     bindTenantId: document.getElementById('bind-tenant-id'),
     bindAssetId: document.getElementById('bind-asset-id'),
     bindAssetType: document.getElementById('bind-asset-type'),
+    assetBatchBindForm: document.getElementById('asset-batch-bind-form'),
+    batchBindTenantId: document.getElementById('batch-bind-tenant-id'),
+    batchBindAssetIds: document.getElementById('batch-bind-asset-ids'),
+    batchBindAssetType: document.getElementById('batch-bind-asset-type'),
     assetBindings: document.getElementById('asset-bindings'),
     auditFilterForm: document.getElementById('audit-filter-form'),
     auditInstanceTraceForm: document.getElementById('audit-instance-trace-form'),
@@ -189,21 +193,15 @@
   }
 
   async function refreshInstances() {
-    const instanceRes = await api('/api/control/instances');
+    const q = new URLSearchParams();
+    if (state.instanceStateFilter) q.set('state', state.instanceStateFilter);
+    if (state.instanceNameFilter) q.set('name', state.instanceNameFilter);
+    if (state.instanceTenantFilter) q.set('tenantId', state.instanceTenantFilter);
+    const instanceRes = await api(`/api/control/instances${q.toString() ? `?${q.toString()}` : ''}`);
     state.instancesCache = instanceRes.data || [];
-    const filtered = state.instancesCache.filter(function (x) {
-      const byState = state.instanceStateFilter ? String(x.state || '') === state.instanceStateFilter : true;
-      const byName = state.instanceNameFilter
-        ? String(x.name || '').toLowerCase().includes(state.instanceNameFilter.toLowerCase())
-        : true;
-      const byTenant = state.instanceTenantFilter
-        ? String(x.tenantId || '').toLowerCase().includes(state.instanceTenantFilter.toLowerCase())
-        : true;
-      return byState && byName && byTenant;
-    });
     el.instanceTotal.textContent = String(state.instancesCache.length);
-    renderInstances(filtered);
-    return filtered;
+    renderInstances(state.instancesCache);
+    return state.instancesCache;
   }
 
   async function refreshAssets() {
@@ -271,6 +269,7 @@
     const query = new URLSearchParams({ limit: '5000' });
     if (state.auditQuery.type) query.set('type', state.auditQuery.type);
     if (state.auditQuery.actor) query.set('actor', state.auditQuery.actor);
+    if (instanceId) query.set('instanceId', instanceId);
     const res = await api(`/api/control/audits/trace/instances/${encodeURIComponent(instanceId)}?${query.toString()}`);
     return res.data || { events: [], total: 0, byType: {}, latestAt: null, instanceId: instanceId };
   }
@@ -561,6 +560,29 @@
           })
         });
         showToast('资产绑定成功', 'success');
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+
+    el.assetBatchBindForm.addEventListener('submit', async function (evt) {
+      evt.preventDefault();
+      try {
+        const tenantId = (el.batchBindTenantId.value || '').trim();
+        const assetIds = parseBatchIds(el.batchBindAssetIds.value);
+        if (!tenantId) throw new Error('请填写租户ID');
+        if (!assetIds.length) throw new Error('请填写至少一个资产ID');
+        const out = await api('/api/control/assets/bindings/batch', {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId: tenantId,
+            assetIds: assetIds,
+            assetType: el.batchBindAssetType.value,
+            actor: (state.me && state.me.username) || 'platform_admin'
+          })
+        });
+        await refreshAssets();
+        showToast(`批量绑定完成: 成功${out.data.succeeded} 失败${out.data.failed}`, out.data.failed > 0 ? 'error' : 'success');
       } catch (error) {
         showToast(error.message, 'error');
       }

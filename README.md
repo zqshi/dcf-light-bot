@@ -53,6 +53,9 @@ npm start
   - audit trace aggregation by instance id
   - batch asset review (approve/reject multiple report IDs)
   - server-side audit trace API and server-side batch review API
+  - server-side instance query filters (`state/name/tenantId`)
+  - server-side audit `instanceId` filter
+  - batch asset binding API
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
@@ -99,6 +102,7 @@ npm start
 - `GET /api/control/release/preflight`
 - `POST /api/control/release/preflight/assert`
 - `POST /api/control/assets/reviews/batch`
+- `POST /api/control/assets/bindings/batch`
 
 ## Quality Gates
 ```bash

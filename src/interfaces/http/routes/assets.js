@@ -172,6 +172,40 @@ function buildAssetRouter(assetService, requirePermission, metricsService) {
     }
   });
 
+  router.post('/bindings/batch', requirePermission('control:asset:bind'), async (req, res, next) => {
+    try {
+      const body = req.body || {};
+      const tenantId = body.tenantId;
+      const assetType = body.assetType;
+      const actor = body.actor || req.principal.username || 'platform_admin';
+      const ids = Array.isArray(body.assetIds) ? body.assetIds : [];
+      const results = [];
+      for (const id of ids) {
+        const assetId = String(id || '').trim();
+        if (!assetId) continue;
+        try {
+          const out = await assetService.bindSharedAsset(tenantId, assetId, assetType, actor);
+          results.push({ assetId, ok: true, data: out });
+        } catch (error) {
+          results.push({ assetId, ok: false, error: String(error.message || 'bind failed') });
+        }
+      }
+      const succeeded = results.filter((x) => x.ok).length;
+      const failed = results.length - succeeded;
+      res.json({
+        success: true,
+        data: {
+          total: results.length,
+          succeeded,
+          failed,
+          results
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get('/bindings', requirePermission('control:asset:read'), async (req, res, next) => {
     try {
       res.json({ success: true, data: await assetService.listAssetBindings(req.query.type) });

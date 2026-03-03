@@ -62,6 +62,7 @@ class AuditService {
     const type = String(filters.type || '').trim();
     const actor = String(filters.actor || '').trim();
     const tenantId = String(filters.tenantId || '').trim();
+    const instanceId = String(filters.instanceId || '').trim();
     const fromTs = this.normalizeTime(filters.from);
     const toTs = this.normalizeTime(filters.to);
     const atTs = this.normalizeTime(event.at);
@@ -75,6 +76,11 @@ class AuditService {
       const p = event.payload && typeof event.payload === 'object' ? event.payload : {};
       const eventTenantId = String(p.tenantId || '').trim();
       if (eventTenantId !== tenantId) return false;
+    }
+    if (instanceId) {
+      const p = event.payload && typeof event.payload === 'object' ? event.payload : {};
+      const eventInstanceId = String(p.instanceId || p.sourceInstanceId || '').trim();
+      if (eventInstanceId !== instanceId) return false;
     }
     if (fromTs && atTs && atTs < fromTs) return false;
     if (toTs && atTs && atTs > toTs) return false;

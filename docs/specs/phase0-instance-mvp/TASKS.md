@@ -45,6 +45,7 @@
 - [x] Add instance name/tenant search, asset type filter, and audit export mode switch in admin console.
 - [x] Add instance-level audit trace aggregation and batch asset review operations in admin console.
 - [x] Add backend APIs for instance audit trace and batch asset reviews.
+- [x] Add backend filters for instances/audits and batch asset binding API with UI integration.
 
 ## Next
 - [x] Real Kubernetes reconciler baseline with idempotent apply and rollback on provision failure.
