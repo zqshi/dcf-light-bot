@@ -22,6 +22,17 @@
     return String(window.location.hash || "").indexOf("#/room") === 0;
   }
 
+  function isAuthHash(hash) {
+    var val = String(hash || "").toLowerCase();
+    return val.indexOf("#/login") === 0 || val.indexOf("#/welcome") === 0 || val.indexOf("#/soft_logout") === 0;
+  }
+
+  function redirectToUnifiedLoginIfNeeded() {
+    if (isAuthHash(window.location.hash || "")) {
+      window.location.replace("/welcome.html");
+    }
+  }
+
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
     var style = document.createElement("style");
@@ -294,6 +305,8 @@
   }
 
   ready(function () {
+    redirectToUnifiedLoginIfNeeded();
+    window.addEventListener("hashchange", redirectToUnifiedLoginIfNeeded);
     ensureStyle();
     ensureNodes();
     bindGlobalEvents();
