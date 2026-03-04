@@ -2,6 +2,7 @@
   const DEFAULT_NAV_ITEMS = [
     { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
     { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
+    { path: '/admin/matrix-channels.html', label: '渠道运营', permission: 'admin.employees.page.overview.read' },
     { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
     { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
     { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },

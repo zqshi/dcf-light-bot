@@ -145,6 +145,7 @@ function buildAdminCompatRouter(context) {
   const toolServiceStore = new Map();
   let toolStoreHydrated = false;
   const ossCaseState = new Map();
+  const matrixRoomOverrideByInstance = new Map();
 
   const roleStore = new Map();
   Object.entries(ROLE_PERMISSIONS).forEach(([role, perms]) => {
@@ -168,6 +169,7 @@ function buildAdminCompatRouter(context) {
     return [
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
+      { path: '/admin/matrix-channels.html', label: '渠道运营', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
       { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
@@ -276,6 +278,9 @@ function buildAdminCompatRouter(context) {
     const approvalPolicy = employeeApprovalOverrides.get(instance.id) || buildDefaultApprovalPolicy();
     const department = String(profile.department || 'operations');
     const role = String(profile.role || pickInstanceRole(instance.name));
+    const resolvedMatrixRoomId = matrixRoomOverrideByInstance.has(instance.id)
+      ? matrixRoomOverrideByInstance.get(instance.id)
+      : instance.matrixRoomId;
     return {
       id: instance.id,
       name: String(profile.name || instance.name || instance.id),
@@ -285,7 +290,7 @@ function buildAdminCompatRouter(context) {
       status: String(instance.state || 'unknown'),
       tenantId: String(instance.tenantId || ''),
       creator: String(instance.creator || ''),
-      matrixRoomId: instance.matrixRoomId || null,
+      matrixRoomId: resolvedMatrixRoomId || null,
       runtimeEndpoint: instance.runtime && instance.runtime.endpoint ? instance.runtime.endpoint : null,
       capabilities: Array.isArray(profile.capabilities) ? profile.capabilities : [],
       knowledge: Array.isArray(profile.knowledge) ? profile.knowledge : [],
@@ -470,6 +475,7 @@ function buildAdminCompatRouter(context) {
       /^\/overview$/,
       /^\/instances(\/|$)/,
       /^\/employees(\/|$)/,
+      /^\/matrix(\/|$)/,
       /^\/skills(\/|$)/,
       /^\/assets(\/|$)/,
       /^\/runtime\/skill-sedimentation-policy$/,
@@ -643,6 +649,173 @@ function buildAdminCompatRouter(context) {
     toolServiceStore,
     hydrateToolServices,
     ossCaseState
+  });
+
+  function resolveAuditRoomId(row) {
+    const payload = row && row.payload && typeof row.payload === 'object' ? row.payload : {};
+    return String(
+      payload.roomId
+      || payload.room_id
+      || payload.matrixRoomId
+      || payload.channelId
+      || ''
+    ).trim();
+  }
+
+  function mergeMatrixRoomSummary(base = {}, patch = {}) {
+    return {
+      roomId: patch.roomId || base.roomId || '',
+      boundInstanceId: patch.boundInstanceId || base.boundInstanceId || '',
+      instanceName: patch.instanceName || base.instanceName || '',
+      tenantId: patch.tenantId || base.tenantId || '',
+      instanceState: patch.instanceState || base.instanceState || 'unknown',
+      auditEvents24h: Number(base.auditEvents24h || 0) + Number(patch.auditEvents24h || 0),
+      lastEventType: patch.lastEventType || base.lastEventType || '',
+      lastEventAt: toMs(patch.lastEventAt) >= toMs(base.lastEventAt) ? (patch.lastEventAt || base.lastEventAt || '') : (base.lastEventAt || '')
+    };
+  }
+
+  function resolveInstanceRoomId(instance) {
+    const id = String((instance && instance.id) || '');
+    if (matrixRoomOverrideByInstance.has(id)) {
+      return String(matrixRoomOverrideByInstance.get(id) || '').trim();
+    }
+    return String((instance && instance.matrixRoomId) || '').trim();
+  }
+
+  router.get('/api/admin/matrix/channels', async (req, res) => {
+    const [instances, audits] = await Promise.all([
+      listInstances(),
+      context.auditService.list(1000)
+    ]);
+    const byRoom = new Map();
+    const now = Date.now();
+    const dayAgo = now - (24 * 60 * 60 * 1000);
+
+    for (const instance of instances) {
+      const roomId = resolveInstanceRoomId(instance);
+      if (!roomId) continue;
+      const current = byRoom.get(roomId) || {};
+      byRoom.set(roomId, mergeMatrixRoomSummary(current, {
+        roomId,
+        boundInstanceId: String(instance.id || ''),
+        instanceName: String(instance.name || instance.id || ''),
+        tenantId: String(instance.tenantId || ''),
+        instanceState: String(instance.state || 'unknown')
+      }));
+    }
+
+    for (const row of audits) {
+      const roomId = resolveAuditRoomId(row);
+      if (!roomId) continue;
+      const atMs = toMs(row && row.at);
+      const in24h = atMs >= dayAgo ? 1 : 0;
+      const current = byRoom.get(roomId) || {};
+      byRoom.set(roomId, mergeMatrixRoomSummary(current, {
+        roomId,
+        auditEvents24h: in24h,
+        lastEventType: String((row && row.type) || ''),
+        lastEventAt: String((row && row.at) || '')
+      }));
+    }
+
+    let rows = Array.from(byRoom.values()).map((x) => ({
+      ...x,
+      roomId: String(x.roomId || ''),
+      bound: Boolean(x.boundInstanceId),
+      boundInstanceId: String(x.boundInstanceId || ''),
+      instanceName: String(x.instanceName || ''),
+      tenantId: String(x.tenantId || ''),
+      instanceState: String(x.instanceState || 'unknown'),
+      auditEvents24h: Number(x.auditEvents24h || 0),
+      lastEventType: String(x.lastEventType || ''),
+      lastEventAt: String(x.lastEventAt || '')
+    }));
+
+    const keyword = String((req.query && req.query.keyword) || '').trim().toLowerCase();
+    const status = String((req.query && req.query.status) || '').trim().toLowerCase();
+    if (keyword) {
+      rows = rows.filter((x) => [
+        x.roomId,
+        x.boundInstanceId,
+        x.instanceName,
+        x.tenantId,
+        x.lastEventType
+      ].join(' ').toLowerCase().includes(keyword));
+    }
+    if (status === 'bound') rows = rows.filter((x) => x.bound);
+    if (status === 'unbound') rows = rows.filter((x) => !x.bound);
+
+    rows.sort((a, b) => toMs(b.lastEventAt) - toMs(a.lastEventAt));
+
+    const summary = {
+      channels: rows.length,
+      bound: rows.filter((x) => x.bound).length,
+      unbound: rows.filter((x) => !x.bound).length,
+      auditEvents24h: rows.reduce((sum, row) => sum + Number(row.auditEvents24h || 0), 0)
+    };
+
+    res.json({ rows, summary });
+  });
+
+  router.post('/api/admin/matrix/channels/:roomId/bind-instance', async (req, res) => {
+    const roomId = String(req.params.roomId || '').trim();
+    const instanceId = String((req.body && req.body.instanceId) || '').trim();
+    if (!roomId || !instanceId) {
+      res.status(400).json({ error: 'roomId and instanceId are required' });
+      return;
+    }
+    const instances = await listInstances();
+    const target = instances.find((x) => String(x.id || '') === instanceId);
+    if (!target) {
+      res.status(404).json({ error: 'instance not found' });
+      return;
+    }
+
+    for (const [id, mappedRoomId] of matrixRoomOverrideByInstance.entries()) {
+      if (String(mappedRoomId || '') === roomId || String(id || '') === instanceId) {
+        matrixRoomOverrideByInstance.delete(id);
+      }
+    }
+    matrixRoomOverrideByInstance.set(instanceId, roomId);
+    await context.auditService.log('admin.matrix.channel.bound', {
+      actor: req.adminSession.user.username,
+      roomId,
+      instanceId
+    });
+
+    res.json({
+      success: true,
+      roomId,
+      instanceId,
+      channel: {
+        roomId,
+        bound: true,
+        boundInstanceId: instanceId,
+        instanceName: String(target.name || target.id || ''),
+        tenantId: String(target.tenantId || ''),
+        instanceState: String(target.state || 'unknown')
+      }
+    });
+  });
+
+  router.post('/api/admin/matrix/channels/:roomId/unbind', async (req, res) => {
+    const roomId = String(req.params.roomId || '').trim();
+    if (!roomId) {
+      res.status(400).json({ error: 'roomId is required' });
+      return;
+    }
+    const instances = await listInstances();
+    const matched = instances.filter((x) => resolveInstanceRoomId(x) === roomId);
+    for (const row of matched) {
+      matrixRoomOverrideByInstance.set(String(row.id || ''), '');
+    }
+    await context.auditService.log('admin.matrix.channel.unbound', {
+      actor: req.adminSession.user.username,
+      roomId,
+      affectedInstances: matched.map((x) => String(x.id || ''))
+    });
+    res.json({ success: true, roomId, affectedInstances: matched.map((x) => String(x.id || '')) });
   });
 
   router.get('/api/admin/employees', async (req, res) => {

@@ -70,6 +70,10 @@ describe('admin ui static routes', () => {
     expect(jsRes.status).toBe(200);
     expect(jsRes.headers['content-type']).toContain('javascript');
 
+    const matrixRes = await request(app).get('/admin/matrix-channels.html');
+    expect(matrixRes.status).toBe(200);
+    expect(matrixRes.headers['content-type']).toContain('text/html');
+
     const disabledRes = await request(app).get('/admin/runtime.html');
     expect(disabledRes.status).toBe(404);
   });
