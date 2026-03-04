@@ -108,6 +108,12 @@ describe('admin assets compat routes', () => {
     expect(publishRes.body.success).toBe(true);
     expect(publishRes.body.action).toBe('publish');
 
+    const approveRes = await agent.post('/api/admin/assets/knowledge/r_knowledge_1/approve').send({ decision: 'introduce_oss' });
+    expect(approveRes.status).toBe(200);
+    const listAfterApprove = await agent.get('/api/admin/assets/knowledge');
+    expect(listAfterApprove.status).toBe(200);
+    expect(listAfterApprove.body.reports[0].status).toBe('approved_introduce');
+
     const bindBad = await agent.post('/api/admin/assets/knowledge/a_knowledge_1/bind').send({});
     expect(bindBad.status).toBe(400);
 
@@ -116,5 +122,10 @@ describe('admin assets compat routes', () => {
     expect(bindRes.body.success).toBe(true);
     expect(bindRes.body.action).toBe('bind');
     expect(bindSharedAsset).toHaveBeenCalledWith('tenant_a', 'a_knowledge_1', 'knowledge', 'admin');
+
+    const detailRes = await agent.get('/api/admin/assets/knowledge/r_knowledge_1');
+    expect(detailRes.status).toBe(200);
+    expect(detailRes.body.type).toBe('knowledge');
+    expect(detailRes.body.id).toBe('r_knowledge_1');
   });
 });

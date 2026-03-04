@@ -385,6 +385,52 @@ function buildSkillListUrl() {
   return query ? `/api/admin/skills?${query}` : '/api/admin/skills';
 }
 
+function buildAssetSkillListUrl() {
+  const filters = readFilters();
+  const params = new URLSearchParams();
+  const keywords = [filters.name, filters.source].map((x) => String(x || '').trim()).filter(Boolean);
+  if (keywords.length) params.set('keyword', keywords.join(' '));
+  const query = params.toString();
+  return query ? `/api/admin/assets/skill?${query}` : '/api/admin/assets/skill';
+}
+
+function normalizeSkillRowFromAsset(input = {}) {
+  return {
+    id: input.id,
+    name: input.name || input.id,
+    type: input.type || input.assetType || 'general',
+    domain: input.domain || '-',
+    source: input.source || 'shared-center',
+    description: input.description || '',
+    status: input.status || '-',
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt
+  };
+}
+
+async function fetchSkillRows() {
+  try {
+    const out = await api(buildAssetSkillListUrl());
+    const shared = Array.isArray(out && out.sharedAssets) ? out.sharedAssets : [];
+    const reports = Array.isArray(out && out.reports) ? out.reports : [];
+    const base = shared.length ? shared : reports;
+    return base.map((row) => normalizeSkillRowFromAsset(row));
+  } catch {
+    return api(buildSkillListUrl());
+  }
+}
+
+async function fetchSkillDetail(skillId) {
+  const id = encodeURIComponent(String(skillId || ''));
+  try {
+    const out = await api(`/api/admin/assets/skill/${id}`);
+    const detail = out && out.detail ? out.detail : out;
+    return normalizeSkillRowFromAsset(detail || {});
+  } catch {
+    return api(`/api/admin/skills/${id}`);
+  }
+}
+
 function formatSkillSourceLabel(source) {
   const value = String(source || '').trim();
   if (!value) return '-';
@@ -558,6 +604,7 @@ const skillDetailRenderer = (window.__adminSkillDetailRenderer
     buildDetailDigest,
     load,
     loadEmployeeCandidates,
+    fetchSkillDetail,
     getCurrentSkillId: () => currentSkillId,
     setCurrentSkillId: (value) => { currentSkillId = String(value || ''); },
     getCurrentDetailDigest: () => currentDetailDigest,
@@ -592,7 +639,7 @@ function downloadJson(filename, payload) {
 
 async function load() {
   try {
-    const rows = await api(buildSkillListUrl());
+    const rows = await fetchSkillRows();
     renderSourceFilterOptions(rows);
     if (!Array.isArray(rows) || !rows.length) {
       currentSkillMap = new Map();
@@ -630,7 +677,7 @@ async function load() {
         setDrawerVisibility(false);
       } else {
         try {
-          const detail = await api(`/api/admin/skills/${encodeURIComponent(currentSkillId)}`);
+          const detail = await fetchSkillDetail(currentSkillId);
           openDetail(detail);
         } catch {
           openDetail(currentSkillMap.get(currentSkillId));
@@ -776,7 +823,7 @@ function bindEvents() {
       const skillId = trigger.getAttribute('data-skill-id');
       if (!skillId) return;
       try {
-        const detail = await api(`/api/admin/skills/${encodeURIComponent(skillId)}`);
+        const detail = await fetchSkillDetail(skillId);
         openDetail(detail, { force: true });
       } catch (error) {
         try {
@@ -803,10 +850,17 @@ function bindEvents() {
       try {
         let data;
         try {
-          data = await api('/api/admin/skills/export');
+          const out = await api('/api/admin/assets/skill');
+          const shared = Array.isArray(out && out.sharedAssets) ? out.sharedAssets : [];
+          data = {
+            schemaVersion: 'skills.export.v1',
+            exportedAt: new Date().toISOString(),
+            count: shared.length,
+            skills: shared
+          };
         } catch (error) {
           if (String(error.message || '').includes('Not Found')) {
-            const skills = await api('/api/admin/skills');
+            const skills = await fetchSkillRows();
             data = {
               schemaVersion: 'skills.export.v1',
               exportedAt: new Date().toISOString(),

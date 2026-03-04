@@ -94,6 +94,56 @@ function registerAdminCompatAssetRoutes(router, context, deps) {
     });
   });
 
+  router.get('/api/admin/assets/:type/:id', async (req, res) => {
+    const type = normalizeType(req.params.type);
+    const id = String(req.params.id || '').trim();
+    if (!['skill', 'tool', 'knowledge'].includes(type)) {
+      res.status(400).json({ error: 'unsupported asset type' });
+      return;
+    }
+    if (!id) {
+      res.status(400).json({ error: 'asset/report id is required' });
+      return;
+    }
+
+    if (type === 'tool' && typeof hydrateToolServices === 'function') {
+      await hydrateToolServices();
+    }
+    const reportsRaw = await listAssetReportsByType(type);
+    const shared = await listSharedAssets(type);
+    const bindings = await (context.assetService || context.skillService).listAssetBindings(type);
+    const reports = type === 'knowledge'
+      ? reportsRaw.map((x) => {
+        const patch = ossCaseState.get(String(x.id)) || {};
+        return { ...x, status: patch.status || x.status, updatedAt: patch.updatedAt || x.updatedAt };
+      })
+      : reportsRaw;
+
+    const report = reports.find((x) => String(x.id) === id) || null;
+    const sharedAsset = shared.find((x) => String(x.id) === id || String(x.sourceReportId || '') === id) || null;
+    const relatedBindings = (Array.isArray(bindings) ? bindings : []).filter((x) => (
+      String(x.assetId || '') === id || String(sharedAsset && sharedAsset.id || '') === String(x.assetId || '')
+    ));
+    const toolService = type === 'tool'
+      ? Array.from(toolServiceStore.values()).find((x) => String(x.id) === id) || null
+      : null;
+
+    const detail = report || sharedAsset || toolService;
+    if (!detail) {
+      res.status(404).json({ error: 'asset not found' });
+      return;
+    }
+    res.json({
+      type,
+      id,
+      report,
+      sharedAsset,
+      bindings: relatedBindings,
+      toolService,
+      detail
+    });
+  });
+
   router.post('/api/admin/assets/:type/reports', async (req, res) => {
     const type = normalizeType(req.params.type);
     if (!['skill', 'tool', 'knowledge'].includes(type)) {
@@ -133,6 +183,16 @@ function registerAdminCompatAssetRoutes(router, context, deps) {
     let out = null;
     if (action === 'approve') {
       out = await svc.approveReport(id, actor, String(body.opinion || body.note || '').trim());
+      if (type === 'knowledge') {
+        const decision = String(body.decision || '').trim();
+        if (decision === 'introduce_oss') {
+          ossCaseState.set(id, { status: 'approved_introduce', updatedAt: nowIso(), action: 'approve', decision });
+        } else if (decision === 'build_in_house') {
+          ossCaseState.set(id, { status: 'approved_build', updatedAt: nowIso(), action: 'approve', decision });
+        } else if (decision === 'reject') {
+          ossCaseState.set(id, { status: 'rejected', updatedAt: nowIso(), action: 'approve', decision });
+        }
+      }
       await context.auditService.log('admin.asset.approved', { actor, type, id });
       res.json({ success: true, action, type, id, data: out });
       return;
@@ -159,9 +219,25 @@ function registerAdminCompatAssetRoutes(router, context, deps) {
       res.json({ success: true, action, type, id, data: out });
       return;
     }
+    if (action === 'deploy') {
+      if (type === 'knowledge') {
+        ossCaseState.set(id, { status: 'deploying', updatedAt: nowIso(), action: 'deploy' });
+      }
+      await context.auditService.log('admin.asset.deployed', { actor, type, id });
+      res.json({ success: true, action, type, id, status: type === 'knowledge' ? 'deploying' : 'deployed' });
+      return;
+    }
+    if (action === 'verify') {
+      if (type === 'knowledge') {
+        ossCaseState.set(id, { status: 'completed', updatedAt: nowIso(), action: 'verify' });
+      }
+      await context.auditService.log('admin.asset.verified', { actor, type, id });
+      res.json({ success: true, action, type, id, status: type === 'knowledge' ? 'completed' : 'verified' });
+      return;
+    }
     if (action === 'rollback') {
       if (type === 'knowledge') {
-        ossCaseState.set(id, { status: 'rollback', updatedAt: nowIso(), action: 'rollback' });
+        ossCaseState.set(id, { status: 'rolled_back', updatedAt: nowIso(), action: 'rollback' });
       }
       await context.auditService.log('admin.asset.rolled_back', {
         actor,

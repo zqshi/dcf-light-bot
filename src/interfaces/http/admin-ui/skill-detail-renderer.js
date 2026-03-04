@@ -8,6 +8,7 @@
     const buildDetailDigest = deps.buildDetailDigest || (() => '');
     const load = deps.load || (async () => {});
     const loadEmployeeCandidates = deps.loadEmployeeCandidates || (async () => {});
+    const fetchSkillDetail = deps.fetchSkillDetail || (async (skillId) => api(`/api/admin/skills/${encodeURIComponent(String(skillId || ''))}`));
     const getCurrentSkillId = deps.getCurrentSkillId || (() => '');
     const setCurrentSkillId = deps.setCurrentSkillId || (() => {});
     const getCurrentDetailDigest = deps.getCurrentDetailDigest || (() => '');
@@ -386,7 +387,7 @@
             await api(`/api/admin/skills/${encodeURIComponent(skillId)}/unlink`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ employeeId }) });
             renderStatus('已解除关联员工');
             await load();
-            const refreshed = await api(`/api/admin/skills/${encodeURIComponent(skillId)}`);
+            const refreshed = await fetchSkillDetail(skillId);
             openDetail(refreshed, { force: true });
           } catch (error) {
             renderStatus(`解除关联失败：${error.message}`, true);
@@ -408,7 +409,7 @@
           renderStatus('已手动关联数字员工能力');
           await loadEmployeeCandidates();
           await load();
-          const refreshed = await api(`/api/admin/skills/${encodeURIComponent(skillId)}`);
+          const refreshed = await fetchSkillDetail(skillId);
           openDetail(refreshed, { force: true });
         } catch (error) {
           renderStatus(`手动关联失败：${error.message}`, true);

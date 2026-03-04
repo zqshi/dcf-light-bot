@@ -524,11 +524,20 @@ function autonomySummary(decision = {}) {
 
 async function postCaseAction(action, payload = {}) {
   if (!state.selectedCaseId) return;
-  await api(`/api/admin/oss-cases/${encodeURIComponent(state.selectedCaseId)}/${action}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  const id = encodeURIComponent(state.selectedCaseId);
+  try {
+    await api(`/api/admin/assets/knowledge/${id}/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    await api(`/api/admin/oss-cases/${id}/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
   await load();
 }
 
@@ -613,17 +622,22 @@ async function renderCaseDetail() {
   }
   let item;
   try {
-    item = await api(`/api/admin/oss-cases/${encodeURIComponent(state.selectedCaseId)}`);
+    const out = await api(`/api/admin/assets/knowledge/${encodeURIComponent(state.selectedCaseId)}`);
+    item = out && out.detail ? out.detail : out;
   } catch (error) {
-    if (isNotFoundError(error)) {
-      state.selectedCaseId = state.cases[0] ? state.cases[0].id : null;
-      renderCaseRows(state.cases);
-      if (state.selectedCaseId) {
-        return renderCaseDetail();
+    try {
+      item = await api(`/api/admin/oss-cases/${encodeURIComponent(state.selectedCaseId)}`);
+    } catch (fallbackError) {
+      if (isNotFoundError(fallbackError)) {
+        state.selectedCaseId = state.cases[0] ? state.cases[0].id : null;
+        renderCaseRows(state.cases);
+        if (state.selectedCaseId) {
+          return renderCaseDetail();
+        }
+        return;
       }
-      return;
+      throw fallbackError;
     }
-    throw error;
   }
   setText('detailCaseId', item.id || '-');
   setText('detailTaskId', item.taskId || '-');
@@ -666,24 +680,39 @@ function renderLegacyFindings(rows, supported = true) {
 
 async function loadLegacyFindings() {
   try {
-    const findings = await api('/api/admin/oss-findings');
+    const out = await api('/api/admin/assets/knowledge');
+    const findings = Array.isArray(out && out.sharedAssets) ? out.sharedAssets : [];
     return {
       supported: true,
-      rows: Array.isArray(findings) ? findings : []
+      rows: findings
     };
   } catch (error) {
-    if (isNotFoundError(error)) return { supported: false, rows: [] };
-    throw error;
+    try {
+      const findings = await api('/api/admin/oss-findings');
+      return {
+        supported: true,
+        rows: Array.isArray(findings) ? findings : []
+      };
+    } catch (fallbackError) {
+      if (isNotFoundError(fallbackError)) return { supported: false, rows: [] };
+      throw fallbackError;
+    }
   }
 }
 
 async function load() {
   try {
-    const [cases, findings] = await Promise.all([
-      api('/api/admin/oss-cases'),
+    const [assetsOut, findings] = await Promise.all([
+      api('/api/admin/assets/knowledge'),
       loadLegacyFindings()
     ]);
-    state.cases = Array.isArray(cases) ? cases : [];
+    state.cases = Array.isArray(assetsOut && assetsOut.reports) ? assetsOut.reports : [];
+    if (!state.cases.length) {
+      try {
+        const legacy = await api('/api/admin/oss-cases');
+        state.cases = Array.isArray(legacy) ? legacy : [];
+      } catch {}
+    }
     if (state.selectedCaseId && !state.cases.some((x) => x.id === state.selectedCaseId)) {
       state.selectedCaseId = null;
     }
