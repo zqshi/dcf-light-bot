@@ -11,9 +11,22 @@ describe('MatrixBot commands', () => {
         start: async () => ({ id: 'inst_a', state: 'running' }),
         stop: async () => ({ id: 'inst_a', state: 'stopped' }),
         createFromMatrix: async () => ({ id: 'inst_a', tenantId: 'tenant_a', name: 'a', state: 'running', runtime: { endpoint: 'x' }, createdAt: 'now' }),
-        buildMatrixCard: () => ({ instanceId: 'inst_a' })
+        buildMatrixCard: () => ({
+          schema: 'dcf.employee-card/v1',
+          cardType: 'digital_employee',
+          instanceId: 'inst_a',
+          matrixRoomId: '!r:matrix',
+          chatUrl: 'http://localhost/chat/inst_a',
+          actions: [{ type: 'open_chat', label: '进入会话', url: 'http://localhost/chat/inst_a' }]
+        })
       }
     );
+
+    const create = await bot.processTextMessage('@u:matrix', '!r:matrix', '!create_agent a');
+    expect(create.phase).toBe('succeeded');
+    expect(create.reply.includes('【任务状态】')).toBe(true);
+    expect(create.reply.includes('action: create_agent')).toBe(true);
+    expect(create.reply.includes('phase: succeeded')).toBe(true);
 
     const list = await bot.processTextMessage('@u:matrix', '!r:matrix', '!list_agents');
     expect(list.reply.includes('inst_a')).toBe(true);

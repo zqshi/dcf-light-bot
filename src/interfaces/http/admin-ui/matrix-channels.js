@@ -134,10 +134,22 @@ async function loadChannels() {
   const out = await api(buildListUrl());
   channels = Array.isArray(out && out.rows) ? out.rows : [];
   const summary = out && out.summary ? out.summary : {};
+  const status = out && out.status ? out.status : {};
   setText('channelCount', Number(summary.channels || channels.length || 0));
   setText('boundCount', Number(summary.bound || 0));
   setText('unboundCount', Number(summary.unbound || 0));
   setText('events24h', Number(summary.auditEvents24h || 0));
+  setText('botOnline', status.botOnline ? 'online' : 'offline');
+  setText('deliveryRate', `${Math.max(0, Number(status.deliverySuccessRate24h || 0))}%`);
+  const stateHint = [
+    `relay=${status.relayOnline ? 'online' : 'offline'}`,
+    `inbound24h=${Number(status.inbound24h || 0)}`,
+    `delivery_ok=${Number(status.deliverySucceeded24h || 0)}`,
+    `delivery_fail=${Number(status.deliveryFailed24h || 0)}`,
+    `cmd_ok=${Number(status.commandSucceeded24h || 0)}`,
+    `cmd_fail=${Number(status.commandFailed24h || 0)}`
+  ].join(' | ');
+  showStatus(stateHint);
   renderRows(channels);
 }
 

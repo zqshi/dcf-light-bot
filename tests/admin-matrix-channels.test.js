@@ -59,7 +59,12 @@ function makeContext(authService) {
     auditService: {
       list: async () => ([
         { id: 'a1', type: 'admin.instance.started', at: new Date(now - 1000).toISOString(), payload: { roomId: '!roomA:localhost' } },
-        { id: 'a2', type: 'admin.asset.approved', at: new Date(now - 2000).toISOString(), payload: { roomId: '!roomX:localhost' } }
+        { id: 'a2', type: 'admin.asset.approved', at: new Date(now - 2000).toISOString(), payload: { roomId: '!roomX:localhost' } },
+        { id: 'a3', type: 'matrix.bot.started', at: new Date(now - 3000).toISOString(), payload: {} },
+        { id: 'a4', type: 'matrix.relay.started', at: new Date(now - 4000).toISOString(), payload: {} },
+        { id: 'a5', type: 'matrix.relay.inbound', at: new Date(now - 5000).toISOString(), payload: { roomId: '!roomA:localhost' } },
+        { id: 'a6', type: 'matrix.relay.delivery.succeeded', at: new Date(now - 6000).toISOString(), payload: { roomId: '!roomA:localhost' } },
+        { id: 'a7', type: 'matrix.command.handled', at: new Date(now - 7000).toISOString(), payload: { phase: 'succeeded' } }
       ]),
       queryPage: async () => ({ rows: [], total: 0, cursor: '0', nextCursor: null, hasMore: false }),
       export: async () => ({ contentType: 'application/json', body: '[]', nextCursor: null, hasMore: false }),
@@ -84,6 +89,8 @@ describe('admin matrix channels routes', () => {
     expect(listRes.status).toBe(200);
     expect(Array.isArray(listRes.body.rows)).toBe(true);
     expect(listRes.body.summary.channels).toBeGreaterThanOrEqual(2);
+    expect(listRes.body.status.botOnline).toBe(true);
+    expect(listRes.body.status.deliverySucceeded24h).toBeGreaterThanOrEqual(1);
 
     const bindRes = await agent
       .post('/api/admin/matrix/channels/%21roomX%3Alocalhost/bind-instance')
@@ -99,5 +106,10 @@ describe('admin matrix channels routes', () => {
     const unbindRes = await agent.post('/api/admin/matrix/channels/%21roomX%3Alocalhost/unbind').send({});
     expect(unbindRes.status).toBe(200);
     expect(unbindRes.body.success).toBe(true);
+
+    const statusRes = await agent.get('/api/admin/matrix/status');
+    expect(statusRes.status).toBe(200);
+    expect(statusRes.body.relayOnline).toBe(true);
+    expect(statusRes.body.inbound24h).toBeGreaterThanOrEqual(1);
   });
 });

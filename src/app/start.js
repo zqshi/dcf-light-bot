@@ -98,8 +98,8 @@ async function startApp() {
   const runtimeProxyService = new RuntimeProxyService(instanceService, config, { auditService });
   const skillService = new SkillService(repo, auditService);
   const assetService = skillService;
-  const matrixBot = new MatrixBot(config, logger, instanceService);
-  const matrixRelay = new MatrixRelay(config, logger, matrixBot);
+  const matrixBot = new MatrixBot(config, logger, instanceService, { auditService });
+  const matrixRelay = new MatrixRelay(config, logger, matrixBot, { auditService });
   const authService = new AuthService(config);
   const releasePreflightService = new ReleasePreflightService({ rootDir: process.cwd() });
   const reconciler = new InstanceReconciler(repo, auditService, provisioner, {

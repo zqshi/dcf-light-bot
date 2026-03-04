@@ -683,6 +683,61 @@ function buildAdminCompatRouter(context) {
     return String((instance && instance.matrixRoomId) || '').trim();
   }
 
+  function buildMatrixOpsStatus(audits = []) {
+    const rows = Array.isArray(audits) ? audits : [];
+    const now = Date.now();
+    const dayAgo = now - (24 * 60 * 60 * 1000);
+    let relayStartedAt = '';
+    let relayStoppedAt = '';
+    let botStartedAt = '';
+    let botStoppedAt = '';
+    let inbound24h = 0;
+    let deliverySucceeded24h = 0;
+    let deliveryFailed24h = 0;
+    let commandSucceeded24h = 0;
+    let commandFailed24h = 0;
+    for (const row of rows) {
+      const type = String((row && row.type) || '');
+      const at = String((row && row.at) || '');
+      const atMs = toMs(at);
+      if (type === 'matrix.relay.started' && atMs >= toMs(relayStartedAt)) relayStartedAt = at;
+      if (type === 'matrix.relay.stopped' && atMs >= toMs(relayStoppedAt)) relayStoppedAt = at;
+      if (type === 'matrix.bot.started' && atMs >= toMs(botStartedAt)) botStartedAt = at;
+      if (type === 'matrix.bot.stopped' && atMs >= toMs(botStoppedAt)) botStoppedAt = at;
+      if (atMs < dayAgo) continue;
+      if (type === 'matrix.relay.inbound') inbound24h += 1;
+      if (type === 'matrix.relay.delivery.succeeded') deliverySucceeded24h += 1;
+      if (type === 'matrix.relay.delivery.failed') deliveryFailed24h += 1;
+      if (type === 'matrix.command.handled') {
+        const payload = row && row.payload && typeof row.payload === 'object' ? row.payload : {};
+        const phase = String(payload.phase || '').toLowerCase();
+        if (phase === 'succeeded') commandSucceeded24h += 1;
+        if (phase === 'failed') commandFailed24h += 1;
+      }
+    }
+
+    const relayOnline = toMs(relayStartedAt) >= toMs(relayStoppedAt);
+    const botOnline = toMs(botStartedAt) >= toMs(botStoppedAt);
+    const deliveryTotal24h = deliverySucceeded24h + deliveryFailed24h;
+    const deliverySuccessRate24h = deliveryTotal24h
+      ? Math.round((deliverySucceeded24h / deliveryTotal24h) * 100)
+      : 100;
+    return {
+      relayOnline,
+      botOnline,
+      relayStartedAt,
+      relayStoppedAt,
+      botStartedAt,
+      botStoppedAt,
+      inbound24h,
+      deliverySucceeded24h,
+      deliveryFailed24h,
+      deliverySuccessRate24h,
+      commandSucceeded24h,
+      commandFailed24h
+    };
+  }
+
   router.get('/api/admin/matrix/channels', async (req, res) => {
     const [instances, audits] = await Promise.all([
       listInstances(),
@@ -733,7 +788,7 @@ function buildAdminCompatRouter(context) {
     }));
 
     const keyword = String((req.query && req.query.keyword) || '').trim().toLowerCase();
-    const status = String((req.query && req.query.status) || '').trim().toLowerCase();
+    const queryStatus = String((req.query && req.query.status) || '').trim().toLowerCase();
     if (keyword) {
       rows = rows.filter((x) => [
         x.roomId,
@@ -743,8 +798,8 @@ function buildAdminCompatRouter(context) {
         x.lastEventType
       ].join(' ').toLowerCase().includes(keyword));
     }
-    if (status === 'bound') rows = rows.filter((x) => x.bound);
-    if (status === 'unbound') rows = rows.filter((x) => !x.bound);
+    if (queryStatus === 'bound') rows = rows.filter((x) => x.bound);
+    if (queryStatus === 'unbound') rows = rows.filter((x) => !x.bound);
 
     rows.sort((a, b) => toMs(b.lastEventAt) - toMs(a.lastEventAt));
 
@@ -754,8 +809,13 @@ function buildAdminCompatRouter(context) {
       unbound: rows.filter((x) => !x.bound).length,
       auditEvents24h: rows.reduce((sum, row) => sum + Number(row.auditEvents24h || 0), 0)
     };
+    const status = buildMatrixOpsStatus(audits);
+    res.json({ rows, summary, status });
+  });
 
-    res.json({ rows, summary });
+  router.get('/api/admin/matrix/status', async (_req, res) => {
+    const audits = await context.auditService.list(1000);
+    res.json(buildMatrixOpsStatus(audits));
   });
 
   router.post('/api/admin/matrix/channels/:roomId/bind-instance', async (req, res) => {

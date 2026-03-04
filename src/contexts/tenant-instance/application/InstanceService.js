@@ -175,15 +175,35 @@ class InstanceService {
   }
 
   buildMatrixCard(instance) {
+    const chatUrl = `${this.config.platformBaseUrl}/chat/${instance.id}`;
+    const runtimeEndpoint = instance.runtime && instance.runtime.endpoint ? instance.runtime.endpoint : '';
+    const matrixRoomId = instance.matrixRoomId || '';
     return {
+      schema: 'dcf.employee-card/v1',
+      cardType: 'digital_employee',
       title: '数字员工卡片',
+      subtitle: '创建完成，可直接进入会话',
       instanceId: instance.id,
       tenantId: instance.tenantId,
       name: instance.name,
       state: instance.state,
-      chatUrl: `${this.config.platformBaseUrl}/chat/${instance.id}`,
-      runtimeEndpoint: instance.runtime.endpoint,
-      createdAt: instance.createdAt
+      matrixRoomId,
+      chatUrl,
+      runtimeEndpoint,
+      createdAt: instance.createdAt,
+      status: {
+        phase: instance.state === STATE.RUNNING ? 'ready' : 'provisioning',
+        text: instance.state === STATE.RUNNING ? '实例运行中' : '实例准备中'
+      },
+      actions: [
+        { type: 'open_chat', label: '进入会话', url: chatUrl },
+        { type: 'view_runtime', label: '运行端点', value: runtimeEndpoint || '-' }
+      ],
+      metadata: {
+        source: String(instance.source || 'matrix'),
+        creator: String(instance.creator || ''),
+        namespace: String((instance.runtime && instance.runtime.namespace) || '')
+      }
     };
   }
 }

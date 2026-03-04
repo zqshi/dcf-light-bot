@@ -4,11 +4,17 @@ class MatrixRelay {
     this.logger = logger;
     this.matrixBot = matrixBot;
     this.createClient = deps.createClient || null;
+    this.auditService = deps.auditService || null;
     this.client = null;
     this.started = false;
     this.seenEvents = new Set();
     this.maxSeenEvents = 5000;
     this.timelineHandler = this.onTimeline.bind(this);
+  }
+
+  async audit(type, payload = {}) {
+    if (!this.auditService || typeof this.auditService.log !== 'function') return;
+    await this.auditService.log(type, payload);
   }
 
   isEnabled() {
@@ -42,6 +48,10 @@ class MatrixRelay {
       homeserver: this.config.matrixHomeserver,
       userId: this.config.matrixUserId
     });
+    await this.audit('matrix.relay.started', {
+      homeserver: this.config.matrixHomeserver,
+      userId: this.config.matrixUserId
+    });
   }
 
   async stop() {
@@ -54,6 +64,10 @@ class MatrixRelay {
       this.client = null;
       this.seenEvents.clear();
       this.logger.info('matrix relay stopped');
+      await this.audit('matrix.relay.stopped', {
+        homeserver: this.config.matrixHomeserver,
+        userId: this.config.matrixUserId
+      });
     }
   }
 
@@ -88,10 +102,35 @@ class MatrixRelay {
       const parsed = this.extractTextEvent(event, room, toStartOfTimeline);
       if (!parsed) return;
       if (this.rememberEvent(parsed.eventId)) return;
+      await this.audit('matrix.relay.inbound', {
+        eventId: parsed.eventId,
+        sender: parsed.sender,
+        roomId: parsed.roomId,
+        body: parsed.body
+      });
       const out = await this.matrixBot.processTextMessage(parsed.sender, parsed.roomId, parsed.body);
       if (!out || out.ignored) return;
       if (out.reply && this.client && typeof this.client.sendText === 'function') {
-        await this.client.sendText(parsed.roomId, String(out.reply));
+        try {
+          await this.client.sendText(parsed.roomId, String(out.reply));
+          await this.audit('matrix.relay.delivery.succeeded', {
+            eventId: parsed.eventId,
+            roomId: parsed.roomId,
+            traceId: out.traceId || '',
+            phase: out.phase || '',
+            action: (parsed.body.split(/\s+/)[0] || '').toLowerCase()
+          });
+        } catch (error) {
+          await this.audit('matrix.relay.delivery.failed', {
+            eventId: parsed.eventId,
+            roomId: parsed.roomId,
+            traceId: out.traceId || '',
+            phase: out.phase || '',
+            action: (parsed.body.split(/\s+/)[0] || '').toLowerCase(),
+            reason: String(error && error.message || error)
+          });
+          throw error;
+        }
       }
     } catch (error) {
       this.logger.error('matrix relay message handling failed', {

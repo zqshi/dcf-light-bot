@@ -31,6 +31,12 @@ describe('InstanceService', () => {
 
     const rows = await service.list();
     expect(rows.length).toBe(1);
+    const card = service.buildMatrixCard(instance);
+    expect(card.schema).toBe('dcf.employee-card/v1');
+    expect(card.cardType).toBe('digital_employee');
+    expect(Array.isArray(card.actions)).toBe(true);
+    expect(card.actions[0].type).toBe('open_chat');
+    expect(card.instanceId).toBe(instance.id);
 
     safeUnlink(filePath);
   });

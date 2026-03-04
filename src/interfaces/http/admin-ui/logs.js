@@ -258,6 +258,15 @@ function summarizeAction(event) {
     'admin.asset.rejected': `驳回资产 ${firstNonEmpty([payload.id, '-'])}`,
     'admin.asset.published': `发布共享资产 ${firstNonEmpty([payload.id, '-'])}`,
     'admin.asset.bound': `绑定资产到租户 ${firstNonEmpty([payload.tenantId, '-'])}`,
+    'matrix.bot.started': 'Matrix Bot 启动',
+    'matrix.bot.stopped': 'Matrix Bot 停止',
+    'matrix.relay.started': 'Matrix Relay 启动',
+    'matrix.relay.stopped': 'Matrix Relay 停止',
+    'matrix.relay.inbound': `收到渠道消息 ${firstNonEmpty([payload.eventId, '-'])}`,
+    'matrix.relay.delivery.succeeded': `渠道消息投递成功 ${firstNonEmpty([payload.traceId, payload.eventId, '-'])}`,
+    'matrix.relay.delivery.failed': `渠道消息投递失败 ${firstNonEmpty([payload.traceId, payload.eventId, '-'])}`,
+    'matrix.command.received': `收到命令 ${firstNonEmpty([payload.command, '-'])}`,
+    'matrix.command.handled': `命令处理${firstNonEmpty([payload.phase, '-'])} ${firstNonEmpty([payload.command, '-'])}`,
     'audit.anchor.created': `创建审计锚点 ${firstNonEmpty([payload.anchorId, '-'])}`
   };
 
