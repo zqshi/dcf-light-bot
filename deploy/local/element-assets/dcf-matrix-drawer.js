@@ -16,13 +16,6 @@
     return String(window.location.hash || "").indexOf("#/room") === 0;
   }
 
-  function normalizeRoute() {
-    var hash = String(window.location.hash || "");
-    if (hash === "#/room" || hash === "#/room/") {
-      window.location.replace("/#/home");
-    }
-  }
-
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
     var style = document.createElement("style");
@@ -196,7 +189,6 @@
   }
 
   ready(function () {
-    normalizeRoute();
     ensureStyle();
     ensureNodes();
     bindGlobalEvents();
