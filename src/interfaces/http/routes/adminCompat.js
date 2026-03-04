@@ -172,6 +172,7 @@ function buildAdminCompatRouter(context) {
       { path: '/admin/matrix-channels.html', label: '渠道运营', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
+      { path: '/admin/notifications.html', label: '通知中心', permission: 'admin.logs.page.behavior.read' },
       { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
       { path: '/admin/auth-members.html', label: '成员管理', permission: 'admin.auth.page.members.read' }
     ];
@@ -479,6 +480,7 @@ function buildAdminCompatRouter(context) {
       /^\/skills(\/|$)/,
       /^\/assets(\/|$)/,
       /^\/runtime\/skill-sedimentation-policy$/,
+      /^\/notifications$/,
       /^\/logs$/,
       /^\/tools(\/|$)/,
       /^\/auth(\/|$)/
@@ -816,6 +818,84 @@ function buildAdminCompatRouter(context) {
   router.get('/api/admin/matrix/status', async (_req, res) => {
     const audits = await context.auditService.list(1000);
     res.json(buildMatrixOpsStatus(audits));
+  });
+
+  router.get('/api/admin/notifications', async (_req, res) => {
+    const [instances, dashboard, audits] = await Promise.all([
+      listInstances(),
+      (context.assetService || context.skillService).getReviewDashboard({ reviewer: '' }),
+      context.auditService.list(1000)
+    ]);
+    const now = Date.now();
+    const dayAgo = now - (24 * 60 * 60 * 1000);
+
+    const failedInstances = instances.filter((x) => {
+      const state = String((x && x.state) || '').toLowerCase();
+      return ['failed', 'error', 'degraded'].includes(state);
+    });
+    const deliveryFailed = audits.filter((x) => (
+      String(x.type || '') === 'matrix.relay.delivery.failed' && toMs(x.at) >= dayAgo
+    ));
+    const instanceFailedEvents = audits.filter((x) => (
+      String(x.type || '').includes('failed') && toMs(x.at) >= dayAgo
+    ));
+
+    const items = [];
+    failedInstances.forEach((row) => {
+      items.push({
+        id: `inst-failed-${row.id}`,
+        severity: 'high',
+        source: 'instance',
+        title: `实例异常：${row.name || row.id}`,
+        detail: `实例 ${row.id} 当前状态 ${row.state || 'unknown'}，建议执行重建并查看日志。`,
+        action: `POST /api/admin/instances/${row.id}/rebuild`,
+        at: row.updatedAt || row.createdAt || ''
+      });
+    });
+    if (Number(dashboard.pendingTotal || 0) > 0) {
+      items.push({
+        id: 'asset-pending',
+        severity: Number(dashboard.overdueTotal || 0) > 0 ? 'high' : 'medium',
+        source: 'asset-review',
+        title: '资产审批待处理',
+        detail: `待审批 ${Number(dashboard.pendingTotal || 0)}，逾期 ${Number(dashboard.overdueTotal || 0)}，升级 ${Number(dashboard.escalatedTotal || 0)}。`,
+        action: '进入技能/工具管理执行审批',
+        at: nowIso()
+      });
+    }
+    if (deliveryFailed.length > 0) {
+      items.push({
+        id: 'matrix-delivery-failed',
+        severity: 'medium',
+        source: 'matrix-delivery',
+        title: 'Matrix 消息投递失败',
+        detail: `过去24小时投递失败 ${deliveryFailed.length} 次，请检查 relay 与网络连通性。`,
+        action: '查看渠道运营页 delivery_fail 指标',
+        at: String(deliveryFailed[0].at || '')
+      });
+    }
+    if (instanceFailedEvents.length > 0) {
+      items.push({
+        id: 'instance-failed-events',
+        severity: 'medium',
+        source: 'instance-events',
+        title: '实例失败事件增多',
+        detail: `过去24小时实例失败相关事件 ${instanceFailedEvents.length} 次。`,
+        action: '查看行为日志并定位失败根因',
+        at: String(instanceFailedEvents[0].at || '')
+      });
+    }
+
+    items.sort((a, b) => toMs(b.at) - toMs(a.at));
+    res.json({
+      items,
+      summary: {
+        total: items.length,
+        high: items.filter((x) => x.severity === 'high').length,
+        medium: items.filter((x) => x.severity === 'medium').length,
+        low: items.filter((x) => x.severity === 'low').length
+      }
+    });
   });
 
   router.post('/api/admin/matrix/channels/:roomId/bind-instance', async (req, res) => {

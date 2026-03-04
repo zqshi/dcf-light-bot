@@ -72,6 +72,7 @@ function resolvePermissionGroup(item) {
     if (first.startsWith('/admin/matrix')) return '渠道运营';
     if (first.startsWith('/admin/skills')) return '技能管理';
     if (first.startsWith('/admin/tools')) return '工具管理';
+    if (first.startsWith('/admin/notifications')) return '通知中心';
     if (first.startsWith('/admin/logs')) return '日志审计';
     if (first.startsWith('/admin/oss')) return '开源治理';
     if (first.startsWith('/admin/auth')) return '账号权限';
@@ -99,6 +100,7 @@ function resolvePermissionModuleLabel(permission) {
   if (value.startsWith('admin.employees.')) return '员工管理';
   if (value.startsWith('admin.skills.')) return '技能管理';
   if (value.startsWith('admin.tools.')) return '工具管理';
+  if (value.startsWith('admin.notifications.')) return '通知中心';
   if (value.startsWith('admin.logs.')) return '日志审计';
   if (value.startsWith('admin.oss.')) return '开源治理';
   if (value.startsWith('admin.auth.')) return '账号权限';
@@ -175,6 +177,7 @@ function resolvePageFunctionLabel(pathname) {
     '/admin/matrix-channels.html': '渠道运营',
     '/admin/skills.html': '技能管理',
     '/admin/tools.html': '工具资产',
+    '/admin/notifications.html': '通知中心',
     '/admin/logs.html': '行为日志',
     '/admin/logs-agent.html': 'Agent 行为日志',
     '/admin/logs-admin.html': '后台操作日志'

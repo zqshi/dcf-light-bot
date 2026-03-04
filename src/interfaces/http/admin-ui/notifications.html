@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>通知中心</title>
+    <link rel="stylesheet" href="/admin/layout.css" />
+  </head>
+  <body data-required-permission="admin.logs.page.behavior.read">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <h2>管理后台</h2>
+        <a href="/admin/index.html">总览</a>
+        <a href="/admin/employees.html">员工管理</a>
+        <a href="/admin/matrix-channels.html">渠道运营</a>
+        <a href="/admin/skills.html">技能管理</a>
+        <a href="/admin/tools.html">工具管理</a>
+        <a class="active" href="/admin/notifications.html">通知中心</a>
+        <a href="/admin/logs.html">行为日志</a>
+        <a href="/admin/auth-members.html">成员管理</a>
+      </aside>
+      <main class="content">
+        <section class="page-head">
+          <h1 class="page-title">通知中心</h1>
+          <p class="page-subtitle">统一查看异常实例、审批积压、消息投递失败等需处置事项。</p>
+          <div class="stat-strip">
+            <div class="stat-item">
+              <div class="stat-label">通知总数</div>
+              <div id="noticeTotal" class="stat-value">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">高优先级</div>
+              <div id="noticeHigh" class="stat-value">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">中优先级</div>
+              <div id="noticeMedium" class="stat-value">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">低优先级</div>
+              <div id="noticeLow" class="stat-value">0</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <h3>待处置列表</h3>
+          </div>
+          <div id="noticeStatus" class="toolbar-note" style="margin-bottom:10px;"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>优先级</th>
+                  <th>来源</th>
+                  <th>标题</th>
+                  <th>详情</th>
+                  <th>建议动作</th>
+                  <th>时间</th>
+                </tr>
+              </thead>
+              <tbody id="noticeRows">
+                <tr><td colspan="6" class="empty">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/admin/auth.js"></script>
+    <script src="/admin/notifications.js"></script>
+  </body>
+</html>

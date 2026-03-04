@@ -74,6 +74,10 @@ describe('admin ui static routes', () => {
     expect(matrixRes.status).toBe(200);
     expect(matrixRes.headers['content-type']).toContain('text/html');
 
+    const notificationRes = await request(app).get('/admin/notifications.html');
+    expect(notificationRes.status).toBe(200);
+    expect(notificationRes.headers['content-type']).toContain('text/html');
+
     const disabledRes = await request(app).get('/admin/runtime.html');
     expect(disabledRes.status).toBe(404);
   });

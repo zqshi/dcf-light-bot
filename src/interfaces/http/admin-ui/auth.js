@@ -5,6 +5,7 @@
     { path: '/admin/matrix-channels.html', label: '渠道运营', permission: 'admin.employees.page.overview.read' },
     { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
     { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
+    { path: '/admin/notifications.html', label: '通知中心', permission: 'admin.logs.page.behavior.read' },
     { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
     { path: '/admin/auth-members.html', label: '账号权限', permission: 'admin.auth.page.members.read' }
   ];

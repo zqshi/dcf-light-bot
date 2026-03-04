@@ -88,6 +88,7 @@ npm start
 - API Contract: [API-CONTRACT.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/API-CONTRACT.md)
 - Acceptance: [ACCEPTANCE.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/ACCEPTANCE.md)
 - Tasks: [TASKS.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/TASKS.md)
+- Matrix Desktop/Mobile Runbook: [matrix-clients.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/runbooks/matrix-clients.md)
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
