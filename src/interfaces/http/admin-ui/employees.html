@@ -50,7 +50,21 @@
           <div class="toolbar filter-toolbar">
             <div class="toolbar-group">
               <label for="employeeKeyword">员工搜索</label>
-              <input class="admin-input" id="employeeKeyword" type="text" placeholder="按工号/姓名/邮箱搜索" />
+              <input class="admin-input" id="employeeKeyword" type="text" placeholder="按工号/姓名/邮箱/实例ID搜索" />
+            </div>
+            <div class="toolbar-group">
+              <label for="tenantFilter">租户</label>
+              <input class="admin-input" id="tenantFilter" type="text" placeholder="tenantId" />
+            </div>
+            <div class="toolbar-group">
+              <label for="channelFilter">渠道</label>
+              <input class="admin-input" id="channelFilter" type="text" placeholder="Matrix 房间ID" />
+            </div>
+            <div class="toolbar-group">
+              <label for="stateFilter">实例状态</label>
+              <select class="admin-select" id="stateFilter">
+                <option value="">全部状态</option>
+              </select>
             </div>
             <div class="toolbar-group">
               <label for="departmentFilter">部门</label>

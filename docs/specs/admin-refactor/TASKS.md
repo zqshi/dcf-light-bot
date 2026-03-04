@@ -8,8 +8,8 @@
 ## Phase B - Employee/Instance Migration
 - [x] 将员工页主模型切换为 `InstanceVM`（列表/详情读取优先走 `/api/admin/instances`，保留旧接口回退）。
 - [x] 补齐实例动作接口：start/stop/rebuild/delete。
-- [ ] 实例状态流转异常路径（失败、回滚、重试）UI 呈现。
-- [ ] 增加实例筛选维度：tenant/channel/state。
+- [x] 实例状态流转异常路径（失败、回滚、重试）UI 呈现。
+- [x] 增加实例筛选维度：tenant/channel/state。
 
 ## Phase C - Shared Assets Migration
 - [ ] 技能页改造为共享资产流程（上报/审核/发布/绑定）。
@@ -27,14 +27,14 @@
 - [ ] 增加审计导出与保留策略可视配置。
 
 ## Phase F - E2E & Cleanup
-- [ ] browser-use 用户 E2E（登录、实例可见、截图）稳定通过。
-- [ ] Matrix real-room E2E（创建实例）稳定通过。
+- [x] browser-use 用户 E2E（登录、实例可见、截图）稳定通过。
+- [x] Matrix real-room E2E（创建实例）稳定通过。
 - [ ] 移除临时兼容端点与重复状态。
 - [ ] 更新 README 与 runbook。
 
 ## Definition Of Done
-- [ ] `npm test` 通过。
-- [ ] `npm run e2e:user` 通过。
-- [ ] `npm run check:all` 通过。
+- [x] `npm test` 通过。
+- [x] `npm run e2e:user` 通过。
+- [x] `npm run check:all` 通过。
 - [ ] 关键页面视觉与交互无回归。
-- [ ] 单文件行数控制（每个文件 < 1000 行）。
+- [x] 单文件行数控制（每个文件 < 1000 行）。

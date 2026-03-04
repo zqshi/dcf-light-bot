@@ -194,6 +194,9 @@ function uniqueSortedValues(rows = [], field) {
 function readEmployeeFilters() {
   return {
     keyword: String((getNode('employeeKeyword') && getNode('employeeKeyword').value) || '').trim(),
+    tenantId: String((getNode('tenantFilter') && getNode('tenantFilter').value) || '').trim(),
+    channel: String((getNode('channelFilter') && getNode('channelFilter').value) || '').trim(),
+    state: String((getNode('stateFilter') && getNode('stateFilter').value) || '').trim(),
     department: String((getNode('departmentFilter') && getNode('departmentFilter').value) || '').trim(),
     role: String((getNode('roleFilter') && getNode('roleFilter').value) || '').trim()
   };
@@ -203,6 +206,9 @@ function buildEmployeesQuery() {
   const filters = readEmployeeFilters();
   const params = new URLSearchParams();
   if (filters.keyword) params.set('keyword', filters.keyword);
+  if (filters.tenantId) params.set('tenantId', filters.tenantId);
+  if (filters.channel) params.set('channel', filters.channel);
+  if (filters.state) params.set('state', filters.state);
   if (filters.department) params.set('department', filters.department);
   if (filters.role) params.set('role', filters.role);
   const query = params.toString();
@@ -265,8 +271,40 @@ function renderFilterOptions(selectId, values, currentValue, defaultLabel, forma
 
 function updateFilterOptions(rows = []) {
   const filters = readEmployeeFilters();
+  renderFilterOptions('stateFilter', uniqueSortedValues(rows, 'status'), filters.state, '全部状态');
   renderFilterOptions('departmentFilter', uniqueSortedValues(rows, 'department'), filters.department, '全部部门', formatDepartmentLabel);
   renderFilterOptions('roleFilter', uniqueSortedValues(rows, 'role'), filters.role, '全部岗位', formatRoleLabel);
+}
+
+function statusTone(status) {
+  const value = String(status || '').toLowerCase();
+  if (value === 'running' || value === 'active') return 'ok';
+  if (value === 'failed' || value === 'error' || value === 'degraded') return 'warn';
+  return '';
+}
+
+function statusHint(status) {
+  const value = String(status || '').toLowerCase();
+  if (value === 'failed' || value === 'error') return '实例创建或重建失败，建议执行重建或查看审计日志。';
+  if (value === 'stopped' || value === 'paused') return '实例已停止，可执行启动恢复服务。';
+  if (value === 'provisioning' || value === 'rebuilding') return '实例处于变更中，请等待状态收敛。';
+  return '';
+}
+
+async function performInstanceAction(employeeId, action) {
+  const id = encodeURIComponent(String(employeeId || ''));
+  const op = String(action || '').trim().toLowerCase();
+  if (!['start', 'stop', 'rebuild', 'delete'].includes(op)) throw new Error('不支持的实例动作');
+  await api(`/api/admin/instances/${id}/${op}`, { method: 'POST' });
+}
+
+function bindEnterReload(inputNode) {
+  if (!inputNode) return;
+  inputNode.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    load();
+  });
 }
 
 function growthSnapshot(employee = {}) {
@@ -845,6 +883,16 @@ async function load() {
                 <button data-id="${e.id}" data-action="view">查看</button>
                 <button data-id="${e.id}" data-action="edit" data-required-permission="admin.employees.write" class="primary">编辑</button>
               </div>
+              <div class="overview-list" style="margin-top:6px;">
+                <div class="overview-item">状态：<span class="badge ${statusTone(e.status)}">${escapeHtml(e.status || '-')}</span></div>
+                ${statusHint(e.status) ? `<div class="overview-item">${escapeHtml(statusHint(e.status))}</div>` : ''}
+              </div>
+              <div class="row-actions" style="margin-top:6px;">
+                <button data-id="${e.id}" data-instance-action="start" data-required-permission="admin.employees.write">启动</button>
+                <button data-id="${e.id}" data-instance-action="stop" data-required-permission="admin.employees.write">停止</button>
+                <button data-id="${e.id}" data-instance-action="rebuild" data-required-permission="admin.employees.write">重建</button>
+                <button data-id="${e.id}" data-instance-action="delete" data-required-permission="admin.employees.write">删除</button>
+              </div>
             </td>
           </tr>
         `;
@@ -876,6 +924,28 @@ async function load() {
         setDrawerVisibility(true);
       };
     });
+    document.querySelectorAll('#rows button[data-instance-action][data-id]').forEach((button) => {
+      button.onclick = async () => {
+        if (!canWriteEmployees()) return;
+        const id = String(button.dataset.id || '');
+        const action = String(button.dataset.instanceAction || '').toLowerCase();
+        const actionLabel = { start: '启动', stop: '停止', rebuild: '重建', delete: '删除' }[action] || action;
+        const needConfirm = action === 'rebuild' || action === 'delete';
+        if (needConfirm) {
+          const ok = window.confirm(`确认${actionLabel}实例 ${id} ?`);
+          if (!ok) return;
+        }
+        try {
+          button.disabled = true;
+          await performInstanceAction(id, action);
+          await load();
+        } catch (error) {
+          window.alert(`${actionLabel}失败：${error.message}`);
+        } finally {
+          button.disabled = false;
+        }
+      };
+    });
     applyActionAcl(getNode('rows'));
 
     const hasCurrentEmployee = Boolean(currentEmployeeId && employeeCache.some((employee) => employee.id === currentEmployeeId));
@@ -897,17 +967,15 @@ async function load() {
   if (window.__adminReady) await window.__adminReady;
   wireEditActions();
   const keywordInput = getNode('employeeKeyword');
+  const tenantFilter = getNode('tenantFilter');
+  const channelFilter = getNode('channelFilter');
+  const stateFilter = getNode('stateFilter');
   const departmentFilter = getNode('departmentFilter');
   const roleFilter = getNode('roleFilter');
-
-  if (keywordInput) {
-    keywordInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        load();
-      }
-    });
-  }
+  bindEnterReload(keywordInput);
+  bindEnterReload(tenantFilter);
+  bindEnterReload(channelFilter);
+  if (stateFilter) stateFilter.addEventListener('change', () => load());
   if (departmentFilter) departmentFilter.addEventListener('change', () => load());
   if (roleFilter) roleFilter.addEventListener('change', () => load());
 
