@@ -85,6 +85,7 @@ describe('MatrixRelay', () => {
 
   test('auto accepts invite and joins room for bot user', async () => {
     const joined = [];
+    const sent = [];
     const relay = new MatrixRelay(
       {
         matrixRelayEnabled: true,
@@ -98,7 +99,8 @@ describe('MatrixRelay', () => {
     );
     relay.started = true;
     relay.client = {
-      joinRoom: async (roomId) => joined.push(roomId)
+      joinRoom: async (roomId) => joined.push(roomId),
+      sendText: async (roomId, text) => sent.push({ roomId, text })
     };
 
     await relay.onRoomMember({}, {
@@ -108,6 +110,9 @@ describe('MatrixRelay', () => {
     });
 
     expect(joined).toEqual(['!dm:localhost']);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].roomId).toBe('!dm:localhost');
+    expect(sent[0].text.includes('数字工厂bot')).toBe(true);
   });
 
   test('start tries set display name for bot profile', async () => {

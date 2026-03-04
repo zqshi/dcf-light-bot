@@ -181,6 +181,12 @@ class MatrixRelay {
       if (!roomId) return;
       if (typeof this.client.joinRoom !== 'function') return;
       await this.client.joinRoom(roomId);
+      if (typeof this.client.sendText === 'function') {
+        await this.client.sendText(
+          roomId,
+          '你好，我是数字工厂bot。你可以直接用自然语言创建数字员工，例如：请创建一个采购数字员工，名字叫采购小助手。'
+        );
+      }
       await this.audit('matrix.bot.joined', {
         userId: myUserId,
         roomId,
