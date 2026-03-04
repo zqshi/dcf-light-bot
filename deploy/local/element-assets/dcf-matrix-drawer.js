@@ -51,6 +51,11 @@
     "View source": "查看来源",
     "No chats yet": "暂无会话",
     "Get started by messaging someone or creating a room": "通过发起聊天或创建房间开始使用",
+    "You don't have any unread invites": "你没有未读邀请",
+    "You don't have any unread messages": "你没有未读消息",
+    "You don't have any unread mentions": "你没有未读提及",
+    "You don't have any unread notifications": "你没有未读通知",
+    "See all activity": "查看全部动态",
     "Jump to date": "跳转日期",
     "Mark as read": "标记已读",
     "Mark as unread": "标记未读",
@@ -280,6 +285,21 @@
       var mapped = UI_TEXT_MAP[current];
       if (!mapped) continue;
       setNodeTextIfSimple(node, mapped);
+    }
+
+    var passiveNodes = scope.querySelectorAll(
+      ".mx_LeftPanel p, .mx_LeftPanel span, .mx_LeftPanel div, .mx_LeftPanel a, " +
+      ".mx_HomePage p, .mx_HomePage span, .mx_HomePage div, .mx_HomePage a, .mx_HomePage h1, .mx_HomePage h2, .mx_HomePage h3"
+    );
+    for (var j = 0; j < passiveNodes.length; j += 1) {
+      var el = passiveNodes[j];
+      if (!(el instanceof Element)) continue;
+      if (!el.offsetParent) continue;
+      var text = normalizeDisplayText(el.textContent || "");
+      if (!text) continue;
+      var tMapped = UI_TEXT_MAP[text];
+      if (!tMapped) continue;
+      setNodeTextIfSimple(el, tMapped);
     }
   }
 
