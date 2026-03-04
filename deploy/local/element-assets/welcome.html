@@ -345,7 +345,13 @@
         }
 
         function goToApp() {
-          window.location.replace("/#/room");
+          window.location.replace("/#/home");
+        }
+
+        function normalizeBrokenRoomRoute() {
+          if (window.location.hash === "#/room" || window.location.hash === "#/room/") {
+            window.location.replace("/#/home");
+          }
         }
 
         function switchTab(tabName) {
@@ -481,7 +487,7 @@
             setButtonLoading(ssoBtn, true, "跳转中...");
             var ssoUrl = state.ssoUrl
               ? state.ssoUrl
-              : state.hsUrl + "/_matrix/client/v3/login/sso/redirect?redirectUrl=" + encodeURIComponent(window.location.origin + "/#/room");
+              : state.hsUrl + "/_matrix/client/v3/login/sso/redirect?redirectUrl=" + encodeURIComponent(window.location.origin + "/#/home");
             setStatus(ssoStatus, "ok", "正在跳转到企业身份认证...");
             window.location.href = ssoUrl;
           });
@@ -491,6 +497,7 @@
           if (u && t) goToApp();
         }
 
+        normalizeBrokenRoomRoute();
         loadConfig().then(bindEvents);
       })();
     </script>
