@@ -9,6 +9,7 @@
     visible: false,
     adminUrl: "/admin/index.html"
   };
+  var PREFERRED_LANGUAGE = "zh_Hans";
 
   function ready(fn) {
     if (document.readyState === "loading") {
@@ -31,6 +32,26 @@
     if (isAuthHash(window.location.hash || "")) {
       window.location.replace("/welcome.html");
     }
+  }
+
+  function ensurePreferredLanguage() {
+    localStorage.setItem("i18nextLng", PREFERRED_LANGUAGE);
+    try {
+      var raw = localStorage.getItem("mx_local_settings");
+      var settings = raw ? JSON.parse(raw) : {};
+      if (!settings || typeof settings !== "object" || Array.isArray(settings)) settings = {};
+      if (settings.language !== PREFERRED_LANGUAGE) {
+        settings.language = PREFERRED_LANGUAGE;
+        localStorage.setItem("mx_local_settings", JSON.stringify(settings));
+      }
+    } catch {
+      localStorage.setItem("mx_local_settings", JSON.stringify({ language: PREFERRED_LANGUAGE }));
+    }
+    try {
+      if (document && document.documentElement) {
+        document.documentElement.setAttribute("lang", PREFERRED_LANGUAGE);
+      }
+    } catch {}
   }
 
   function ensureStyle() {
@@ -305,6 +326,7 @@
   }
 
   ready(function () {
+    ensurePreferredLanguage();
     redirectToUnifiedLoginIfNeeded();
     window.addEventListener("hashchange", redirectToUnifiedLoginIfNeeded);
     ensureStyle();
