@@ -40,7 +40,7 @@ services:
       ]
 
   matrix-element-web:
-    image: vectorim/element-web:latest
+    image: vectorim/element-web:v1.12.11
     container_name: dcf-matrix-element-web
     depends_on:
       - matrix-synapse
