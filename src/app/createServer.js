@@ -6,6 +6,11 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { buildApiRouter } = require('../interfaces/http/router');
 
+function isLoopbackAddress(ip) {
+  const raw = String(ip || '').trim();
+  return raw === '127.0.0.1' || raw === '::1' || raw === '::ffff:127.0.0.1';
+}
+
 function createServer(context) {
   const app = express();
 
@@ -16,10 +21,18 @@ function createServer(context) {
 
   const rateLimitWindowMs = Math.max(1000, Number((context.config && context.config.rateLimitWindowMs) || 15 * 60 * 1000));
   const rateLimitMaxRequests = Math.max(1, Number((context.config && context.config.rateLimitMaxRequests) || 300));
-  app.use(rateLimit({ windowMs: rateLimitWindowMs, max: rateLimitMaxRequests }));
+  const apiLimiter = rateLimit({
+    windowMs: rateLimitWindowMs,
+    max: rateLimitMaxRequests,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => isLoopbackAddress(req.ip) || isLoopbackAddress(req.socket && req.socket.remoteAddress)
+  });
+
   const adminUiDir = path.join(__dirname, '../interfaces/http/admin-ui');
   app.use('/admin', express.static(adminUiDir));
   app.get('/', (req, res) => res.redirect('/admin'));
+  app.use('/api', apiLimiter);
   app.use(buildApiRouter(context));
 
   return app;
