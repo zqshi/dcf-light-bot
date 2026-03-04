@@ -136,11 +136,11 @@ function resolveApiFeatureByPath(pathname, method) {
     { pattern: '/api/admin/auth/users', label: verb === 'POST' ? '维护账号用户' : '查看账号用户' },
     { pattern: '/api/admin/auth/roles', label: verb === 'POST' ? '维护角色权限配置' : '查看角色权限配置' },
     { pattern: '/api/admin/employees', label: verb === 'POST' ? '维护员工管理配置' : '查看员工管理数据' },
-    { pattern: '/api/admin/tasks', label: verb === 'POST' ? '维护任务流程配置' : '查看任务管理数据' },
+    { pattern: '/api/admin/instances', label: verb === 'POST' ? '维护实例运行配置' : '查看实例运行数据' },
     { pattern: '/api/admin/logs', label: verb === 'POST' ? '维护日志审计配置' : '查看日志审计数据' },
     { pattern: '/api/admin/skills', label: verb === 'POST' ? '维护技能资产配置' : '查看技能资产数据' },
+    { pattern: '/api/admin/assets', label: verb === 'POST' ? '维护共享资产流转' : '查看共享资产数据' },
     { pattern: '/api/admin/tools', label: verb === 'POST' ? '维护工具服务配置' : '查看工具服务数据' },
-    { pattern: '/api/admin/oss', label: verb === 'POST' ? '维护开源治理配置' : '查看开源治理数据' },
     { pattern: '/api/admin/runtime', label: verb === 'POST' ? '维护运行策略配置' : '查看运行态数据' }
   ];
   const matched = rules.find((item) => path.startsWith(item.pattern));
@@ -169,23 +169,12 @@ function resolvePageFunctionLabel(pathname) {
     '/admin/auth-users.html': '用户管理',
     '/admin/auth-roles.html': '角色管理',
     '/admin/auth-members.html': '成员管理',
-    '/admin/runtime.html': '运行总览',
-    '/admin/runtime-health.html': '健康看板',
-    '/admin/runtime-cycles.html': '周期推进',
-    '/admin/runtime-advanced.html': '高级诊断',
-    '/admin/tasks.html': '任务总览',
-    '/admin/tasks-runtime.html': '任务运行态',
-    '/admin/tasks-governance.html': '任务治理态',
     '/admin/employees.html': '员工总览',
-    '/admin/employees-contracts.html': '岗位合同',
-    '/admin/employees-growth.html': '员工成长',
     '/admin/skills.html': '技能管理',
     '/admin/tools.html': '工具资产',
-    '/admin/tools-approvals.html': '准入审批',
     '/admin/logs.html': '行为日志',
     '/admin/logs-agent.html': 'Agent 行为日志',
-    '/admin/logs-admin.html': '后台操作日志',
-    '/admin/oss.html': '开源检索'
+    '/admin/logs-admin.html': '后台操作日志'
   };
   return map[path] || '';
 }

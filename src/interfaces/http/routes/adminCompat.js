@@ -113,13 +113,10 @@ function buildAdminCompatRouter(context) {
   function buildNavItems() {
     return [
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
-      { path: '/admin/runtime.html', label: '运行诊断', permission: 'admin.runtime.page.overview.read' },
-      { path: '/admin/strategy-center.html', label: '治理中心', permission: 'admin.runtime.write' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
-      { path: '/admin/tasks.html', label: '任务台账', permission: 'admin.tasks.page.overview.read' },
+      { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
       { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
-      { path: '/admin/oss.html', label: '开源检索', permission: 'admin.oss.page.search.read' },
       { path: '/admin/auth-members.html', label: '成员管理', permission: 'admin.auth.page.members.read' }
     ];
   }
@@ -413,6 +410,25 @@ function buildAdminCompatRouter(context) {
   });
 
   router.use('/api/admin', requireSession);
+  router.use('/api/admin', (req, res, next) => {
+    const path = String(req.path || '');
+    const allowed = [
+      /^\/overview$/,
+      /^\/instances(\/|$)/,
+      /^\/employees(\/|$)/,
+      /^\/skills(\/|$)/,
+      /^\/assets(\/|$)/,
+      /^\/runtime\/skill-sedimentation-policy$/,
+      /^\/logs$/,
+      /^\/tools(\/|$)/,
+      /^\/auth(\/|$)/
+    ].some((rule) => rule.test(path));
+    if (!allowed) {
+      res.status(404).json({ error: 'endpoint disabled in pure admin mode' });
+      return;
+    }
+    next();
+  });
 
   router.get('/api/admin/overview', async (_req, res) => {
     const [instances, dashboard, audits] = await Promise.all([

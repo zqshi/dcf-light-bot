@@ -3,11 +3,7 @@
     { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
     { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
     { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
-    { path: '/admin/oss.html', label: '开源检索', permission: 'admin.oss.page.search.read' },
     { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
-    { path: '/admin/tasks.html', label: '任务台账', permission: 'admin.tasks.page.overview.read' },
-    { path: '/admin/runtime.html', label: '运行诊断', permission: 'admin.runtime.page.overview.read' },
-    { path: '/admin/strategy-center.html', label: '治理中心', permission: 'admin.runtime.write' },
     { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
     { path: '/admin/auth-members.html', label: '账号权限', permission: 'admin.auth.page.members.read' }
   ];
@@ -673,11 +669,6 @@
       navContainer.appendChild(link);
     }
 
-    const foot = document.createElement('a');
-    foot.href = '/front.html';
-    foot.textContent = workspaceLabel || '用户工作台';
-    foot.className = 'sidebar-workspace-link';
-    navContainer.appendChild(foot);
     return {
       currentGroupName: '后台',
       currentGroupItems: [],
