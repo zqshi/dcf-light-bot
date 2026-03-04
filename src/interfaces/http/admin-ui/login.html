@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>管理后台登录</title>
+    <title>DCF Light Bot 管理后台登录</title>
     <style>
       * { box-sizing: border-box; }
       :root {
@@ -187,6 +187,17 @@
         border-radius: 12px;
         padding: 10px 12px;
       }
+      .entry-links {
+        margin-top: 14px;
+        display: grid;
+        gap: 6px;
+      }
+      .entry-links a {
+        color: #2f62c9;
+        text-decoration: none;
+        font-size: 12px;
+      }
+      .entry-links a:hover { text-decoration: underline; }
       .error { margin-top: 8px; min-height: 18px; font-size: 13px; color: #8a1f1f; font-weight: 500; }
       @media (max-width: 900px) {
         .shell { grid-template-columns: 1fr; max-width: 520px; }
@@ -206,32 +217,33 @@
             </div>
             <div class="brand-meta">
               <strong>Digital Crew Factory</strong>
-              <small>Enterprise User Workspace</small>
+              <small>Multi-Tenant Matrix Agent Hosting</small>
             </div>
           </div>
-          <h2>欢迎进入数字员工管理中枢</h2>
-          <p>覆盖任务治理、技能沉淀、运行监控与审计追踪，确保数字员工体系稳定、安全、可持续运营。</p>
+          <h2>欢迎进入 DCF Light Bot 控制面</h2>
+          <p>当前平台以 Matrix 为用户主渠道，OpenClaw 作为租户实例执行引擎，后台聚焦实例运营、共享资产与审计治理。</p>
           <div class="chips">
-            <span class="chip">任务治理与审批</span>
-            <span class="chip">回滚与补偿保障</span>
-            <span class="chip">技能资产沉淀</span>
-            <span class="chip">全链路审计留痕</span>
+            <span class="chip">多租户实例隔离</span>
+            <span class="chip">Matrix 渠道运营</span>
+            <span class="chip">技能/工具/知识共享</span>
+            <span class="chip">行为审计与权限治理</span>
           </div>
           <div class="scene">
-            <div class="title">DIGITAL CREW GOVERNANCE CENTER</div>
+            <div class="title">DCF CONTROL PLANE CAPABILITIES</div>
             <ul>
-              <li><span class="dot"></span>统一入口管理组织内数字员工生命周期</li>
-              <li><span class="dot"></span>高风险动作受审批与策略约束，异常可快速回滚</li>
-              <li><span class="dot"></span>运行状态与操作记录可追溯、可复盘、可审计</li>
+              <li><span class="dot"></span>员工管理：实例创建、启动、停止、重建、删除</li>
+              <li><span class="dot"></span>渠道运营：房间绑定、Bot 状态、消息投递质量</li>
+              <li><span class="dot"></span>通知中心：异常实例、审批积压、投递失败统一处置</li>
             </ul>
           </div>
         </section>
 
         <section class="card">
-          <h1>登录</h1>
+          <h1>管理员登录</h1>
+          <p>登录后进入管理后台（总览 / 员工 / 渠道 / 资产 / 日志 / 权限）。</p>
           <div class="login-tabs">
-            <button type="button" id="tabBridge" class="login-tab active">桥接登录</button>
-            <button type="button" id="tabAuthorize" class="login-tab">企业授权</button>
+            <button type="button" id="tabBridge" class="login-tab active">账号登录</button>
+            <button type="button" id="tabAuthorize" class="login-tab">企业 SSO</button>
           </div>
 
           <form id="bridgeLoginForm" class="panel">
@@ -239,21 +251,25 @@
             <input id="username" name="username" required />
             <label for="password">密码</label>
             <input id="password" name="password" type="password" />
-            <label for="ssoBridgeToken">SSO Bridge Token（桥接模式）</label>
+            <label for="ssoBridgeToken">SSO Bridge Token（可选）</label>
             <input id="ssoBridgeToken" name="ssoBridgeToken" />
-            <button id="bridgeLoginBtn" class="primary-btn" type="submit">登录</button>
+            <button id="bridgeLoginBtn" class="primary-btn" type="submit">进入管理后台</button>
           </form>
           <div id="authorizePanel" class="panel hidden">
-            <p style="margin-bottom:10px;">将跳转至企业统一身份平台完成认证，认证成功后返回管理后台。</p>
+            <p style="margin-bottom:10px;">将跳转企业统一身份平台完成认证，成功后返回管理后台。</p>
             <button id="ssoAuthorizeBtn" class="ghost-btn" type="button">跳转企业 SSO 授权页</button>
           </div>
 
           <div id="ssoCapabilities" class="capabilities"></div>
           <div id="error" class="error"></div>
           <div class="hint">
-            测试阶段推荐：账号密码登录。<br />
+            测试环境推荐：账号密码登录。<br />
             如需桥接 SSO，可仅填写账号 + SSO Bridge Token。<br />
             示例：admin / admin123
+          </div>
+          <div class="entry-links">
+            <a href="http://127.0.0.1:8081" target="_blank" rel="noopener noreferrer">Matrix 客户端（Element）: http://127.0.0.1:8081</a>
+            <a href="/admin/login.html">管理后台入口: /admin/login.html</a>
           </div>
         </section>
       </div>

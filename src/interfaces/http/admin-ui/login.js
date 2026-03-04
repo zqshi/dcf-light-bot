@@ -5,7 +5,14 @@
       ...options
     });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error || '登录失败');
+    if (!res.ok) {
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get('retry-after') || 0);
+        const hint = retryAfter > 0 ? `，请在 ${retryAfter} 秒后重试` : '，请稍后重试';
+        throw new Error(`请求过于频繁${hint}`);
+      }
+      throw new Error(body.error || body.message || '登录失败');
+    }
     return body;
   }
 
