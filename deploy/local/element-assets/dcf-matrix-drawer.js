@@ -51,11 +51,22 @@
     "View source": "查看来源",
     "No chats yet": "暂无会话",
     "Get started by messaging someone or creating a room": "通过发起聊天或创建房间开始使用",
+    "Get started by messaging someone or by creating a room": "通过发起聊天或创建房间开始使用",
+    "Get started by messaging someone": "通过发起聊天开始使用",
+    "You don't have favourite chats yet": "你还没有收藏会话",
+    "You can add a chat to your favourites in the chat settings": "你可以在会话设置中将聊天添加到收藏",
+    "You don't have any low priority rooms": "你没有低优先级房间",
+    "You don’t have direct chats with anyone yet": "你还没有与任何人进行私聊",
+    "You can deselect filters in order to see your other chats": "你可以取消筛选以查看其他会话",
+    "You’re not in any room yet": "你还未加入任何房间",
     "You don't have any unread invites": "你没有未读邀请",
     "You don't have any unread messages": "你没有未读消息",
     "You don't have any unread mentions": "你没有未读提及",
     "You don't have any unread notifications": "你没有未读通知",
+    "Congrats! You don't have any unread messages": "太好了，你没有未读消息",
+    "Congrats! You don’t have any unread messages": "太好了，你没有未读消息",
     "See all activity": "查看全部动态",
+    "Show all chats": "显示全部会话",
     "Jump to date": "跳转日期",
     "Mark as read": "标记已读",
     "Mark as unread": "标记未读",
@@ -260,12 +271,21 @@
   }
 
   function normalizeDisplayText(input) {
-    return String(input || "").replace(/\s+/g, " ").trim();
+    return String(input || "").replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
   }
 
   function setNodeTextIfSimple(node, nextText) {
     if (!(node instanceof Element)) return false;
     if (node.children && node.children.length > 0) return false;
+    var before = normalizeDisplayText(node.textContent || "");
+    if (!before || before === nextText) return false;
+    node.textContent = nextText;
+    return true;
+  }
+
+  function setNodeTextLoose(node, nextText) {
+    if (!(node instanceof Element)) return false;
+    if (node.querySelector("button, a, [role='button'], [role='menuitem']")) return false;
     var before = normalizeDisplayText(node.textContent || "");
     if (!before || before === nextText) return false;
     node.textContent = nextText;
@@ -282,7 +302,7 @@
       if (node.closest("#" + DRAWER_ID)) continue;
       var current = normalizeDisplayText(node.textContent || "");
       if (!current) continue;
-      var mapped = UI_TEXT_MAP[current];
+      var mapped = UI_TEXT_MAP[current] || UI_TEXT_MAP[current.toLowerCase()];
       if (!mapped) continue;
       setNodeTextIfSimple(node, mapped);
     }
@@ -297,9 +317,11 @@
       if (!el.offsetParent) continue;
       var text = normalizeDisplayText(el.textContent || "");
       if (!text) continue;
-      var tMapped = UI_TEXT_MAP[text];
+      var tMapped = UI_TEXT_MAP[text] || UI_TEXT_MAP[text.toLowerCase()];
       if (!tMapped) continue;
-      setNodeTextIfSimple(el, tMapped);
+      if (!setNodeTextIfSimple(el, tMapped)) {
+        setNodeTextLoose(el, tMapped);
+      }
     }
   }
 
