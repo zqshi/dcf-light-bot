@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { ROLE_PERMISSIONS } = require('../../../contexts/identity-access/application/AuthService');
 const { buildPromptStrategyCompatRouter } = require('./adminCompatPromptStrategy');
+const { registerAdminCompatInstanceRoutes } = require('./adminCompatInstances');
 
 function parseCookies(headerValue) {
   const out = {};
@@ -257,6 +258,38 @@ function buildAdminCompatRouter(context) {
     return instances.map((row) => employeeFromInstance(row));
   }
 
+  function filterInstanceRows(rows, query = {}) {
+    const keyword = String(query.keyword || query.name || '').trim().toLowerCase();
+    const department = String(query.department || '').trim();
+    const role = String(query.role || '').trim();
+    const state = String(query.state || '').trim().toLowerCase();
+    const tenantId = String(query.tenantId || '').trim().toLowerCase();
+    const channel = String(query.channel || '').trim().toLowerCase();
+    return (Array.isArray(rows) ? rows : []).filter((row) => {
+      if (department && row.department !== department) return false;
+      if (role && row.role !== role) return false;
+      if (state && String(row.status || '').toLowerCase() !== state) return false;
+      if (tenantId && !String(row.tenantId || '').toLowerCase().includes(tenantId)) return false;
+      if (channel && !String(row.matrixRoomId || '').toLowerCase().includes(channel)) return false;
+      if (!keyword) return true;
+      const hay = [
+        row.id,
+        row.name,
+        row.displayName,
+        row.department,
+        row.role,
+        row.tenantId,
+        row.matrixRoomId
+      ].join(' ').toLowerCase();
+      return hay.includes(keyword);
+    });
+  }
+
+  async function getEmployeeById(id) {
+    const rows = await listEmployees();
+    return rows.find((x) => x.id === id) || null;
+  }
+
   function rolePayload(role) {
     return {
       role: role.role,
@@ -473,24 +506,15 @@ function buildAdminCompatRouter(context) {
     });
   });
 
+  registerAdminCompatInstanceRoutes(router, context, { listEmployees, filterInstanceRows, getEmployeeById });
+
   router.get('/api/admin/employees', async (req, res) => {
     const rows = await listEmployees();
-    const keyword = String(req.query.keyword || '').trim().toLowerCase();
-    const department = String(req.query.department || '').trim();
-    const role = String(req.query.role || '').trim();
-    const out = rows.filter((row) => {
-      if (department && row.department !== department) return false;
-      if (role && row.role !== role) return false;
-      if (!keyword) return true;
-      const hay = [row.id, row.name, row.displayName, row.department, row.role, row.tenantId].join(' ').toLowerCase();
-      return hay.includes(keyword);
-    });
-    res.json(out);
+    res.json(filterInstanceRows(rows, req.query || {}));
   });
 
   router.get('/api/admin/employees/:id', async (req, res) => {
-    const rows = await listEmployees();
-    const row = rows.find((x) => x.id === req.params.id);
+    const row = await getEmployeeById(String(req.params.id || ''));
     if (!row) {
       res.status(404).json({ error: 'employee not found' });
       return;
@@ -503,8 +527,7 @@ function buildAdminCompatRouter(context) {
     const patch = req.body && typeof req.body === 'object' ? req.body : {};
     const prev = employeeProfileOverrides.get(id) || {};
     employeeProfileOverrides.set(id, { ...prev, ...patch, updatedAt: nowIso() });
-    const rows = await listEmployees();
-    const row = rows.find((x) => x.id === id);
+    const row = await getEmployeeById(id);
     res.json(row || { success: true });
   });
 

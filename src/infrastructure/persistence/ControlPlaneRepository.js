@@ -29,6 +29,22 @@ class ControlPlaneRepository {
     return instance;
   }
 
+  async deleteInstance(instanceId) {
+    const key = String(instanceId || '').trim();
+    if (!key) return false;
+    let deleted = false;
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.instances) ? doc.instances : [];
+      const next = list.filter((x) => {
+        const keep = String((x && x.id) || '') !== key;
+        if (!keep) deleted = true;
+        return keep;
+      });
+      return { ...doc, instances: next };
+    });
+    return deleted;
+  }
+
   async appendAudit(event) {
     await this.store.update((doc) => {
       const rows = Array.isArray(doc.audits) ? doc.audits : [];

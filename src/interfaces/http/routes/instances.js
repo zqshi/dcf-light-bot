@@ -58,7 +58,9 @@ function buildInstanceRouter(instanceService, requirePermission) {
           let data;
           if (action === 'start') data = await instanceService.start(instanceId);
           else if (action === 'stop') data = await instanceService.stop(instanceId);
-          else throw new Error('action must be start or stop');
+          else if (action === 'rebuild') data = await instanceService.rebuild(instanceId);
+          else if (action === 'delete') data = await instanceService.remove(instanceId);
+          else throw new Error('action must be start|stop|rebuild|delete');
           results.push({ instanceId, ok: true, data });
         } catch (error) {
           results.push({ instanceId, ok: false, error: String(error.message || 'batch action failed') });
@@ -92,6 +94,22 @@ function buildInstanceRouter(instanceService, requirePermission) {
   router.post('/:instanceId/stop', requirePermission('control:instance:write'), async (req, res, next) => {
     try {
       res.json({ success: true, data: await instanceService.stop(req.params.instanceId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/:instanceId/rebuild', requirePermission('control:instance:write'), async (req, res, next) => {
+    try {
+      res.json({ success: true, data: await instanceService.rebuild(req.params.instanceId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/:instanceId/delete', requirePermission('control:instance:write'), async (req, res, next) => {
+    try {
+      res.json({ success: true, data: await instanceService.remove(req.params.instanceId) });
     } catch (error) {
       next(error);
     }

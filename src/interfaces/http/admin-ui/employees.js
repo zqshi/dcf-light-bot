@@ -209,6 +209,24 @@ function buildEmployeesQuery() {
   return query ? `?${query}` : '';
 }
 
+async function fetchEmployeeRows() {
+  const query = buildEmployeesQuery();
+  try {
+    return await api(`/api/admin/instances${query}`);
+  } catch {
+    return api(`/api/admin/employees${query}`);
+  }
+}
+
+async function fetchEmployeeDetail(employeeId) {
+  const id = encodeURIComponent(String(employeeId || ''));
+  try {
+    return await api(`/api/admin/instances/${id}`);
+  } catch {
+    return api(`/api/admin/employees/${id}`);
+  }
+}
+
 function formatDepartmentLabel(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -879,7 +897,7 @@ function collectEditableProfile() {
 
 async function openEditModal(employeeId) {
   setDrawerMode('edit');
-  const detail = await api(`/api/admin/employees/${employeeId}`);
+  const detail = await fetchEmployeeDetail(employeeId);
   currentEmployeeId = detail.id;
   fillEditForm(detail);
   hidePolicyResult();
@@ -966,7 +984,7 @@ function wireEditActions() {
         await saveEmployeeEdits();
         showPolicyResult(`保存成功：${new Date().toLocaleString()}`, 'ok');
         await load();
-        const detail = await api(`/api/admin/employees/${currentEmployeeId}`);
+        const detail = await fetchEmployeeDetail(currentEmployeeId);
         fillEditForm(detail);
         setDrawerMode('edit');
       } catch (error) {
@@ -1000,7 +1018,7 @@ function wireEditActions() {
 
 async function load() {
   try {
-    const rows = await api(`/api/admin/employees${buildEmployeesQuery()}`);
+    const rows = await fetchEmployeeRows();
     employeeCache = Array.isArray(rows) ? rows : [];
     updateFilterOptions(employeeCache);
     if (!Array.isArray(rows) || !rows.length) {
@@ -1068,7 +1086,7 @@ async function load() {
           await openEditModal(id);
           return;
         }
-        const detail = await api(`/api/admin/employees/${id}`);
+        const detail = await fetchEmployeeDetail(id);
         currentEmployeeId = detail.id;
         setDrawerMode('view');
         renderEmployeeDetail(detail);
@@ -1082,7 +1100,7 @@ async function load() {
       currentEmployeeId = employeeCache[0] && employeeCache[0].id ? employeeCache[0].id : null;
     }
     if (currentEmployeeId) {
-      const detail = await api(`/api/admin/employees/${currentEmployeeId}`);
+      const detail = await fetchEmployeeDetail(currentEmployeeId);
       renderEmployeeDetail(detail);
     }
     if (topicDrawerOpen) renderTopicDrawer(topicDrawerEmployeeId, topicDrawerType || 'contracts');

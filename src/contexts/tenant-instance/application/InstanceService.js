@@ -115,6 +115,65 @@ class InstanceService {
     return saved;
   }
 
+  async rebuild(instanceId) {
+    const instance = await this.get(instanceId);
+    instance.state = STATE.PROVISIONING;
+    instance.lastError = null;
+    const provisioning = touch(instance);
+    await this.repo.saveInstance(provisioning);
+    await this.audit.log('instance.rebuild.requested', { instanceId, tenantId: provisioning.tenantId });
+
+    try {
+      if (this.provisioner && typeof this.provisioner.rollback === 'function') {
+        await this.provisioner.rollback(provisioning);
+      } else if (this.provisioner && typeof this.provisioner.stop === 'function') {
+        await this.provisioner.stop(provisioning);
+      }
+      const runtime = await this.provisioner.provision(provisioning);
+      const running = touch({
+        ...provisioning,
+        runtime: { ...provisioning.runtime, ...runtime },
+        state: STATE.RUNNING,
+        lastError: null
+      });
+      await this.repo.saveInstance(running);
+      await this.audit.log('instance.rebuild.succeeded', { instanceId, tenantId: running.tenantId });
+      if (Array.isArray(runtime.mountIssues) && runtime.mountIssues.length) {
+        await this.audit.log('instance.asset.mount.degraded', {
+          instanceId,
+          tenantId: running.tenantId,
+          mountIssues: runtime.mountIssues
+        });
+      }
+      return running;
+    } catch (error) {
+      const failed = touch({
+        ...provisioning,
+        state: STATE.FAILED,
+        lastError: String(error.message || 'rebuild failed')
+      });
+      await this.repo.saveInstance(failed);
+      await this.audit.log('instance.rebuild.failed', {
+        instanceId,
+        tenantId: failed.tenantId,
+        error: failed.lastError
+      });
+      throw error;
+    }
+  }
+
+  async remove(instanceId) {
+    const instance = await this.get(instanceId);
+    if (this.provisioner && typeof this.provisioner.rollback === 'function') {
+      await this.provisioner.rollback(instance);
+    } else if (this.provisioner && typeof this.provisioner.stop === 'function') {
+      await this.provisioner.stop(instance);
+    }
+    await this.repo.deleteInstance(instanceId);
+    await this.audit.log('instance.deleted', { instanceId, tenantId: instance.tenantId });
+    return { id: instanceId, deleted: true };
+  }
+
   buildMatrixCard(instance) {
     return {
       title: '数字员工卡片',
