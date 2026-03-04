@@ -374,6 +374,21 @@
           localStorage.setItem("mx_hs_url", state.hsUrl);
           localStorage.setItem("mx_has_access_token", "true");
           localStorage.setItem("mx_is_guest", "false");
+          applyPreferredLanguage();
+        }
+
+        function applyPreferredLanguage() {
+          var preferred = "zh_Hans";
+          localStorage.setItem("i18nextLng", preferred);
+          try {
+            var raw = localStorage.getItem("mx_local_settings");
+            var settings = raw ? JSON.parse(raw) : {};
+            if (!settings || typeof settings !== "object" || Array.isArray(settings)) settings = {};
+            settings.language = preferred;
+            localStorage.setItem("mx_local_settings", JSON.stringify(settings));
+          } catch (e) {
+            localStorage.setItem("mx_local_settings", JSON.stringify({ language: preferred }));
+          }
         }
 
         function goToApp() {
@@ -529,6 +544,7 @@
         }
 
         normalizeBrokenRoomRoute();
+        applyPreferredLanguage();
         loadConfig().then(bindEvents);
       })();
     </script>
