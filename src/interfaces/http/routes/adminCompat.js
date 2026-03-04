@@ -169,7 +169,6 @@ function buildAdminCompatRouter(context) {
     return [
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
-      { path: '/admin/matrix-channels.html', label: '渠道健康', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
       { path: '/admin/notifications.html', label: '通知中心', permission: 'admin.logs.page.behavior.read' },
@@ -870,7 +869,7 @@ function buildAdminCompatRouter(context) {
         source: 'matrix-delivery',
         title: 'Matrix 消息投递失败',
         detail: `过去24小时投递失败 ${deliveryFailed.length} 次，请检查 relay 与网络连通性。`,
-        action: '查看渠道健康页 delivery_fail 指标',
+        action: '查看行为日志中 matrix.relay.delivery.failed 事件',
         at: String(deliveryFailed[0].at || '')
       });
     }

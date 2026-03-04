@@ -71,8 +71,7 @@ describe('admin ui static routes', () => {
     expect(jsRes.headers['content-type']).toContain('javascript');
 
     const matrixRes = await request(app).get('/admin/matrix-channels.html');
-    expect(matrixRes.status).toBe(200);
-    expect(matrixRes.headers['content-type']).toContain('text/html');
+    expect(matrixRes.status).toBe(404);
 
     const notificationRes = await request(app).get('/admin/notifications.html');
     expect(notificationRes.status).toBe(200);

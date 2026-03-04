@@ -13,8 +13,6 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'login.js',
   'employees.html',
   'employees.js',
-  'matrix-channels.html',
-  'matrix-channels.js',
   'notifications.html',
   'notifications.js',
   'employee-detail-renderer.js',
