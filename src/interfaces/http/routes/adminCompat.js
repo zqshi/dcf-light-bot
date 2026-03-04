@@ -76,6 +76,13 @@ function toMs(value) {
   return Number.isFinite(ts) ? ts : 0;
 }
 
+function maskSecret(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (value.length <= 8) return `${value.slice(0, 2)}***${value.slice(-2)}`;
+  return `${value.slice(0, 4)}***${value.slice(-4)}`;
+}
+
 function summarizeInstanceStates(instances = []) {
   const rows = Array.isArray(instances) ? instances : [];
   const byState = {};
@@ -146,6 +153,38 @@ function buildAdminCompatRouter(context) {
   let toolStoreHydrated = false;
   const ossCaseState = new Map();
   const matrixRoomOverrideByInstance = new Map();
+  const providerKeyByName = new Map(
+    (Array.isArray(context.config.providers) ? context.config.providers : [])
+      .map((x) => [String((x && x.name) || '').toLowerCase(), String((x && x.key) || '')])
+      .filter(([name]) => Boolean(name))
+  );
+  const openclawConfigState = {
+    runtime: {
+      openclawImage: String(context.config.openclawImage || ''),
+      openclawRuntimeVersion: String(context.config.openclawRuntimeVersion || ''),
+      openclawSourcePath: String(context.config.openclawSourcePath || '')
+    },
+    providers: {
+      deepseek: {
+        enabled: providerKeyByName.has('deepseek'),
+        apiBase: String(context.config.deepseekApiBase || ''),
+        model: String(context.config.deepseekModel || ''),
+        apiKey: providerKeyByName.get('deepseek') || ''
+      },
+      minimax: {
+        enabled: providerKeyByName.has('minimax'),
+        apiBase: String(context.config.minimaxApiBase || ''),
+        model: String(context.config.minimaxModel || ''),
+        apiKey: providerKeyByName.get('minimax') || ''
+      }
+    },
+    permissionTemplate: {
+      commandAllowlist: ['/help', '/status', '/report'],
+      approvalByRisk: buildDefaultApprovalPolicy().byRisk
+    },
+    updatedAt: nowIso(),
+    updatedBy: 'system'
+  };
 
   const roleStore = new Map();
   Object.entries(ROLE_PERMISSIONS).forEach(([role, perms]) => {
@@ -169,12 +208,63 @@ function buildAdminCompatRouter(context) {
     return [
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
+      { path: '/admin/openclaw-config.html', label: 'OpenClaw 配置', permission: 'admin.runtime.page.openclaw-config.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
       { path: '/admin/notifications.html', label: '通知中心', permission: 'admin.logs.page.behavior.read' },
       { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
       { path: '/admin/auth-members.html', label: '成员管理', permission: 'admin.auth.page.members.read' }
     ];
+  }
+
+  function buildOpenclawConfigView() {
+    const providers = openclawConfigState.providers || {};
+    const deepseek = providers.deepseek || {};
+    const minimax = providers.minimax || {};
+    return {
+      runtime: safeJson(openclawConfigState.runtime, {}),
+      providers: {
+        deepseek: {
+          enabled: Boolean(deepseek.enabled),
+          apiBase: String(deepseek.apiBase || ''),
+          model: String(deepseek.model || ''),
+          hasKey: Boolean(String(deepseek.apiKey || '').trim()),
+          apiKeyMasked: maskSecret(deepseek.apiKey)
+        },
+        minimax: {
+          enabled: Boolean(minimax.enabled),
+          apiBase: String(minimax.apiBase || ''),
+          model: String(minimax.model || ''),
+          hasKey: Boolean(String(minimax.apiKey || '').trim()),
+          apiKeyMasked: maskSecret(minimax.apiKey)
+        }
+      },
+      permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {}),
+      updatedAt: openclawConfigState.updatedAt,
+      updatedBy: openclawConfigState.updatedBy
+    };
+  }
+
+  function syncContextWithOpenclawConfig() {
+    const runtime = openclawConfigState.runtime || {};
+    const providers = openclawConfigState.providers || {};
+    const deepseek = providers.deepseek || {};
+    const minimax = providers.minimax || {};
+    context.config.openclawImage = String(runtime.openclawImage || '');
+    context.config.openclawRuntimeVersion = String(runtime.openclawRuntimeVersion || '');
+    context.config.openclawSourcePath = String(runtime.openclawSourcePath || '');
+    context.config.deepseekApiBase = String(deepseek.apiBase || '');
+    context.config.deepseekModel = String(deepseek.model || '');
+    context.config.minimaxApiBase = String(minimax.apiBase || '');
+    context.config.minimaxModel = String(minimax.model || '');
+    const providerRows = [];
+    if (deepseek.enabled && String(deepseek.apiKey || '').trim()) {
+      providerRows.push({ name: 'deepseek', key: String(deepseek.apiKey || '').trim() });
+    }
+    if (minimax.enabled && String(minimax.apiKey || '').trim()) {
+      providerRows.push({ name: 'minimax', key: String(minimax.apiKey || '').trim() });
+    }
+    context.config.providers = providerRows;
   }
 
   function buildSession(req) {
@@ -478,7 +568,7 @@ function buildAdminCompatRouter(context) {
       /^\/matrix(\/|$)/,
       /^\/skills(\/|$)/,
       /^\/assets(\/|$)/,
-      /^\/runtime\/skill-sedimentation-policy$/,
+      /^\/runtime(\/|$)/,
       /^\/notifications$/,
       /^\/logs$/,
       /^\/tools(\/|$)/,
@@ -627,6 +717,75 @@ function buildAdminCompatRouter(context) {
         manualReviewRequired: reports.length > 0
       }
     });
+  });
+
+  router.get('/api/admin/runtime/openclaw-config', async (_req, res) => {
+    res.json(buildOpenclawConfigView());
+  });
+
+  router.post('/api/admin/runtime/openclaw-config', async (req, res) => {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const runtime = body.runtime && typeof body.runtime === 'object' ? body.runtime : {};
+    const providers = body.providers && typeof body.providers === 'object' ? body.providers : {};
+    const deepseekInput = providers.deepseek && typeof providers.deepseek === 'object' ? providers.deepseek : {};
+    const minimaxInput = providers.minimax && typeof providers.minimax === 'object' ? providers.minimax : {};
+    const template = body.permissionTemplate && typeof body.permissionTemplate === 'object'
+      ? body.permissionTemplate
+      : {};
+
+    openclawConfigState.runtime.openclawImage = String(runtime.openclawImage || openclawConfigState.runtime.openclawImage || '').trim();
+    openclawConfigState.runtime.openclawRuntimeVersion = String(runtime.openclawRuntimeVersion || openclawConfigState.runtime.openclawRuntimeVersion || '').trim();
+    openclawConfigState.runtime.openclawSourcePath = String(runtime.openclawSourcePath || openclawConfigState.runtime.openclawSourcePath || '').trim();
+
+    openclawConfigState.providers.deepseek.enabled = Boolean(deepseekInput.enabled);
+    openclawConfigState.providers.deepseek.apiBase = String(deepseekInput.apiBase || openclawConfigState.providers.deepseek.apiBase || '').trim();
+    openclawConfigState.providers.deepseek.model = String(deepseekInput.model || openclawConfigState.providers.deepseek.model || '').trim();
+    if (String(deepseekInput.apiKey || '').trim()) {
+      openclawConfigState.providers.deepseek.apiKey = String(deepseekInput.apiKey || '').trim();
+    }
+
+    openclawConfigState.providers.minimax.enabled = Boolean(minimaxInput.enabled);
+    openclawConfigState.providers.minimax.apiBase = String(minimaxInput.apiBase || openclawConfigState.providers.minimax.apiBase || '').trim();
+    openclawConfigState.providers.minimax.model = String(minimaxInput.model || openclawConfigState.providers.minimax.model || '').trim();
+    if (String(minimaxInput.apiKey || '').trim()) {
+      openclawConfigState.providers.minimax.apiKey = String(minimaxInput.apiKey || '').trim();
+    }
+
+    if (Array.isArray(template.commandAllowlist)) {
+      openclawConfigState.permissionTemplate.commandAllowlist = template.commandAllowlist
+        .map((x) => String(x || '').trim())
+        .filter(Boolean)
+        .slice(0, 200);
+    }
+    if (template.approvalByRisk && typeof template.approvalByRisk === 'object') {
+      openclawConfigState.permissionTemplate.approvalByRisk = safeJson(
+        template.approvalByRisk,
+        openclawConfigState.permissionTemplate.approvalByRisk
+      );
+    }
+
+    openclawConfigState.updatedAt = nowIso();
+    openclawConfigState.updatedBy = String((req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin');
+    syncContextWithOpenclawConfig();
+    await context.auditService.log('admin.runtime.openclaw_config.updated', {
+      actor: openclawConfigState.updatedBy,
+      runtime: safeJson(openclawConfigState.runtime, {}),
+      providers: {
+        deepseek: {
+          enabled: openclawConfigState.providers.deepseek.enabled,
+          apiBase: openclawConfigState.providers.deepseek.apiBase,
+          model: openclawConfigState.providers.deepseek.model,
+          hasKey: Boolean(String(openclawConfigState.providers.deepseek.apiKey || '').trim())
+        },
+        minimax: {
+          enabled: openclawConfigState.providers.minimax.enabled,
+          apiBase: openclawConfigState.providers.minimax.apiBase,
+          model: openclawConfigState.providers.minimax.model,
+          hasKey: Boolean(String(openclawConfigState.providers.minimax.apiKey || '').trim())
+        }
+      }
+    });
+    res.json(buildOpenclawConfigView());
   });
 
   router.get('/api/admin/bootstrap-status', async (_req, res) => {

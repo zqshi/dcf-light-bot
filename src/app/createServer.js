@@ -13,6 +13,8 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'login.js',
   'employees.html',
   'employees.js',
+  'openclaw-config.html',
+  'openclaw-config.js',
   'notifications.html',
   'notifications.js',
   'employee-detail-renderer.js',

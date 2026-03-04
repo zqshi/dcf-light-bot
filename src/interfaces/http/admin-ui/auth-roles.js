@@ -174,6 +174,7 @@ function resolvePageFunctionLabel(pathname) {
     '/admin/auth-roles.html': '角色管理',
     '/admin/auth-members.html': '成员管理',
     '/admin/employees.html': '员工总览',
+    '/admin/openclaw-config.html': 'OpenClaw 配置',
     '/admin/skills.html': '技能管理',
     '/admin/tools.html': '工具资产',
     '/admin/notifications.html': '通知中心',

@@ -2,6 +2,7 @@
   const DEFAULT_NAV_ITEMS = [
     { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
     { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
+    { path: '/admin/openclaw-config.html', label: 'OpenClaw 配置', permission: 'admin.runtime.page.openclaw-config.read' },
     { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
     { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
     { path: '/admin/notifications.html', label: '通知中心', permission: 'admin.logs.page.behavior.read' },
@@ -57,7 +58,8 @@
       'admin.runtime.page.advanced.read',
       'admin.runtime.page.strategy-center.read',
       'admin.runtime.page.prompts.read',
-      'admin.runtime.page.autoevolve.read'
+      'admin.runtime.page.autoevolve.read',
+      'admin.runtime.page.openclaw-config.read'
     ],
     'admin.tasks.read': [
       'admin.tasks.page.overview.read',
@@ -91,6 +93,7 @@
     'admin.runtime.page.strategy-center.read': ['admin.runtime.read'],
     'admin.runtime.page.prompts.read': ['admin.runtime.read'],
     'admin.runtime.page.autoevolve.read': ['admin.runtime.read'],
+    'admin.runtime.page.openclaw-config.read': ['admin.runtime.read'],
     'admin.tasks.page.overview.read': ['admin.tasks.read'],
     'admin.tasks.page.runtime.read': ['admin.tasks.read'],
     'admin.tasks.page.governance.read': ['admin.tasks.read'],

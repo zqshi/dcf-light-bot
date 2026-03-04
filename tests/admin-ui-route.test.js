@@ -77,6 +77,10 @@ describe('admin ui static routes', () => {
     expect(notificationRes.status).toBe(200);
     expect(notificationRes.headers['content-type']).toContain('text/html');
 
+    const openclawRes = await request(app).get('/admin/openclaw-config.html');
+    expect(openclawRes.status).toBe(200);
+    expect(openclawRes.headers['content-type']).toContain('text/html');
+
     const disabledRes = await request(app).get('/admin/runtime.html');
     expect(disabledRes.status).toBe(404);
   });
