@@ -51,3 +51,4 @@ services:
       - ./element-web-config.json:/app/config.json:ro
       - ./element-assets/dcf-login-logo.svg:/app/dcf-login-logo.svg:ro
       - ./element-assets/dcf-login-bg.svg:/app/dcf-login-bg.svg:ro
+      - ./element-assets/welcome.html:/app/welcome.html:ro

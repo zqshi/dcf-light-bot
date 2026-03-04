@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DCF Workspace</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: #0f172a;
+        background:
+          radial-gradient(760px 420px at 8% 8%, rgba(100, 149, 255, 0.25) 0%, transparent 62%),
+          radial-gradient(700px 400px at 95% 90%, rgba(97, 221, 192, 0.23) 0%, transparent 64%),
+          linear-gradient(180deg, #f6faff 0%, #edf4ff 100%);
+      }
+      .wrap {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+      .panel {
+        width: 100%;
+        max-width: 960px;
+        border-radius: 24px;
+        border: 1px solid #d9e8ff;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 22px 56px rgba(45, 87, 165, 0.14);
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+      }
+      .hero {
+        padding: 38px 36px;
+        border-right: 1px solid #e4eefc;
+      }
+      .hero h1 {
+        margin: 0 0 10px;
+        font-size: 34px;
+        line-height: 1.15;
+      }
+      .hero p {
+        margin: 0;
+        color: #4b5d7c;
+        line-height: 1.75;
+        font-size: 14px;
+      }
+      .chip-row {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid #cfe0fb;
+        background: #fff;
+        color: #35507d;
+      }
+      .actions {
+        padding: 38px 30px;
+        display: grid;
+        align-content: center;
+        gap: 12px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        border: 1px solid #cfe0fb;
+        min-height: 46px;
+        padding: 0 16px;
+        font-size: 14px;
+        text-decoration: none;
+        color: #17325f;
+        background: #f5f9ff;
+      }
+      .btn.primary {
+        border-color: #2d65cb;
+        color: #fff;
+        background: linear-gradient(180deg, #2f75ff 0%, #1f57d6 100%);
+      }
+      .muted {
+        margin-top: 6px;
+        color: #6a7d9e;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      @media (max-width: 900px) {
+        .panel {
+          grid-template-columns: 1fr;
+          max-width: 520px;
+        }
+        .hero {
+          border-right: 0;
+          border-bottom: 1px solid #e4eefc;
+          padding: 24px 20px 18px;
+        }
+        .hero h1 {
+          font-size: 28px;
+        }
+        .actions {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="panel">
+        <div class="hero">
+          <h1>欢迎使用 DCF Workspace</h1>
+          <p>
+            企业数字员工协作入口。默认简体中文界面，支持桌面端与移动端一致体验。
+            登录后根据你的身份自动展示可用功能。
+          </p>
+          <div class="chip-row">
+            <span class="chip">默认简体中文</span>
+            <span class="chip">统一会话入口</span>
+            <span class="chip">多租户隔离</span>
+            <span class="chip">企业级审计</span>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="/#/login">登录系统</a>
+          <a class="btn" href="/#/register">注册账号</a>
+          <div class="muted">
+            注：管理后台入口不在默认登录页展示。<br />
+            登录后将根据身份策略进行功能展示与权限控制。
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
