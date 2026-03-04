@@ -10,6 +10,7 @@ class MatrixRelay {
     this.seenEvents = new Set();
     this.maxSeenEvents = 5000;
     this.timelineHandler = this.onTimeline.bind(this);
+    this.memberHandler = this.onRoomMember.bind(this);
   }
 
   async audit(type, payload = {}) {
@@ -40,9 +41,11 @@ class MatrixRelay {
       userId: this.config.matrixUserId
     });
     this.client.on('Room.timeline', this.timelineHandler);
+    this.client.on('RoomMember.membership', this.memberHandler);
     this.client.startClient({
       initialSyncLimit: Math.max(1, Number(this.config.matrixRelayInitialSyncLimit || 10))
     });
+    await this.trySetBotDisplayName();
     this.started = true;
     this.logger.info('matrix relay started', {
       homeserver: this.config.matrixHomeserver,
@@ -58,6 +61,7 @@ class MatrixRelay {
     if (!this.started || !this.client) return;
     try {
       this.client.removeListener('Room.timeline', this.timelineHandler);
+      this.client.removeListener('RoomMember.membership', this.memberHandler);
       this.client.stopClient();
     } finally {
       this.started = false;
@@ -134,6 +138,56 @@ class MatrixRelay {
       }
     } catch (error) {
       this.logger.error('matrix relay message handling failed', {
+        error: String(error && error.message || error)
+      });
+    }
+  }
+
+  async trySetBotDisplayName() {
+    const nextName = String(this.config.matrixBotDisplayName || '').trim();
+    if (!nextName || !this.client || typeof this.client.setDisplayName !== 'function') return;
+    try {
+      await this.client.setDisplayName(nextName);
+      await this.audit('matrix.bot.profile.updated', {
+        userId: this.config.matrixUserId,
+        displayName: nextName
+      });
+    } catch (error) {
+      this.logger.warn('matrix relay set display name failed', {
+        error: String(error && error.message || error),
+        userId: this.config.matrixUserId
+      });
+      await this.audit('matrix.bot.profile.update_failed', {
+        userId: this.config.matrixUserId,
+        displayName: nextName,
+        reason: String(error && error.message || error)
+      });
+    }
+  }
+
+  async onRoomMember(event, member) {
+    try {
+      if (!this.started || !this.client) return;
+      const myUserId = String(this.config.matrixUserId || '');
+      const targetUserId = String(member && member.userId || '');
+      if (!myUserId || !targetUserId || targetUserId !== myUserId) return;
+      const membership = String(member && member.membership || '').toLowerCase();
+      if (membership !== 'invite') return;
+      const roomId = String(
+        (member && member.roomId)
+        || (member && member.room && member.room.roomId)
+        || ''
+      );
+      if (!roomId) return;
+      if (typeof this.client.joinRoom !== 'function') return;
+      await this.client.joinRoom(roomId);
+      await this.audit('matrix.bot.joined', {
+        userId: myUserId,
+        roomId,
+        reason: 'auto_accept_invite'
+      });
+    } catch (error) {
+      this.logger.warn('matrix relay auto-join invite failed', {
         error: String(error && error.message || error)
       });
     }

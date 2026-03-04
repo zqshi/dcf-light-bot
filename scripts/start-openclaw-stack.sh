@@ -67,6 +67,9 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
+echo "[start] bootstrap matrix bot profile"
+bash "$ROOT_DIR/scripts/ensure-matrix-bot.sh" || true
+
 OPENCLAW_OK=0
 for i in $(seq 1 60); do
   if curl -fsS http://127.0.0.1:18789/ >/dev/null 2>&1; then

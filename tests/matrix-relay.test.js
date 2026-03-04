@@ -82,4 +82,59 @@ describe('MatrixRelay', () => {
 
     expect(calls).toHaveLength(0);
   });
+
+  test('auto accepts invite and joins room for bot user', async () => {
+    const joined = [];
+    const relay = new MatrixRelay(
+      {
+        matrixRelayEnabled: true,
+        matrixHomeserver: 'http://hs',
+        matrixUserId: '@bot:localhost',
+        matrixAccessToken: 'token'
+      },
+      { info: () => {}, warn: () => {}, error: () => {} },
+      { processTextMessage: async () => ({ ignored: true }) },
+      {}
+    );
+    relay.started = true;
+    relay.client = {
+      joinRoom: async (roomId) => joined.push(roomId)
+    };
+
+    await relay.onRoomMember({}, {
+      userId: '@bot:localhost',
+      membership: 'invite',
+      roomId: '!dm:localhost'
+    });
+
+    expect(joined).toEqual(['!dm:localhost']);
+  });
+
+  test('start tries set display name for bot profile', async () => {
+    const calls = [];
+    const relay = new MatrixRelay(
+      {
+        matrixRelayEnabled: true,
+        matrixHomeserver: 'http://hs',
+        matrixUserId: '@bot:localhost',
+        matrixAccessToken: 'token',
+        matrixBotDisplayName: '数字工厂bot'
+      },
+      { info: () => {}, warn: () => {}, error: () => {} },
+      { processTextMessage: async () => ({ ignored: true }) },
+      {
+        createClient: () => ({
+          on: () => {},
+          startClient: () => {},
+          stopClient: () => {},
+          removeListener: () => {},
+          setDisplayName: async (name) => { calls.push(name); }
+        })
+      }
+    );
+
+    await relay.start();
+    expect(calls).toEqual(['数字工厂bot']);
+    await relay.stop();
+  });
 });

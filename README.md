@@ -122,9 +122,20 @@ npm start
   - `MATRIX_ACCESS_TOKEN`
   - `MATRIX_RELAY_ENABLED=true`
 - Optional provider defaults for OpenClaw tenant config:
-  - `MINIMAX_API_BASE`, `MINIMAX_MODEL`
+  - `MINIMAX_API_KEY`, `MINIMAX_API_BASE`, `MINIMAX_MODEL`
   - `DEEPSEEK_API_BASE`, `DEEPSEEK_MODEL`
+  - default permission template for newly created digital employees:
+    - `OPENCLAW_PERMISSION_TEMPLATE_JSON` (JSON, optional; if empty uses OpenClaw default template)
+  - compatibility aliases are also supported for MiniMax Anthropic endpoint style:
+    - `ANTHROPIC_AUTH_TOKEN` (same as `MINIMAX_API_KEY`)
+    - `ANTHROPIC_BASE_URL` (same as `MINIMAX_API_BASE`)
+  - shell export example:
+    - `export MINIMAX_API_BASE=https://api.minimaxi.com/anthropic`
+    - `export MINIMAX_API_KEY=<your_key>`
 - Start app and relay will auto-bridge room text message to control-plane command handler.
+- Matrix message patterns:
+  - create employee: `!create_agent <name>` or natural language (example: `请创建一个采购数字员工，名字叫采购小助手`)
+  - assign task: `@<employee_name_or_id> 执行 <task>`
 - Run E2E bootstrap/validation:
   - `npm run matrix:e2e`
   - `npm run e2e:user` (Matrix real room + browser-use admin UI assertion)
@@ -133,6 +144,7 @@ npm start
 - Bot user (created/maintained by start scripts): `@dcfbot:localhost` / `dcfbot123`
 - Operator user (used by E2E): `@opsuser:localhost` / `opsuser123`
 - Login through Element Web at `http://127.0.0.1:8081` with homeserver `http://127.0.0.1:8008`.
+- Bot display name defaults to `数字工厂bot`; users can search this contact in Matrix, open a DM, and create digital employees via natural language (for example: `请创建一个采购数字员工，名字叫采购小助手`).
 
 ## Key APIs
 - `GET /health`
@@ -147,6 +159,10 @@ npm start
 - `POST /api/control/skills/reports/{reportId}/approve`
 - `POST /api/control/skills/bindings`
 - `POST /api/control/runtime/instances/{instanceId}/invoke`
+- `GET /api/admin/agents/shared`
+- `POST /api/admin/agents/shared/register`
+- `POST /api/admin/agents/shared/{id}`
+- `POST /api/admin/agents/shared/{id}/delete`
 - `GET /api/control/audits`
 - `GET /api/control/audits/export?format=ndjson`
 - `GET /api/control/audits?cursor=0&limit=200&sinceId=<lastSeenId>`

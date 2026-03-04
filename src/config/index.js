@@ -11,11 +11,12 @@ function parseBoolean(input, fallback) {
 
 function parseProviders(env) {
   const providers = [];
+  const minimaxKey = String(env.MINIMAX_API_KEY || env.ANTHROPIC_AUTH_TOKEN || '').trim();
   const table = [
     ['openai', env.OPENAI_API_KEY],
     ['anthropic', env.ANTHROPIC_API_KEY],
     ['deepseek', env.DEEPSEEK_API_KEY],
-    ['minimax', env.MINIMAX_API_KEY]
+    ['minimax', minimaxKey]
   ];
   for (const [name, key] of table) {
     if (String(key || '').trim()) providers.push({ name, key: String(key).trim() });
@@ -30,6 +31,60 @@ function defaultUsersJson() {
     { username: 'ops', role: 'ops_admin', password: 'plain:ops123' },
     { username: 'auditor', role: 'auditor', password: 'plain:audit123' }
   ]);
+}
+
+function buildDefaultOpenclawPermissionTemplate() {
+  return {
+    commandAllowlist: ['/help', '/status', '/report'],
+    approvalByRisk: {
+      L1: { requiredApprovals: 0, requiredAnyRoles: [], distinctRoles: false },
+      L2: { requiredApprovals: 1, requiredAnyRoles: ['ops_admin'], distinctRoles: false },
+      L3: { requiredApprovals: 1, requiredAnyRoles: ['reviewer', 'ops_admin'], distinctRoles: false },
+      L4: { requiredApprovals: 2, requiredAnyRoles: ['platform_admin', 'auditor'], distinctRoles: true }
+    }
+  };
+}
+
+function parseOpenclawPermissionTemplate(raw) {
+  const fallback = buildDefaultOpenclawPermissionTemplate();
+  const value = String(raw || '').trim();
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== 'object') return fallback;
+    const commandAllowlist = Array.isArray(parsed.commandAllowlist)
+      ? parsed.commandAllowlist.map((x) => String(x || '').trim()).filter(Boolean)
+      : fallback.commandAllowlist;
+    const approvalByRisk = parsed.approvalByRisk && typeof parsed.approvalByRisk === 'object'
+      ? parsed.approvalByRisk
+      : fallback.approvalByRisk;
+    return { commandAllowlist, approvalByRisk };
+  } catch {
+    return fallback;
+  }
+}
+
+function parseSsoProfileMapping(raw) {
+  const fallback = {
+    username: 'preferred_username',
+    email: 'email',
+    role: 'role',
+    displayName: 'name'
+  };
+  const text = String(raw || '').trim();
+  if (!text) return fallback;
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object') return fallback;
+    return {
+      username: String(parsed.username || fallback.username),
+      email: String(parsed.email || fallback.email),
+      role: String(parsed.role || fallback.role),
+      displayName: String(parsed.displayName || fallback.displayName)
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 function parseUsers(raw) {
@@ -83,14 +138,22 @@ function loadConfig() {
     openclawSourcePath: String(process.env.OPENCLAW_SOURCE_PATH || '/Users/zqs/Downloads/project/dependencies/openclaw'),
     matrixHomeserver: String(process.env.MATRIX_HOMESERVER || 'https://matrix.org'),
     matrixUserId: String(process.env.MATRIX_USER_ID || '@dcf-light-bot:matrix.org'),
+    matrixBotDisplayName: String(process.env.MATRIX_BOT_DISPLAY_NAME || '数字工厂bot'),
     matrixAccessToken: String(process.env.MATRIX_ACCESS_TOKEN || ''),
     matrixRelayEnabled: parseBoolean(process.env.MATRIX_RELAY_ENABLED, true),
     matrixRelayInitialSyncLimit: Number(process.env.MATRIX_RELAY_INITIAL_SYNC_LIMIT || 10),
     matrixWebhookSecret: String(process.env.MATRIX_WEBHOOK_SECRET || 'dev-matrix-secret'),
     deepseekApiBase: String(process.env.DEEPSEEK_API_BASE || 'https://api.deepseek.com/v1'),
     deepseekModel: String(process.env.DEEPSEEK_MODEL || 'deepseek-chat'),
-    minimaxApiBase: String(process.env.MINIMAX_API_BASE || 'https://api.minimaxi.com/anthropic'),
+    minimaxApiBase: String(process.env.MINIMAX_API_BASE || process.env.ANTHROPIC_BASE_URL || 'https://api.minimaxi.com/anthropic'),
     minimaxModel: String(process.env.MINIMAX_MODEL || 'MiniMax-M2.5'),
+    openclawPermissionTemplate: parseOpenclawPermissionTemplate(process.env.OPENCLAW_PERMISSION_TEMPLATE_JSON),
+    ssoEnabled: parseBoolean(process.env.SSO_ENABLED, false),
+    ssoProvider: String(process.env.SSO_PROVIDER || 'oidc').trim(),
+    ssoBridgeLoginEnabled: parseBoolean(process.env.SSO_BRIDGE_LOGIN_ENABLED, true),
+    ssoAuthorizeUrl: String(process.env.SSO_AUTHORIZE_URL || '').trim(),
+    ssoCallbackUrl: String(process.env.SSO_CALLBACK_URL || '').trim(),
+    ssoProfileMapping: parseSsoProfileMapping(process.env.SSO_PROFILE_MAPPING_JSON),
     controlPlaneAdminToken: String(process.env.CONTROL_PLANE_ADMIN_TOKEN || 'dev-admin-token'),
     controlPlaneJwtSecret: String(process.env.CONTROL_PLANE_JWT_SECRET || 'dev-jwt-secret'),
     controlPlaneJwtExpiresInSec: Number(process.env.CONTROL_PLANE_JWT_EXPIRES_SEC || 8 * 3600),
