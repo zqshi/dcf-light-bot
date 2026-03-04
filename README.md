@@ -37,11 +37,15 @@ npm start
 - Stop: `npm run openclaw:down`
 - Exposed endpoints:
   - Matrix Synapse: `http://127.0.0.1:8008`
+  - Matrix Web Client (Element): `http://127.0.0.1:8081`
   - OpenClaw Gateway UI: `http://127.0.0.1:18789`
+  - DCF Admin Console: `http://127.0.0.1:3010/admin/login.html`
+  - DCF App Status: `http://127.0.0.1:3010/status`
 
 ## Local All-In-One Ops
 - Start all (`matrix + openclaw + dcf app`): `npm run start:all`
-- Check all (includes Matrix E2E create-agent): `npm run check:all`
+- Check all (includes Matrix + browser-use user E2E): `npm run check:all`
+- Run user behavior E2E only: `npm run e2e:user`
 - Stop all: `npm run stop:all`
 - App-only:
   - Start: `npm run start:app`
@@ -49,7 +53,7 @@ npm start
   - Stop: `npm run stop:app`
 
 ## Admin Console
-- URL: `http://localhost:3000/admin/`
+- URL: `http://127.0.0.1:3010/admin/login.html`
 - Built-in static management UI (login, instance/asset/audit/release-preflight views), backed by existing control-plane APIs.
 - Supports operational actions:
   - create/start/stop tenant instance
@@ -115,6 +119,12 @@ npm start
 - Start app and relay will auto-bridge room text message to control-plane command handler.
 - Run E2E bootstrap/validation:
   - `npm run matrix:e2e`
+  - `npm run e2e:user` (Matrix real room + browser-use admin UI assertion)
+
+## Matrix Test Users (Local)
+- Bot user (created/maintained by start scripts): `@dcfbot:localhost` / `dcfbot123`
+- Operator user (used by E2E): `@opsuser:localhost` / `opsuser123`
+- Login through Element Web at `http://127.0.0.1:8081` with homeserver `http://127.0.0.1:8008`.
 
 ## Key APIs
 - `GET /health`

@@ -32,6 +32,7 @@
     "openclaw:check": "bash scripts/check-openclaw-stack.sh",
     "openclaw:smoke": "bash scripts/openclaw-smoke.sh",
     "matrix:e2e": "bash scripts/matrix-e2e-bootstrap.sh",
+    "e2e:user": "bash scripts/browser-use-user-e2e.sh",
     "observability:up": "bash scripts/start-observability-stack.sh",
     "observability:down": "bash scripts/stop-observability-stack.sh",
     "observability:check": "bash scripts/check-observability-stack.sh"

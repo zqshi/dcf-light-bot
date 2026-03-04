@@ -14,7 +14,9 @@ function createServer(context) {
   app.use(compression());
   app.use(express.json({ limit: '2mb' }));
 
-  app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
+  const rateLimitWindowMs = Math.max(1000, Number((context.config && context.config.rateLimitWindowMs) || 15 * 60 * 1000));
+  const rateLimitMaxRequests = Math.max(1, Number((context.config && context.config.rateLimitMaxRequests) || 300));
+  app.use(rateLimit({ windowMs: rateLimitWindowMs, max: rateLimitMaxRequests }));
   const adminUiDir = path.join(__dirname, '../interfaces/http/admin-ui');
   app.use('/admin', express.static(adminUiDir));
   app.get('/', (req, res) => res.redirect('/admin'));

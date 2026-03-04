@@ -17,5 +17,9 @@ echo "[openclaw ui]"
 curl -I -sS http://127.0.0.1:18789/ | sed -n '1,12p'
 
 echo
+echo "[matrix element web]"
+curl -I -sS http://127.0.0.1:8081/ | sed -n '1,12p'
+
+echo
 echo "[openclaw gateway logs tail]"
 docker logs --tail 40 dcf-openclaw-gateway || true

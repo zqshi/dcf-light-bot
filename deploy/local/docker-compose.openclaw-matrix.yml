@@ -38,3 +38,14 @@ services:
         "--port",
         "18789"
       ]
+
+  matrix-element-web:
+    image: vectorim/element-web:latest
+    container_name: dcf-matrix-element-web
+    depends_on:
+      - matrix-synapse
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./element-web-config.json:/app/config.json:ro

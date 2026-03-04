@@ -64,6 +64,8 @@ function loadConfig() {
     nodeEnv: process.env.NODE_ENV || 'development',
     host: process.env.HOST || '0.0.0.0',
     port: Number(process.env.PORT || 3000),
+    rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
+    rateLimitMaxRequests: Number(process.env.RATE_LIMIT_MAX_REQUESTS || 300),
     dataDir,
     logsDir,
     storeFile,

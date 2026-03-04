@@ -9,6 +9,8 @@ APP_HOST="${DCF_APP_HOST:-127.0.0.1}"
 MATRIX_HS="${MATRIX_HS:-http://127.0.0.1:8008}"
 BOT_LOCALPART="${MATRIX_BOT_LOCALPART:-dcfbot}"
 BOT_PASSWORD="${MATRIX_BOT_PASSWORD:-dcfbot123}"
+LOCAL_RATE_LIMIT_MAX_REQUESTS="${LOCAL_RATE_LIMIT_MAX_REQUESTS:-100000}"
+LOCAL_RATE_LIMIT_WINDOW_MS="${LOCAL_RATE_LIMIT_WINDOW_MS:-60000}"
 LOG_FILE="$ROOT_DIR/runtime/dcf-app.log"
 PID_FILE="$ROOT_DIR/runtime/dcf-app.pid"
 BOT_TOKEN_FILE="$ROOT_DIR/runtime/matrix-bot.token"
@@ -91,6 +93,13 @@ if [ -f "$PID_FILE" ]; then
   fi
 fi
 
+EXISTING_PID="$(lsof -ti:${APP_PORT} 2>/dev/null | head -n 1 || true)"
+if [ -n "${EXISTING_PID:-}" ] && kill -0 "$EXISTING_PID" >/dev/null 2>&1; then
+  echo "$EXISTING_PID" > "$PID_FILE"
+  echo "[start] dcf app already listening on ${APP_HOST}:${APP_PORT} pid=$EXISTING_PID"
+  exit 0
+fi
+
 BOT_TOKEN="$(ensure_bot_token)"
 MATRIX_USER_ID="@${BOT_LOCALPART}:localhost"
 
@@ -106,6 +115,8 @@ nohup env \
   OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-openclaw:local}" \
   OPENCLAW_RUNTIME_VERSION="${OPENCLAW_RUNTIME_VERSION:-2026.2.13}" \
   OPENCLAW_SOURCE_PATH="${OPENCLAW_SOURCE_PATH:-/Users/zqs/Downloads/project/dependencies/openclaw}" \
+  RATE_LIMIT_MAX_REQUESTS="$LOCAL_RATE_LIMIT_MAX_REQUESTS" \
+  RATE_LIMIT_WINDOW_MS="$LOCAL_RATE_LIMIT_WINDOW_MS" \
   MINIMAX_API_KEY="${MINIMAX_API_KEY:-}" \
   DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-}" \
   npm start >"$LOG_FILE" 2>&1 &

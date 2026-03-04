@@ -1,0 +1,14 @@
+{
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "http://127.0.0.1:8008",
+      "server_name": "localhost"
+    }
+  },
+  "default_server_name": "localhost",
+  "brand": "DCF Matrix",
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "disable_login_language_selector": false,
+  "show_labs_settings": true
+}

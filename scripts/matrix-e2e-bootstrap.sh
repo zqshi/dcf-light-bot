@@ -20,6 +20,38 @@ json_field() {
   node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(0,'utf8'));if(!(\"$key\" in d)){process.exit(2)};process.stdout.write(String(d[\"$key\"]));"
 }
 
+is_rate_limited() {
+  local text="$1"
+  echo "$text" | rg -q 'M_LIMIT_EXCEEDED|Too many requests'
+}
+
+retry_wait_seconds() {
+  local text="$1"
+  local sec
+  sec="$(echo "$text" | node -e "const fs=require('fs');let d='';try{d=JSON.parse(fs.readFileSync(0,'utf8'));}catch{};const ms=Number((d&&d.retry_after_ms)||1000);process.stdout.write(String(Math.max(1,Math.ceil(ms/1000))))" 2>/dev/null || true)"
+  if [ -z "${sec:-}" ]; then
+    sec="1"
+  fi
+  echo "$sec"
+}
+
+with_retry() {
+  local attempts="$1"
+  shift
+  local out=""
+  for _ in $(seq 1 "$attempts"); do
+    out="$("$@" || true)"
+    if is_rate_limited "$out"; then
+      sleep "$(retry_wait_seconds "$out")"
+      continue
+    fi
+    echo "$out"
+    return 0
+  done
+  echo "$out"
+  return 0
+}
+
 urlenc() {
   local value="$1"
   node -e "process.stdout.write(encodeURIComponent(process.argv[1]||''))" "$value"
@@ -50,12 +82,12 @@ JSON
 )"
   local login_res=""
   for _ in $(seq 1 5); do
-    login_res="$(curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/login" -H 'content-type: application/json' -d "${login_body}" || true)"
+    login_res="$(with_retry 3 curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/login" -H 'content-type: application/json' -d "${login_body}")"
     if echo "$login_res" | rg -q '"access_token"'; then
       break
     fi
-    if echo "$login_res" | rg -q 'M_LIMIT_EXCEEDED'; then
-      sleep 1
+    if is_rate_limited "$login_res"; then
+      sleep "$(retry_wait_seconds "$login_res")"
       continue
     fi
     break
@@ -68,7 +100,7 @@ JSON
 
   docker exec dcf-matrix-synapse register_new_matrix_user --exists-ok --no-admin -u "$user" -p "$pass" -c /data/homeserver.yaml "http://localhost:8008" >/dev/null
   for _ in $(seq 1 8); do
-    login_res="$(curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/login" -H 'content-type: application/json' -d "${login_body}" || true)"
+    login_res="$(with_retry 3 curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/login" -H 'content-type: application/json' -d "${login_body}")"
     if echo "$login_res" | rg -q '"access_token"'; then
       break
     fi
@@ -88,18 +120,22 @@ USER_TOKEN="$(ensure_user "$USER_LOCALPART" "$USER_PASSWORD")"
 BOT_USER_ID="@${BOT_LOCALPART}:localhost"
 
 echo "[e2e] create room"
-ROOM_RES="$(curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/createRoom" \
+ROOM_RES="$(with_retry 8 curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/createRoom" \
   -H "Authorization: Bearer ${USER_TOKEN}" \
   -H 'content-type: application/json' \
   -d "{\"name\":\"dcf-e2e-room\",\"preset\":\"private_chat\"}")"
+if ! echo "$ROOM_RES" | rg -q '"room_id"'; then
+  echo "[error] create room failed: $ROOM_RES"
+  exit 1
+fi
 ROOM_ID="$(echo "$ROOM_RES" | json_field room_id)"
 
 echo "[e2e] invite and join bot"
-curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/rooms/$(urlenc "$ROOM_ID")/invite" \
+with_retry 8 curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/rooms/$(urlenc "$ROOM_ID")/invite" \
   -H "Authorization: Bearer ${USER_TOKEN}" \
   -H 'content-type: application/json' \
   -d "{\"user_id\":\"${BOT_USER_ID}\"}" >/dev/null
-curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/join/$(urlenc "$ROOM_ID")" \
+with_retry 8 curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/join/$(urlenc "$ROOM_ID")" \
   -H "Authorization: Bearer ${BOT_TOKEN}" \
   -H 'content-type: application/json' \
   -d '{}' >/dev/null
@@ -120,7 +156,7 @@ fi
 
 send_create_command() {
   local txn_id="$1"
-  curl -sS -X PUT "${MATRIX_HS}/_matrix/client/v3/rooms/$(urlenc "$ROOM_ID")/send/m.room.message/${txn_id}" \
+  with_retry 8 curl -sS -X PUT "${MATRIX_HS}/_matrix/client/v3/rooms/$(urlenc "$ROOM_ID")/send/m.room.message/${txn_id}" \
     -H "Authorization: Bearer ${USER_TOKEN}" \
     -H 'content-type: application/json' \
     -d "{\"msgtype\":\"m.text\",\"body\":\"!create_agent ${AGENT_NAME}\"}" >/dev/null
@@ -138,7 +174,11 @@ for i in $(seq 1 30); do
     send_create_command "txn_$(date +%s)_${i}"
   fi
   RES="$(curl -sS "${DCF_BASE_URL}/api/control/instances?name=${AGENT_NAME}" -H "Authorization: Bearer ${CONTROL_PLANE_ADMIN_TOKEN}")"
-  FOUND_ID="$(echo "$RES" | node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(0,'utf8'));const row=(d.data||[])[0];process.stdout.write(row&&row.id?row.id:'')")"
+  if is_rate_limited "$RES"; then
+    sleep "$(retry_wait_seconds "$RES")"
+    continue
+  fi
+  FOUND_ID="$(echo "$RES" | node -e "const fs=require('fs');const raw=fs.readFileSync(0,'utf8');try{const d=JSON.parse(raw);const row=(d.data||[])[0];process.stdout.write(row&&row.id?row.id:'');}catch{process.stdout.write('');}")"
   if [ -n "$FOUND_ID" ]; then
     break
   fi
