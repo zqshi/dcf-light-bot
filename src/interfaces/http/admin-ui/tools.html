@@ -33,6 +33,10 @@
               <div class="stat-label">已停用</div>
               <div id="mcpDisabled" class="stat-value">0</div>
             </div>
+            <div class="stat-item">
+              <div class="stat-label">待处理审批</div>
+              <div id="mcpPending" class="stat-value">0</div>
+            </div>
           </div>
         </section>
 
@@ -49,12 +53,13 @@
                   <th>传输协议</th>
                   <th>地址</th>
                   <th>状态</th>
+                  <th>审批状态</th>
                   <th>更新时间</th>
                   <th>操作</th>
                 </tr>
               </thead>
               <tbody id="mcpRows">
-                <tr><td colspan="6" class="empty">加载中...</td></tr>
+                <tr><td colspan="7" class="empty">加载中...</td></tr>
               </tbody>
             </table>
           </div>

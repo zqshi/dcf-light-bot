@@ -467,34 +467,17 @@
 
     const currentPath = window.location.pathname;
     const sectionPathMap = new Map([
-      ['/admin/runtime-health.html', '/admin/runtime.html'],
-      ['/admin/runtime-cycles.html', '/admin/runtime.html'],
-      ['/admin/runtime-advanced.html', '/admin/runtime.html'],
-      ['/admin/tasks-runtime.html', '/admin/tasks.html'],
-      ['/admin/tasks-governance.html', '/admin/tasks.html'],
-      ['/admin/employees-contracts.html', '/admin/employees.html'],
-      ['/admin/employees-growth.html', '/admin/employees.html'],
-      ['/admin/tools-approvals.html', '/admin/tools.html'],
+      ['/admin/logs-agent.html', '/admin/logs.html'],
+      ['/admin/logs-admin.html', '/admin/logs.html'],
+      ['/admin/auth-users.html', '/admin/auth-members.html'],
+      ['/admin/auth-roles.html', '/admin/auth-members.html']
     ]);
     const resolvedCurrent = sectionPathMap.get(currentPath) || currentPath;
 
     let currentItemLabel = '';
-    const runtimeGroupChildren = [
-      { path: '/admin/runtime.html', label: '运行总览', permission: 'admin.runtime.page.overview.read' },
-      { path: '/admin/strategy-center.html', label: '治理中心', permission: 'admin.runtime.write' }
-    ].filter((item) => canAccess(session.user, item.permission));
-    const runtimeChildPaths = new Set(runtimeGroupChildren.map((item) => item.path));
-    const taskGroupChildren = [
-      { path: '/admin/tasks-runtime.html', label: '运行态', permission: 'admin.tasks.page.runtime.read' },
-      { path: '/admin/tasks-governance.html', label: '治理态', permission: 'admin.tasks.page.governance.read' }
-    ].filter((item) => canAccess(session.user, item.permission));
     const authGroupChildren = [
       { path: '/admin/auth-users.html', label: '用户管理', permission: 'admin.auth.page.users.read' },
       { path: '/admin/auth-roles.html', label: '角色管理', permission: 'admin.auth.page.roles.read' }
-    ].filter((item) => canAccess(session.user, item.permission));
-    const toolsGroupChildren = [
-      { path: '/admin/tools.html', label: '工具资产', permission: 'admin.tools.assets.read' },
-      { path: '/admin/tools-approvals.html', label: '准入审批', permission: 'admin.tools.approval.read' }
     ].filter((item) => canAccess(session.user, item.permission));
     const logsGroupChildren = [
       { path: '/admin/logs-agent.html', label: 'Agent 行为日志', permission: 'admin.logs.page.agent.read' },
@@ -502,100 +485,6 @@
     ].filter((item) => canAccess(session.user, item.permission));
 
     for (const item of primaryItems) {
-      if (item.path === '/admin/runtime.html' && runtimeGroupChildren.length > 0) {
-        const group = document.createElement('div');
-        group.className = 'sidebar-group';
-        group.innerHTML = `
-          <button
-            type="button"
-            class="sidebar-group-title"
-            data-sidebar-group-toggle="runtime"
-            aria-expanded="${runtimeGroupChildren.some((x) => x.path === currentPath) ? 'true' : 'false'}"
-          >运行管理</button>
-          <div class="sidebar-submenu" data-sidebar-group-panel="runtime"></div>
-        `;
-        const submenu = group.querySelector('[data-sidebar-group-panel="runtime"]');
-        if (submenu) {
-          runtimeGroupChildren.forEach((child) => {
-            const link = document.createElement('a');
-            link.href = child.path;
-            link.textContent = child.label;
-            if (child.path === currentPath) {
-              link.classList.add('active');
-              link.setAttribute('aria-current', 'page');
-              currentItemLabel = `运行诊断 · ${child.label}`;
-            }
-            submenu.appendChild(link);
-          });
-          const toggle = group.querySelector('[data-sidebar-group-toggle="runtime"]');
-          if (toggle && toggle.getAttribute('aria-expanded') !== 'true') submenu.hidden = true;
-        }
-        navContainer.appendChild(group);
-        continue;
-      }
-      if (item.path !== '/admin/runtime.html' && runtimeChildPaths.has(item.path)) continue;
-      if (item.path === '/admin/tasks.html' && taskGroupChildren.length > 0) {
-        const group = document.createElement('div');
-        group.className = 'sidebar-group';
-        group.innerHTML = `
-          <button
-            type="button"
-            class="sidebar-group-title"
-            data-sidebar-group-toggle="tasks"
-            aria-expanded="${taskGroupChildren.some((x) => x.path === currentPath) ? 'true' : 'false'}"
-          >任务台账</button>
-          <div class="sidebar-submenu" data-sidebar-group-panel="tasks"></div>
-        `;
-        const submenu = group.querySelector('[data-sidebar-group-panel="tasks"]');
-        if (submenu) {
-          taskGroupChildren.forEach((child) => {
-            const link = document.createElement('a');
-            link.href = child.path;
-            link.textContent = child.label;
-            if (child.path === currentPath) {
-              link.classList.add('active');
-              link.setAttribute('aria-current', 'page');
-              currentItemLabel = `任务台账 · ${child.label}`;
-            }
-            submenu.appendChild(link);
-          });
-          const toggle = group.querySelector('[data-sidebar-group-toggle="tasks"]');
-          if (toggle && toggle.getAttribute('aria-expanded') !== 'true') submenu.hidden = true;
-        }
-        navContainer.appendChild(group);
-        continue;
-      }
-      if (item.path === '/admin/tools.html' && toolsGroupChildren.length > 0) {
-        const group = document.createElement('div');
-        group.className = 'sidebar-group';
-        group.innerHTML = `
-          <button
-            type="button"
-            class="sidebar-group-title"
-            data-sidebar-group-toggle="tools"
-            aria-expanded="${toolsGroupChildren.some((x) => x.path === currentPath) ? 'true' : 'false'}"
-          >工具管理</button>
-          <div class="sidebar-submenu" data-sidebar-group-panel="tools"></div>
-        `;
-        const submenu = group.querySelector('[data-sidebar-group-panel="tools"]');
-        if (submenu) {
-          toolsGroupChildren.forEach((child) => {
-            const link = document.createElement('a');
-            link.href = child.path;
-            link.textContent = child.label;
-            if (child.path === currentPath) {
-              link.classList.add('active');
-              link.setAttribute('aria-current', 'page');
-              currentItemLabel = `工具管理 · ${child.label}`;
-            }
-            submenu.appendChild(link);
-          });
-          const toggle = group.querySelector('[data-sidebar-group-toggle="tools"]');
-          if (toggle && toggle.getAttribute('aria-expanded') !== 'true') submenu.hidden = true;
-        }
-        navContainer.appendChild(group);
-        continue;
-      }
       if (item.path === '/admin/auth-members.html' && authGroupChildren.length > 0) {
         const group = document.createElement('div');
         group.className = 'sidebar-group';

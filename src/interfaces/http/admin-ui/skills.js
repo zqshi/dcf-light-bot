@@ -647,11 +647,11 @@ async function load() {
     }
     currentSkillMap = new Map(rows.map((s) => [String(s.id || ''), s]));
 
-    const general = rows.filter((x) => x.type === 'general').length;
-    const domain = rows.filter((x) => x.type === 'domain').length;
+    const active = rows.filter((x) => ['active', 'approved', 'published'].includes(String(x.status || '').toLowerCase())).length;
+    const pending = Math.max(0, rows.length - active);
     setText('skillCount', String(rows.length));
-    setText('generalCount', String(general));
-    setText('domainCount', String(domain));
+    setText('generalCount', String(active));
+    setText('domainCount', String(pending));
 
     document.getElementById('rows').innerHTML = rows
       .map((s) => `

@@ -67,16 +67,15 @@ function logRowKey(event) {
 function moduleKeyFromType(type) {
   const t = String(type || '');
   if (t.startsWith('auth.')) return 'auth';
-  if (t.startsWith('employee.')) return 'employee';
-  if (t.startsWith('task.')) return 'task';
-  if (t.startsWith('runtime.')) return 'runtime';
-  if (t.startsWith('skill.')) return 'skill';
-  if (t.startsWith('oss.')) return 'oss';
-  if (t.startsWith('integration.compensation.')) return 'integration';
+  if (t.startsWith('instance.') || t.startsWith('admin.instance.')) return 'instance';
+  if (t.startsWith('admin.asset.') || t.startsWith('skill.')) return 'asset';
+  if (t.startsWith('matrix.')) return 'matrix';
   if (t.startsWith('admin.tools.mcp.')) return 'tools';
-  if (t.startsWith('bootstrap.')) return 'bootstrap';
-  if (t.startsWith('audit.')) return 'audit';
   if (t.startsWith('admin.')) return 'admin';
+  if (t.startsWith('employee.')) return 'employee';
+  if (t.startsWith('runtime.')) return 'runtime';
+  if (t.startsWith('audit.')) return 'audit';
+  if (t.startsWith('bootstrap.')) return 'bootstrap';
   return 'other';
 }
 
@@ -88,16 +87,15 @@ function eventModuleKey(event) {
 function moduleLabelByKey(key) {
   const map = {
     auth: '账号权限',
-    employee: '员工管理',
-    task: '任务治理',
-    runtime: '运行时',
-    skill: '技能资产',
-    oss: '开源检索',
-    integration: '补偿流程',
+    instance: '实例管理',
+    asset: '共享资产',
+    matrix: 'Matrix 渠道',
     tools: '工具管理',
+    admin: '后台管理',
+    employee: '员工管理',
+    runtime: '运行时',
     bootstrap: '引导流程',
     audit: '审计治理',
-    admin: '后台管理',
     other: '其他',
     system: '系统'
   };
@@ -211,6 +209,13 @@ function summarizeAction(event) {
     'auth.role.created': `创建角色 ${firstNonEmpty([payload.role, '-'])}`,
     'auth.role.updated': `更新角色 ${firstNonEmpty([payload.role, '-'])} 权限`,
     'auth.role.deleted': `删除角色 ${firstNonEmpty([payload.role, '-'])}`,
+    'instance.provisioning': `实例创建中 ${firstNonEmpty([payload.instanceId, '-'])}`,
+    'instance.provisioned': `实例创建成功 ${firstNonEmpty([payload.instanceId, '-'])}`,
+    'instance.provision.failed': `实例创建失败 ${firstNonEmpty([payload.instanceId, '-'])}`,
+    'admin.instance.started': `启动实例 ${firstNonEmpty([payload.instanceId, '-'])}`,
+    'admin.instance.stopped': `停止实例 ${firstNonEmpty([payload.instanceId, '-'])}`,
+    'admin.instance.rebuilt': `重建实例 ${firstNonEmpty([payload.instanceId, '-'])}`,
+    'admin.instance.deleted': `删除实例 ${firstNonEmpty([payload.instanceId, '-'])}`,
     'employee.created': `创建数字员工 ${firstNonEmpty([payload.name, employeeId, '-'])}`,
     'employee.profile.updated': `更新员工资料 ${firstNonEmpty([employeeId, '-'])}`,
     'employee.policy.updated': `更新岗位合同 ${firstNonEmpty([employeeId, '-'])}`,
@@ -248,6 +253,11 @@ function summarizeAction(event) {
     'admin.tools.mcp.updated': `更新 MCP 服务 ${firstNonEmpty([serviceId, '-'])}`,
     'admin.tools.mcp.deleted': `删除 MCP 服务 ${firstNonEmpty([serviceId, '-'])}`,
     'admin.tools.mcp.health_checked': `MCP 服务探活 ${firstNonEmpty([serviceId, '-'])}`,
+    'admin.asset.reported': `提交资产上报 ${firstNonEmpty([payload.reportId, '-'])}`,
+    'admin.asset.approved': `审批通过资产 ${firstNonEmpty([payload.id, '-'])}`,
+    'admin.asset.rejected': `驳回资产 ${firstNonEmpty([payload.id, '-'])}`,
+    'admin.asset.published': `发布共享资产 ${firstNonEmpty([payload.id, '-'])}`,
+    'admin.asset.bound': `绑定资产到租户 ${firstNonEmpty([payload.tenantId, '-'])}`,
     'audit.anchor.created': `创建审计锚点 ${firstNonEmpty([payload.anchorId, '-'])}`
   };
 

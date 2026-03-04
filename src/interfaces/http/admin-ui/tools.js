@@ -60,7 +60,7 @@ function renderRows(rows = []) {
   const body = document.getElementById('mcpRows');
   if (!body) return;
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="6" class="empty">暂无 MCP 服务</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="empty">暂无 MCP 服务</td></tr>';
     return;
   }
   body.innerHTML = rows.map((item) => `
@@ -69,6 +69,7 @@ function renderRows(rows = []) {
       <td>${escapeHtml(item.transport || '-')}</td>
       <td><span class="mono">${escapeHtml(item.endpoint || '-')}</span></td>
       <td>${item.enabled ? '<span class="badge ok">启用</span>' : '<span class="badge">停用</span>'}</td>
+      <td><span class="badge ${String(item.registrationStatus || '').toLowerCase() === 'approved' ? 'ok' : ''}">${escapeHtml(item.registrationStatus || '-')}</span></td>
       <td>
         ${item.updatedAt ? escapeHtml(new Date(item.updatedAt).toLocaleString()) : '-'}
         ${item.health ? `<div class="toolbar-note" style="margin-top:6px;">探活：${escapeHtml(item.health.status || '-')} · ${item.health.latencyMs || 0}ms</div>` : ''}
@@ -171,9 +172,11 @@ async function load() {
     }
     currentRows = list;
     const enabled = list.filter((x) => Boolean(x.enabled)).length;
+    const pending = list.filter((x) => ['pending', 'rejected', 'rollback'].includes(String(x.registrationStatus || '').toLowerCase())).length;
     setText('mcpTotal', list.length);
     setText('mcpEnabled', enabled);
     setText('mcpDisabled', Math.max(0, list.length - enabled));
+    setText('mcpPending', pending);
     renderRows(list);
   } catch (error) {
     renderRows([]);

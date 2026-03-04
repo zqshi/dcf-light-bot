@@ -22,23 +22,23 @@
           <div class="page-head-layout">
             <div>
               <h1 class="page-title">后台总览</h1>
-              <p class="page-subtitle">聚焦平台对业务的实际产出：任务交付、员工协作、能力沉淀与风险治理。</p>
+              <p class="page-subtitle">基于当前系统真实能力展示实例运营、共享资产、审计与权限态势。</p>
               <div class="stat-strip">
                 <div class="stat-item">
-                  <div class="stat-label">数字员工</div>
-                  <div id="employeesTotal" class="stat-value">0</div>
+                  <div class="stat-label">实例总数</div>
+                  <div id="instancesTotal" class="stat-value">0</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-label">任务总量</div>
-                  <div id="tasksTotal" class="stat-value">0</div>
+                  <div class="stat-label">运行中</div>
+                  <div id="instancesRunning" class="stat-value">0</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-label">交付成功率</div>
-                  <div id="successRate" class="stat-value">0%</div>
+                  <div class="stat-label">异常实例</div>
+                  <div id="instancesAbnormal" class="stat-value">0</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-label">审批待处理</div>
-                  <div id="approvalPendingTotal" class="stat-value">0</div>
+                  <div class="stat-label">待审资产</div>
+                  <div id="pendingReviewsTotal" class="stat-value">0</div>
                 </div>
               </div>
             </div>
@@ -53,27 +53,27 @@
             <div class="list-panel">
               <div id="summary" class="overview-summary">加载中...</div>
               <div class="overview-kpis">
-                <div><span>进行中任务</span><strong id="tasksInProgress">0</strong></div>
-                <div><span>补偿待处理</span><strong id="compensationPending">0</strong></div>
-                <div><span>回滚任务</span><strong id="rollbackCount">0</strong></div>
-                <div><span>P1 事件</span><strong id="p1IncidentCount">0</strong></div>
+                <div><span>租户数</span><strong id="tenantCount">0</strong></div>
+                <div><span>共享资产</span><strong id="sharedAssetsTotal">0</strong></div>
+                <div><span>24h 审计事件</span><strong id="audit24hTotal">0</strong></div>
+                <div><span>账号数</span><strong id="usersTotal">0</strong></div>
               </div>
             </div>
             <div class="list-panel">
-              <div id="bootstrapHeadline" class="overview-summary">加载中...</div>
-              <div class="overview-list" id="bootstrapChecklist"></div>
+              <div id="statusHeadline" class="overview-summary">加载中...</div>
+              <div class="overview-list" id="opsChecklist"></div>
             </div>
           </div>
         </section>
 
         <section class="overview-grid">
           <article class="card">
-            <h3>风险与稳定</h3>
+            <h3>运营健康</h3>
             <div class="overview-list" id="qualityList"></div>
           </article>
 
           <article class="card">
-            <h3>治理态势</h3>
+            <h3>处置建议</h3>
             <div class="overview-list" id="focusList"></div>
           </article>
         </section>

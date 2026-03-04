@@ -70,6 +70,60 @@ function newId(prefix) {
   return `${String(prefix || 'id')}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
+function toMs(value) {
+  if (!value) return 0;
+  const ts = new Date(value).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function summarizeInstanceStates(instances = []) {
+  const rows = Array.isArray(instances) ? instances : [];
+  const byState = {};
+  let running = 0;
+  let abnormal = 0;
+  let matrixBound = 0;
+  for (const row of rows) {
+    const state = String((row && row.state) || 'unknown').toLowerCase();
+    byState[state] = (byState[state] || 0) + 1;
+    if (state === 'running' || state === 'active') running += 1;
+    if (['failed', 'error', 'degraded', 'unknown'].includes(state)) abnormal += 1;
+    if (row && row.matrixRoomId) matrixBound += 1;
+  }
+  return {
+    total: rows.length,
+    running,
+    abnormal,
+    matrixBound,
+    byState
+  };
+}
+
+function summarizeAuditWindow(audits = [], sinceMs = 0) {
+  const rows = Array.isArray(audits) ? audits : [];
+  let total = 0;
+  let admin = 0;
+  let instance = 0;
+  let asset = 0;
+  let latestAt = '';
+  for (const row of rows) {
+    const atMs = toMs(row && row.at);
+    if (sinceMs > 0 && atMs < sinceMs) continue;
+    total += 1;
+    const type = String((row && row.type) || '');
+    if (atMs > toMs(latestAt)) latestAt = String((row && row.at) || latestAt);
+    if (type.startsWith('admin.') || type.startsWith('auth.') || type.startsWith('audit.')) admin += 1;
+    if (type.startsWith('instance.') || type.startsWith('admin.instance.')) instance += 1;
+    if (type.startsWith('skill.') || type.startsWith('admin.asset.') || type.startsWith('admin.tools.')) asset += 1;
+  }
+  return {
+    total,
+    admin,
+    instance,
+    asset,
+    latestAt
+  };
+}
+
 function buildAdminCompatRouter(context) {
   const router = express.Router();
   const sessions = new Map();
@@ -431,19 +485,75 @@ function buildAdminCompatRouter(context) {
   });
 
   router.get('/api/admin/overview', async (_req, res) => {
-    const [instances, dashboard, audits] = await Promise.all([
+    const [instances, dashboard, audits, sharedSkills, sharedTools, sharedKnowledge, skillBindings, toolBindings, knowledgeBindings] = await Promise.all([
       listInstances(),
       (context.assetService || context.skillService).getReviewDashboard({ reviewer: '' }),
-      context.auditService.list(1000)
+      context.auditService.list(1000),
+      listSharedAssets('skill'),
+      listSharedAssets('tool'),
+      listSharedAssets('knowledge'),
+      (context.assetService || context.skillService).listAssetBindings('skill'),
+      (context.assetService || context.skillService).listAssetBindings('tool'),
+      (context.assetService || context.skillService).listAssetBindings('knowledge')
     ]);
-    const totalTasks = audits.filter((x) => String(x.type).startsWith('instance.')).length;
-    const succeededTasks = audits.filter((x) => String(x.type) === 'instance.provisioned').length;
+    const instanceSummary = summarizeInstanceStates(instances);
+    const totalTasks = audits.filter((x) => {
+      const type = String(x.type || '');
+      return type.startsWith('instance.') || type.startsWith('admin.instance.');
+    }).length;
+    const succeededTasks = audits.filter((x) => {
+      const type = String(x.type || '');
+      return type === 'instance.provisioned' || type === 'admin.instance.started';
+    }).length;
     const failedTasks = audits.filter((x) => String(x.type).includes('failed')).length;
     const inProgressTasks = Math.max(0, totalTasks - succeededTasks - failedTasks);
     const successRate = totalTasks ? Math.round((succeededTasks / totalTasks) * 100) : 100;
+    const now = Date.now();
+    const window24h = summarizeAuditWindow(audits, now - (24 * 60 * 60 * 1000));
+    const tenants = new Set(instances.map((x) => String((x && x.tenantId) || '').trim()).filter(Boolean));
+    const bindingsTotal = (Array.isArray(skillBindings) ? skillBindings.length : 0)
+      + (Array.isArray(toolBindings) ? toolBindings.length : 0)
+      + (Array.isArray(knowledgeBindings) ? knowledgeBindings.length : 0);
+    const disabledUsers = Array.from(userStore.values()).filter((x) => x && x.disabled).length;
+    const pendingReviews = Number(dashboard.pendingTotal || 0);
+    const overdueReviews = Number(dashboard.overdueTotal || 0);
+    const healthLevel = instanceSummary.abnormal > 0 || overdueReviews > 0 ? 'degraded' : 'healthy';
+    const sharedTotal = sharedSkills.length + sharedTools.length + sharedKnowledge.length;
     res.json({
+      overview: {
+        platform: {
+          instancesTotal: instanceSummary.total,
+          runningInstances: instanceSummary.running,
+          abnormalInstances: instanceSummary.abnormal,
+          tenantsTotal: tenants.size,
+          matrixBoundInstances: instanceSummary.matrixBound,
+          stateBreakdown: instanceSummary.byState,
+          healthLevel
+        },
+        assets: {
+          sharedSkills: sharedSkills.length,
+          sharedTools: sharedTools.length,
+          sharedKnowledge: sharedKnowledge.length,
+          sharedTotal,
+          bindingsTotal,
+          pendingReviews,
+          overdueReviews
+        },
+        operations: {
+          auditEvents24h: window24h.total,
+          adminEvents24h: window24h.admin,
+          instanceEvents24h: window24h.instance,
+          assetEvents24h: window24h.asset,
+          latestEventAt: window24h.latestAt || ''
+        },
+        security: {
+          usersTotal: userStore.size,
+          disabledUsers,
+          rolesTotal: roleStore.size
+        }
+      },
       delivery: {
-        employeesTotal: instances.length,
+        employeesTotal: instanceSummary.total,
         totalTasks,
         succeededTasks,
         failedTasks,
@@ -451,14 +561,17 @@ function buildAdminCompatRouter(context) {
         successRate
       },
       governance: {
-        waitingApprovalTasks: Number(dashboard.pendingTotal || 0),
+        waitingApprovalTasks: pendingReviews,
         compensationPendingTasks: 0,
         rollbackTasks: 0,
         p1Incidents: 0
       },
       assets: {
-        skillsTotal: (await listSharedAssets('skill')).length,
-        findingsTotal: (await listSharedAssets('knowledge')).length,
+        skillsTotal: sharedSkills.length,
+        findingsTotal: sharedKnowledge.length,
+        toolsTotal: sharedTools.length,
+        sharedTotal,
+        bindingsTotal,
         skillReused: 0,
         recurrenceErrors: 0
       },
@@ -468,14 +581,14 @@ function buildAdminCompatRouter(context) {
         queueQueued: 0,
         queueDone: 0,
         backlog: 0,
-        phase: 'steady',
-        cycleCount: 1,
-        manualReviewRequired: Number(dashboard.overdueTotal || 0) > 0
+        phase: healthLevel,
+        cycleCount: Math.max(1, Math.floor(totalTasks / 10)),
+        manualReviewRequired: overdueReviews > 0
       },
       focus: [
-        `当前运行实例 ${instances.length} 个，重点关注失败与降级事件。`,
-        `待审批资产 ${Number(dashboard.pendingTotal || 0)} 项，逾期 ${Number(dashboard.overdueTotal || 0)} 项。`,
-        '建议持续推进技能、工具、知识的跨租户复用沉淀。'
+        `当前运行实例 ${instanceSummary.running}/${instanceSummary.total}，异常 ${instanceSummary.abnormal}。`,
+        `资产待审批 ${pendingReviews} 项，逾期 ${overdueReviews} 项，建议优先清理积压。`,
+        `共享资产 ${sharedTotal} 项，已绑定 ${bindingsTotal} 次，建议持续推动高频能力复用。`
       ]
     });
   });

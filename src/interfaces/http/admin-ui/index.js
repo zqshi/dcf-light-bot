@@ -10,13 +10,19 @@ function setText(id, value) {
   if (el) el.textContent = String(value);
 }
 
-function toPercent(value) {
-  return `${Math.max(0, Number(value || 0))}%`;
-}
-
 function isNotFoundError(error) {
   const msg = String(error && error.message ? error.message : '').toLowerCase();
   return msg.includes('not found') || msg.includes('404');
+}
+
+function renderList(id, items) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!Array.isArray(items) || !items.length) {
+    el.innerHTML = '<div class="overview-item">暂无数据</div>';
+    return;
+  }
+  el.innerHTML = items.map((item) => `<div class="overview-item">${item}</div>`).join('');
 }
 
 function buildOverviewFromLegacy(runtime = {}, bootstrap = {}, metrics = {}) {
@@ -27,28 +33,64 @@ function buildOverviewFromLegacy(runtime = {}, bootstrap = {}, metrics = {}) {
   const succeeded = Number(metrics.succeededTasks || 0);
   const failed = Number(metrics.failedTasks || 0);
   const inProgress = Math.max(0, tasksTotal - succeeded - failed);
-  const waitingApprovalTasks = 0;
-  const compensationPendingTasks = 0;
-  const rollbackTasks = 0;
-  const p1Incidents = Number(metrics.p1Incidents || 0);
+  const successRate = tasksTotal ? Math.round((succeeded / tasksTotal) * 100) : 100;
+  const skillsTotal = Number(counters.skills || 0);
+  const findingsTotal = Number(counters.findings || 0);
+  const pendingReviews = Number((runtime.governance && runtime.governance.pendingReviews) || 0);
+
   return {
+    overview: {
+      platform: {
+        instancesTotal: Number(counters.employees || 0),
+        runningInstances: Number(counters.employees || 0),
+        abnormalInstances: 0,
+        tenantsTotal: 0,
+        matrixBoundInstances: 0,
+        stateBreakdown: { running: Number(counters.employees || 0) },
+        healthLevel: 'healthy'
+      },
+      assets: {
+        sharedSkills: skillsTotal,
+        sharedTools: 0,
+        sharedKnowledge: findingsTotal,
+        sharedTotal: skillsTotal + findingsTotal,
+        bindingsTotal: 0,
+        pendingReviews,
+        overdueReviews: 0
+      },
+      operations: {
+        auditEvents24h: Number(metrics.totalTasks || 0),
+        adminEvents24h: 0,
+        instanceEvents24h: Number(metrics.totalTasks || 0),
+        assetEvents24h: 0,
+        latestEventAt: ''
+      },
+      security: {
+        usersTotal: 0,
+        disabledUsers: 0,
+        rolesTotal: 0
+      }
+    },
     delivery: {
       employeesTotal: Number(counters.employees || 0),
       totalTasks: tasksTotal,
       succeededTasks: succeeded,
       failedTasks: failed,
       inProgressTasks: inProgress,
-      successRate: Number(metrics.successRate || 0)
+      successRate
     },
     governance: {
-      waitingApprovalTasks,
-      compensationPendingTasks,
-      rollbackTasks,
-      p1Incidents
+      waitingApprovalTasks: pendingReviews,
+      compensationPendingTasks: 0,
+      rollbackTasks: 0,
+      p1Incidents: 0
     },
     assets: {
-      skillsTotal: Number(counters.skills || 0),
-      findingsTotal: Number(counters.findings || 0),
+      skillsTotal,
+      findingsTotal,
+      toolsTotal: 0,
+      sharedTotal: skillsTotal + findingsTotal,
+      bindingsTotal: 0,
       skillReused: Number(metrics.skillReused || 0),
       recurrenceErrors: Number(metrics.recurrenceErrors || 0)
     },
@@ -64,12 +106,12 @@ function buildOverviewFromLegacy(runtime = {}, bootstrap = {}, metrics = {}) {
     },
     focus: [
       inProgress > 0
-        ? `交付跟进：当前有 ${inProgress} 项任务在执行链路中。`
-        : '交付跟进：当前无进行中任务，可安排新一轮任务编排。',
-      `治理态势：审批待处理 ${waitingApprovalTasks} 项，补偿待处理 ${compensationPendingTasks} 项，P1 事件 ${p1Incidents} 项。`,
-      Number(metrics.skillReused || 0) > 0
-        ? `能力复用：技能已复用 ${Number(metrics.skillReused || 0)} 次，建议继续沉淀高频模式。`
-        : '能力复用：尚未形成有效复用记录，建议优先固化高频技能。'
+        ? `实例任务处理中 ${inProgress} 项，建议关注失败重试。`
+        : '当前没有进行中任务，可按需创建新的数字员工实例。',
+      `共享技能 ${skillsTotal} 项，知识 ${findingsTotal} 项。`,
+      pendingReviews > 0
+        ? `存在 ${pendingReviews} 项待审批资产，建议尽快处理。`
+        : '当前无待审批资产，治理状态稳定。'
     ]
   };
 }
@@ -88,65 +130,67 @@ async function loadOverview() {
   }
 }
 
-function renderList(id, items) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (!items.length) {
-    el.innerHTML = '<div class="overview-item">暂无数据</div>';
-    return;
-  }
-  el.innerHTML = items.map((item) => `<div class="overview-item">${item}</div>`).join('');
+function renderPage(overviewPayload) {
+  const overview = overviewPayload && overviewPayload.overview && typeof overviewPayload.overview === 'object'
+    ? overviewPayload.overview
+    : {};
+  const platform = overview.platform || {};
+  const assets = overview.assets || {};
+  const operations = overview.operations || {};
+  const security = overview.security || {};
+
+  const instancesTotal = Number(platform.instancesTotal || 0);
+  const runningInstances = Number(platform.runningInstances || 0);
+  const abnormalInstances = Number(platform.abnormalInstances || 0);
+  const pendingReviews = Number(assets.pendingReviews || 0);
+
+  setText('instancesTotal', instancesTotal);
+  setText('instancesRunning', runningInstances);
+  setText('instancesAbnormal', abnormalInstances);
+  setText('pendingReviewsTotal', pendingReviews);
+
+  setText('tenantCount', Number(platform.tenantsTotal || 0));
+  setText('sharedAssetsTotal', Number(assets.sharedTotal || 0));
+  setText('audit24hTotal', Number(operations.auditEvents24h || 0));
+  setText('usersTotal', Number(security.usersTotal || 0));
+
+  const health = String(platform.healthLevel || 'healthy');
+  const headline = `平台健康：${health} · 运行实例 ${runningInstances}/${instancesTotal} · 异常 ${abnormalInstances}`;
+  setText('statusHeadline', headline);
+
+  const summary = [
+    `当前托管 ${instancesTotal} 个租户实例，覆盖 ${Number(platform.tenantsTotal || 0)} 个租户。`,
+    `共享资产共 ${Number(assets.sharedTotal || 0)} 项（技能 ${Number(assets.sharedSkills || 0)} / 工具 ${Number(assets.sharedTools || 0)} / 知识 ${Number(assets.sharedKnowledge || 0)}）。`,
+    `近 24 小时审计事件 ${Number(operations.auditEvents24h || 0)} 条，账号 ${Number(security.usersTotal || 0)} 个。`
+  ].join(' ');
+  setText('summary', summary);
+
+  renderList('opsChecklist', [
+    `实例状态分布：${Object.entries(platform.stateBreakdown || {}).map(([k, v]) => `${k}:${v}`).join(' / ') || '-'}`,
+    `资产治理：待审批 ${pendingReviews} / 逾期 ${Number(assets.overdueReviews || 0)} / 已绑定 ${Number(assets.bindingsTotal || 0)}`,
+    `审计结构：后台 ${Number(operations.adminEvents24h || 0)} / 实例 ${Number(operations.instanceEvents24h || 0)} / 资产 ${Number(operations.assetEvents24h || 0)}`
+  ]);
+
+  renderList('qualityList', [
+    `健康级别：${health}`,
+    `异常实例：${abnormalInstances}`,
+    `待审资产：${pendingReviews}`,
+    `停用账号：${Number(security.disabledUsers || 0)}`
+  ]);
+
+  const focus = Array.isArray(overviewPayload && overviewPayload.focus) ? overviewPayload.focus : [];
+  renderList('focusList', focus);
 }
 
 (async () => {
   try {
     if (window.__adminReady) await window.__adminReady;
     const overview = await loadOverview();
-    const delivery = overview.delivery || {};
-    const governance = overview.governance || {};
-    const assets = overview.assets || {};
-    const runtime = overview.runtime || {};
-
-    setText('employeesTotal', delivery.employeesTotal || 0);
-    setText('tasksTotal', delivery.totalTasks || 0);
-    setText('successRate', toPercent(delivery.successRate || 0));
-    setText('approvalPendingTotal', governance.waitingApprovalTasks || 0);
-
-    setText('tasksInProgress', delivery.inProgressTasks || 0);
-    setText('compensationPending', governance.compensationPendingTasks || 0);
-    setText('rollbackCount', governance.rollbackTasks || 0);
-    setText('p1IncidentCount', governance.p1Incidents || 0);
-
-    const summary = [
-      `当前共有 ${delivery.employeesTotal || 0} 位数字员工参与执行，累计处理 ${delivery.totalTasks || 0} 项任务。`,
-      `任务交付成功率 ${toPercent(delivery.successRate || 0)}，当前进行中 ${delivery.inProgressTasks || 0} 项。`,
-      `已沉淀技能 ${assets.skillsTotal || 0} 项，开源候选 ${assets.findingsTotal || 0} 项。`
-    ].join(' ');
-    setText('summary', summary);
-
-    const manualReview = runtime.manualReviewRequired ? '需要人工介入' : '可自动推进';
-    const headline = `阶段 ${runtime.phase || '-'} · 周期 ${runtime.cycleCount || 0} · ${manualReview}`;
-    setText('bootstrapHeadline', headline);
-
-    renderList('bootstrapChecklist', [
-      `运行链路：Runtime ${runtime.runtimeEnabled ? '已启用' : '未启用'} / 对话网关 ${runtime.dialogueEnabled ? '已启用' : '未启用'}`,
-      `研究队列：待处理 ${runtime.queueQueued || 0} / 已完成 ${runtime.queueDone || 0} / 积压 ${runtime.backlog || 0}`,
-      `治理风险：审批待处理 ${governance.waitingApprovalTasks || 0} / 补偿待处理 ${governance.compensationPendingTasks || 0}`
-    ]);
-
-    const qualityItems = [
-      `成功任务：${delivery.succeededTasks || 0}，失败任务：${delivery.failedTasks || 0}`,
-      `复发错误累计：${Number(assets.recurrenceErrors || 0)}`,
-      `技能复用次数：${Number(assets.skillReused || 0)}`,
-      `P1 风险事件累计：${Number(governance.p1Incidents || 0)}`
-    ];
-    renderList('qualityList', qualityItems);
-
-    renderList('focusList', Array.isArray(overview.focus) ? overview.focus : []);
+    renderPage(overview);
   } catch (error) {
     setText('summary', '数据加载失败，请检查登录状态或权限配置。');
-    setText('bootstrapHeadline', String(error && error.message ? error.message : '加载失败'));
-    renderList('bootstrapChecklist', []);
+    setText('statusHeadline', String(error && error.message ? error.message : '加载失败'));
+    renderList('opsChecklist', []);
     renderList('qualityList', []);
     renderList('focusList', []);
   }

@@ -371,15 +371,16 @@ function renderTopicDrawer(employeeId, type) {
   const growth = growthSnapshot(employee);
 
   if (type === 'contracts') {
-    drawerTitle.textContent = `岗位合同 · ${employee.employeeCode || employee.id || '-'}`;
+    drawerTitle.textContent = `岗位合同 · ${employee.id || '-'}`;
     drawerBody.innerHTML = `
       <section class="detail-section">
         <h4>员工信息</h4>
         <div class="overview-kpis">
-          <div><span>工号</span><strong>${escapeHtml(employee.employeeCode || '-')}</strong></div>
+          <div><span>实例ID</span><strong>${escapeHtml(employee.id || '-')}</strong></div>
           <div><span>姓名</span><strong>${escapeHtml(employee.name || '-')}</strong></div>
+          <div><span>租户</span><strong>${escapeHtml(employee.tenantId || '-')}</strong></div>
+          <div><span>Matrix 房间</span><strong>${escapeHtml(employee.matrixRoomId || '-')}</strong></div>
           <div><span>部门/岗位</span><strong>${escapeHtml(formatDeptRoleText(employee.department, employee.role))}</strong></div>
-          <div><span>风险等级</span><strong>${escapeHtml(employee.riskLevel || '-')}</strong></div>
         </div>
       </section>
       <section class="detail-section">
@@ -414,7 +415,7 @@ function renderTopicDrawer(employeeId, type) {
     return;
   }
 
-  drawerTitle.textContent = `员工成长 · ${employee.employeeCode || employee.id || '-'}`;
+  drawerTitle.textContent = `员工成长 · ${employee.id || '-'}`;
   drawerBody.innerHTML = `
     <section class="detail-section">
       <h4>成长指标</h4>
@@ -487,11 +488,12 @@ function setDrawerMode(mode) {
 function fillEditForm(detail) {
   const readonlyMeta = getNode('editReadonlyMeta');
   const title = getNode('employeeDrawerTitle');
-  if (title) title.textContent = `编辑数字员工 · ${detail.employeeCode || detail.id || '-'}`;
+  if (title) title.textContent = `编辑数字员工 · ${detail.id || '-'}`;
   if (readonlyMeta) {
     readonlyMeta.innerHTML = `
-      <div><span>工号</span><strong>${escapeHtml(detail.employeeCode || '-')}</strong></div>
-      <div><span>邮箱</span><strong>${escapeHtml(detail.email || '-')}</strong></div>
+      <div><span>实例ID</span><strong>${escapeHtml(detail.id || '-')}</strong></div>
+      <div><span>租户</span><strong>${escapeHtml(detail.tenantId || '-')}</strong></div>
+      <div><span>Matrix 房间</span><strong>${escapeHtml(detail.matrixRoomId || '-')}</strong></div>
     `;
   }
   const name = getNode('editName');
@@ -859,22 +861,23 @@ async function load() {
       .map((e) => {
         const contract = contractSnapshot(e);
         const growth = growthSnapshot(e);
+        const matrixRoom = String(e.matrixRoomId || '').trim();
         return `
           <tr>
-            <td>${e.employeeCode || '-'}</td>
-            <td>${e.name || '-'}</td>
-            <td>${e.email || '-'}</td>
-            <td>${escapeHtml(formatDepartmentLabel(e.department) || '-')}</td>
-            <td>${escapeHtml(formatRoleLabel(e.role) || '-')}</td>
+            <td><span class="mono">${escapeHtml(e.id || '-')}</span></td>
+            <td>${escapeHtml(e.name || '-')}</td>
+            <td>${escapeHtml(e.tenantId || '-')}</td>
+            <td><span class="mono">${escapeHtml(matrixRoom || '-')}</span></td>
+            <td>${escapeHtml(formatDeptRoleText(e.department, e.role) || '-')}</td>
             <td>
               <div class="overview-list">
-                <div class="overview-item">职责范围 ${contract.allowCount} / 禁止边界 ${contract.denyCount}</div>
+                <div class="overview-item">Allow ${contract.allowCount} / Deny ${contract.denyCount}</div>
                 <button type="button" data-id="${e.id}" data-topic="contracts">查看</button>
               </div>
             </td>
             <td>
               <div class="overview-list">
-                <div class="overview-item">能力 ${growth.capabilities.length} / 知识 ${growth.knowledge.length}</div>
+                <div class="overview-item">能力 ${growth.capabilities.length} / 知识 ${growth.knowledge.length} / 技能 ${growth.linkedSkillIds.length}</div>
                 <button type="button" data-id="${e.id}" data-topic="growth">查看</button>
               </div>
             </td>

@@ -69,5 +69,8 @@ describe('admin ui static routes', () => {
     const jsRes = await request(app).get('/admin/app.js');
     expect(jsRes.status).toBe(200);
     expect(jsRes.headers['content-type']).toContain('javascript');
+
+    const disabledRes = await request(app).get('/admin/runtime.html');
+    expect(disabledRes.status).toBe(404);
   });
 });

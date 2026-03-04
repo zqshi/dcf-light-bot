@@ -84,15 +84,16 @@
         ? runtimeSummary.effectiveRetrievalMode
         : { mode: '-', source: '-' };
 
-      title.textContent = `员工详情 · ${detail.employeeCode || detail.id || '-'}`;
+      title.textContent = `员工详情 · ${detail.id || '-'}`;
       body.innerHTML = `
         <section class="detail-section">
           <h4>身份与岗位</h4>
           <div class="overview-kpis">
+            <div><span>实例ID</span><strong>${escapeHtml(detail.id || '-')}</strong></div>
             <div><span>姓名</span><strong>${escapeHtml(detail.name || '-')}</strong></div>
-            <div><span>邮箱</span><strong>${escapeHtml(detail.email || '-')}</strong></div>
+            <div><span>租户</span><strong>${escapeHtml(detail.tenantId || '-')}</strong></div>
+            <div><span>Matrix 房间</span><strong>${escapeHtml(detail.matrixRoomId || '-')}</strong></div>
             <div><span>部门/岗位</span><strong>${escapeHtml(formatDeptRoleText(detail.department, detail.role))}</strong></div>
-            <div><span>风险等级</span><strong>${escapeHtml(detail.riskLevel || '-')}</strong></div>
             <div><span>员工状态</span><strong>${escapeHtml(detail.status || '-')}</strong></div>
           </div>
         </section>
