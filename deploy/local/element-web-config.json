@@ -18,6 +18,12 @@
   "disable_custom_urls": true,
   "disable_guests": true,
   "disable_login_language_selector": true,
+  "dcf_login": {
+    "sms_enabled": false,
+    "sms_send_url": "",
+    "sms_verify_login_url": "",
+    "sso_url": ""
+  },
   "show_labs_settings": true,
   "branding": {
     "welcome_background_url": "http://127.0.0.1:8081/dcf-login-bg.svg",
