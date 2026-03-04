@@ -378,7 +378,7 @@
         }
 
         function applyPreferredLanguage() {
-          var preferred = "zh_Hans";
+          var preferred = "zh-hans";
           localStorage.setItem("i18nextLng", preferred);
           try {
             var raw = localStorage.getItem("mx_local_settings");
@@ -389,6 +389,11 @@
           } catch (e) {
             localStorage.setItem("mx_local_settings", JSON.stringify({ language: preferred }));
           }
+          try {
+            if (document && document.documentElement) {
+              document.documentElement.setAttribute("lang", preferred);
+            }
+          } catch (e2) {}
         }
 
         function goToApp() {

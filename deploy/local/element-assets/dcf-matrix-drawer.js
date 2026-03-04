@@ -9,7 +9,8 @@
     visible: false,
     adminUrl: "/admin/index.html"
   };
-  var PREFERRED_LANGUAGE = "zh_Hans";
+  var PREFERRED_LANGUAGE = "zh-hans";
+  var LANGUAGE_RELOAD_FLAG = "dcf_lang_reloaded_once";
 
   function ready(fn) {
     if (document.readyState === "loading") {
@@ -35,6 +36,9 @@
   }
 
   function ensurePreferredLanguage() {
+    var changed = false;
+    var prevLang = String(localStorage.getItem("i18nextLng") || "").trim().toLowerCase();
+    if (prevLang !== PREFERRED_LANGUAGE) changed = true;
     localStorage.setItem("i18nextLng", PREFERRED_LANGUAGE);
     try {
       var raw = localStorage.getItem("mx_local_settings");
@@ -42,9 +46,11 @@
       if (!settings || typeof settings !== "object" || Array.isArray(settings)) settings = {};
       if (settings.language !== PREFERRED_LANGUAGE) {
         settings.language = PREFERRED_LANGUAGE;
+        changed = true;
         localStorage.setItem("mx_local_settings", JSON.stringify(settings));
       }
     } catch {
+      changed = true;
       localStorage.setItem("mx_local_settings", JSON.stringify({ language: PREFERRED_LANGUAGE }));
     }
     try {
@@ -52,6 +58,16 @@
         document.documentElement.setAttribute("lang", PREFERRED_LANGUAGE);
       }
     } catch {}
+    return changed;
+  }
+
+  function tryReloadForLanguageApply(changed) {
+    if (!changed) return;
+    if (isAuthHash(window.location.hash || "")) return;
+    var alreadyReloaded = String(sessionStorage.getItem(LANGUAGE_RELOAD_FLAG) || "") === "1";
+    if (alreadyReloaded) return;
+    sessionStorage.setItem(LANGUAGE_RELOAD_FLAG, "1");
+    window.location.reload();
   }
 
   function ensureStyle() {
@@ -326,7 +342,8 @@
   }
 
   ready(function () {
-    ensurePreferredLanguage();
+    var languageChanged = ensurePreferredLanguage();
+    tryReloadForLanguageApply(languageChanged);
     redirectToUnifiedLoginIfNeeded();
     window.addEventListener("hashchange", redirectToUnifiedLoginIfNeeded);
     ensureStyle();
