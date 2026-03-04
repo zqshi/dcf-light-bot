@@ -161,8 +161,14 @@ function readEditorPayload() {
 
 async function load() {
   try {
-    const rows = await api('/api/admin/tools/mcp-services');
-    const list = Array.isArray(rows) ? rows : [];
+    let list = [];
+    try {
+      const merged = await api('/api/admin/assets/tool');
+      list = Array.isArray(merged && merged.toolServices) ? merged.toolServices : [];
+    } catch {
+      const rows = await api('/api/admin/tools/mcp-services');
+      list = Array.isArray(rows) ? rows : [];
+    }
     currentRows = list;
     const enabled = list.filter((x) => Boolean(x.enabled)).length;
     setText('mcpTotal', list.length);

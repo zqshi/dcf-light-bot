@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { ROLE_PERMISSIONS } = require('../../../contexts/identity-access/application/AuthService');
 const { buildPromptStrategyCompatRouter } = require('./adminCompatPromptStrategy');
 const { registerAdminCompatInstanceRoutes } = require('./adminCompatInstances');
+const { registerAdminCompatAssetRoutes } = require('./adminCompatAssets');
 
 function parseCookies(headerValue) {
   const out = {};
@@ -507,6 +508,13 @@ function buildAdminCompatRouter(context) {
   });
 
   registerAdminCompatInstanceRoutes(router, context, { listEmployees, filterInstanceRows, getEmployeeById });
+  registerAdminCompatAssetRoutes(router, context, {
+    listSharedAssets,
+    listAssetReportsByType,
+    toolServiceStore,
+    hydrateToolServices,
+    ossCaseState
+  });
 
   router.get('/api/admin/employees', async (req, res) => {
     const rows = await listEmployees();
