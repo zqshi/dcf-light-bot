@@ -38,6 +38,7 @@
       "#" + DRAWER_ID + " .dcf-actions { display: flex; gap: 8px; flex-wrap: wrap; }",
       "#" + DRAWER_ID + " .dcf-actions button { border: 1px solid #bed2f7; background: #f2f7ff; color: #24508e; border-radius: 10px; min-height: 34px; padding: 0 10px; cursor: pointer; font-size: 12px; }",
       "#" + DRAWER_ID + " .dcf-actions button:hover { filter: brightness(1.03); }",
+      ".mx_AuthFooter { display: none !important; }",
       "@media (max-width: 980px) { body." + BODY_OPEN_CLASS + " .mx_RoomView { margin-right: 0; } #" + DRAWER_ID + " { width: 100vw; max-width: 100vw; } }"
     ].join("\n");
     document.head.appendChild(style);
