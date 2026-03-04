@@ -11,6 +11,37 @@
   };
   var PREFERRED_LANGUAGE = "zh-hans";
   var LANGUAGE_RELOAD_FLAG = "dcf_lang_reloaded_once";
+  var UI_TEXT_MAP = {
+    "Notifications": "通知",
+    "Notification": "通知",
+    "Settings": "设置",
+    "Security & Privacy": "安全与隐私",
+    "Help & About": "帮助与关于",
+    "Sign out": "退出登录",
+    "Sign Out": "退出登录",
+    "Start chat": "发起会话",
+    "Explore rooms": "探索房间",
+    "Create room": "创建房间",
+    "People": "联系人",
+    "Rooms": "房间",
+    "Threads": "线程",
+    "Search": "搜索",
+    "Send": "发送",
+    "Reply": "回复",
+    "Cancel": "取消",
+    "Save": "保存",
+    "Close": "关闭",
+    "Back": "返回",
+    "Edit": "编辑",
+    "Delete": "删除",
+    "Copy": "复制",
+    "Retry": "重试",
+    "View source": "查看来源",
+    "Jump to date": "跳转日期",
+    "Mark as read": "标记已读",
+    "Mark as unread": "标记未读",
+    "Invite": "邀请"
+  };
 
   function ready(fn) {
     if (document.readyState === "loading") {
@@ -209,6 +240,35 @@
     return String(input || "").trim().toLowerCase();
   }
 
+  function normalizeDisplayText(input) {
+    return String(input || "").replace(/\s+/g, " ").trim();
+  }
+
+  function setNodeTextIfSimple(node, nextText) {
+    if (!(node instanceof Element)) return false;
+    if (node.children && node.children.length > 0) return false;
+    var before = normalizeDisplayText(node.textContent || "");
+    if (!before || before === nextText) return false;
+    node.textContent = nextText;
+    return true;
+  }
+
+  function applyUiTextLocalization(root) {
+    var scope = root instanceof Element || root instanceof Document ? root : document;
+    var nodes = scope.querySelectorAll("button, a, [role='menuitem'], [role='button'], .mx_AccessibleButton, .mx_StyledButton");
+    for (var i = 0; i < nodes.length; i += 1) {
+      var node = nodes[i];
+      if (!(node instanceof Element)) continue;
+      if (!node.offsetParent) continue;
+      if (node.closest("#" + DRAWER_ID)) continue;
+      var current = normalizeDisplayText(node.textContent || "");
+      if (!current) continue;
+      var mapped = UI_TEXT_MAP[current];
+      if (!mapped) continue;
+      setNodeTextIfSimple(node, mapped);
+    }
+  }
+
   function getMatrixUserId() {
     return String(localStorage.getItem("mx_user_id") || "").trim();
   }
@@ -294,11 +354,16 @@
   function watchAdminEntryMenu() {
     fetchAdminEntryCapability().then(function () {
       ensureAdminEntryItem();
+      applyUiTextLocalization(document);
       var observer = new MutationObserver(function () {
         ensureAdminEntryItem();
+        applyUiTextLocalization(document);
       });
       observer.observe(document.body, { childList: true, subtree: true });
-      setInterval(ensureAdminEntryItem, 1200);
+      setInterval(function () {
+        ensureAdminEntryItem();
+        applyUiTextLocalization(document);
+      }, 1200);
     });
   }
 
@@ -349,6 +414,7 @@
     ensureStyle();
     ensureNodes();
     bindGlobalEvents();
+    applyUiTextLocalization(document);
     watchAdminEntryMenu();
   });
 })();
