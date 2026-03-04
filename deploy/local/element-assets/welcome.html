@@ -19,9 +19,14 @@
         --err: #bf2f2f;
       }
       * { box-sizing: border-box; }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
       body {
         margin: 0;
-        min-height: 100vh;
+        min-height: 100dvh;
         font-family: "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
         color: var(--text);
         background:
@@ -30,14 +35,15 @@
           linear-gradient(145deg, var(--bg-a) 0%, var(--bg-b) 58%, #eff7ff 100%);
       }
       .wrap {
-        min-height: 100vh;
+        height: 100dvh;
         display: grid;
         place-items: center;
-        padding: 24px;
+        padding: clamp(8px, 2.2vh, 24px);
       }
       .card {
         width: min(980px, 100%);
-        min-height: 600px;
+        height: min(720px, calc(100dvh - clamp(16px, 4.4vh, 48px)));
+        min-height: 0;
         display: grid;
         grid-template-columns: 1.1fr 1fr;
         border: 1px solid var(--line);
@@ -48,11 +54,12 @@
         overflow: hidden;
       }
       .hero {
-        padding: 42px 38px;
+        padding: clamp(20px, 3.2vh, 42px) clamp(18px, 2.8vw, 38px);
         background:
           linear-gradient(160deg, rgba(255, 255, 255, 0.88) 0%, rgba(246, 250, 255, 0.7) 100%),
           url("/dcf-login-bg.svg") center/cover no-repeat;
         border-right: 1px solid var(--line);
+        overflow: hidden;
       }
       .hero-logo {
         display: flex;
@@ -69,8 +76,8 @@
         background: #eaf2ff;
       }
       .hero h1 {
-        margin: 30px 0 12px;
-        font-size: 36px;
+        margin: clamp(12px, 2.2vh, 30px) 0 clamp(8px, 1.6vh, 12px);
+        font-size: clamp(24px, 3.6vw, 36px);
         line-height: 1.25;
       }
       .hero p {
@@ -79,18 +86,19 @@
         color: #39507a;
       }
       .hero ul {
-        margin: 26px 0 0;
+        margin: clamp(12px, 2vh, 26px) 0 0;
         padding-left: 18px;
         color: #2c4470;
-        line-height: 1.9;
+        line-height: 1.7;
       }
       .auth {
-        padding: 34px 34px 28px;
+        padding: clamp(18px, 3vh, 34px) clamp(16px, 2.8vw, 34px) clamp(14px, 2.4vh, 28px);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
       .auth-title {
-        font-size: 28px;
+        font-size: clamp(22px, 2.8vw, 28px);
         font-weight: 700;
         margin: 0;
       }
@@ -123,14 +131,14 @@
         font-weight: 600;
       }
       .panel {
-        margin-top: 18px;
+        margin-top: clamp(10px, 1.8vh, 18px);
         display: none;
       }
       .panel.active {
         display: block;
       }
       .field {
-        margin-bottom: 12px;
+        margin-bottom: clamp(8px, 1.3vh, 12px);
       }
       .field label {
         display: block;
@@ -180,8 +188,8 @@
         cursor: not-allowed;
       }
       .status {
-        min-height: 20px;
-        margin-top: 8px;
+        min-height: 18px;
+        margin-top: 6px;
         font-size: 13px;
       }
       .status.ok { color: var(--ok); }
@@ -197,21 +205,41 @@
       @media (max-width: 980px) {
         .card {
           grid-template-columns: 1fr;
-          min-height: auto;
+          height: min(760px, calc(100dvh - clamp(14px, 4vh, 40px)));
         }
         .hero {
           border-right: 0;
           border-bottom: 1px solid var(--line);
-          padding: 24px;
+          padding: 16px 18px 14px;
         }
-        .hero h1 { font-size: 29px; margin-top: 20px; }
+        .hero h1 { margin-top: 10px; font-size: clamp(22px, 4.6vw, 29px); }
+        .hero p { line-height: 1.65; }
+        .hero ul { margin-top: 8px; }
       }
       @media (max-width: 560px) {
-        .wrap { padding: 10px; }
-        .auth { padding: 20px 16px; }
-        .hero { padding: 20px 16px; }
+        .wrap { padding: 8px; }
+        .card {
+          height: calc(100dvh - 16px);
+          border-radius: 16px;
+        }
+        .auth { padding: 14px 12px 12px; }
+        .hero { padding: 14px 12px 10px; }
+        .hero-logo { font-size: 18px; }
+        .hero-logo img { width: 38px; height: 38px; }
+        .hero p { font-size: 13px; line-height: 1.55; }
+        .hero ul { display: none; }
         .tabs { grid-template-columns: 1fr; gap: 4px; }
         .row { grid-template-columns: 1fr; }
+        .footnote { padding-top: 8px; font-size: 11px; }
+      }
+      @media (max-height: 760px) {
+        .hero ul { display: none; }
+        .hero p { line-height: 1.55; font-size: 14px; }
+      }
+      @media (max-height: 680px) {
+        .hero p { display: none; }
+        .hero h1 { margin: 8px 0 0; font-size: clamp(20px, 3.8vw, 26px); }
+        .auth-sub { margin-bottom: 12px; }
       }
     </style>
   </head>
