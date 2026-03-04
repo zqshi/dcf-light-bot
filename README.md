@@ -82,6 +82,13 @@ npm start
   - batch failure detail panels (instance action / asset review / asset binding)
   - audit trace export (JSON / NDJSON) from instance trace view
 
+## Client Experience Spec
+- PRD: [PRD.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/PRD.md)
+- IA: [IA.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/IA.md)
+- API Contract: [API-CONTRACT.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/API-CONTRACT.md)
+- Acceptance: [ACCEPTANCE.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/ACCEPTANCE.md)
+- Tasks: [TASKS.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/TASKS.md)
+
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
 - `PERSISTENCE_BACKEND=postgres`: use Postgres as control-plane store backend.
