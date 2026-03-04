@@ -3,262 +3,92 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>DCF Workspace</title>
+    <title>DCF Workspace 登录中</title>
     <style>
       * { box-sizing: border-box; }
-      :root {
-        --ink: #0f172a;
-        --muted: #51607d;
-        --line: #dbe8ff;
-        --blue: #2563eb;
-        --teal: #0ea5a4;
-      }
       body {
         margin: 0;
         min-height: 100vh;
         font-family: "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-        color: var(--ink);
-        background:
-          radial-gradient(1200px 560px at -10% -10%, rgba(96, 145, 255, 0.35) 0%, transparent 68%),
-          radial-gradient(860px 460px at 110% 100%, rgba(42, 204, 170, 0.28) 0%, transparent 68%),
-          linear-gradient(145deg, #f8fbff 0%, #eef4ff 45%, #ecf7ff 100%);
-      }
-      .stage {
-        max-width: 1180px;
-        margin: 0 auto;
-        min-height: 100vh;
-        padding: 42px 26px 24px;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        gap: 24px;
-      }
-      .masthead {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-      }
-      .logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .logo-mark {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        border: 1px solid #bfd6ff;
-        background: #e8f1ff;
         display: grid;
         place-items: center;
-        color: #1f4aa8;
-        font-weight: 700;
-      }
-      .logo h1 {
-        margin: 0;
-        font-size: 20px;
-        letter-spacing: 0.2px;
-      }
-      .locale {
-        font-size: 12px;
-        color: #36527f;
-        border: 1px solid #cae0ff;
-        background: #f7fbff;
-        border-radius: 999px;
-        padding: 6px 10px;
-      }
-      .canvas {
-        display: grid;
-        grid-template-columns: 1.35fr 0.9fr;
-        gap: 18px;
-      }
-      .intro {
-        border: 1px solid var(--line);
-        border-radius: 26px;
-        background: rgba(255, 255, 255, 0.82);
-        box-shadow: 0 24px 52px rgba(33, 73, 141, 0.14);
-        overflow: hidden;
-      }
-      .intro-top {
-        padding: 34px 34px 22px;
         background:
-          linear-gradient(135deg, rgba(49, 107, 231, 0.11), rgba(14, 165, 164, 0.09));
+          radial-gradient(860px 420px at 8% 8%, rgba(90, 145, 255, 0.32) 0%, transparent 65%),
+          radial-gradient(720px 380px at 95% 95%, rgba(50, 197, 175, 0.24) 0%, transparent 66%),
+          linear-gradient(145deg, #f8fbff 0%, #eef5ff 52%, #edf8ff 100%);
+        color: #0f172a;
       }
-      .intro-top h2 {
-        margin: 0 0 12px;
-        font-size: 42px;
-        line-height: 1.05;
-        letter-spacing: -0.3px;
+      .shell {
+        width: min(560px, calc(100vw - 28px));
+        border-radius: 22px;
+        border: 1px solid #d8e7ff;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 24px 58px rgba(34, 73, 145, 0.15);
+        padding: 26px 22px;
+        text-align: center;
       }
-      .intro-top p {
-        margin: 0;
-        font-size: 15px;
-        color: var(--muted);
-        line-height: 1.8;
-        max-width: 760px;
-      }
-      .metric-grid {
-        padding: 18px 34px 30px;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-      }
-      .metric {
-        border: 1px solid #d8e6ff;
+      .logo {
+        width: 52px;
+        height: 52px;
         border-radius: 14px;
-        background: #fff;
-        padding: 14px 12px;
-      }
-      .metric .k {
-        font-size: 12px;
-        color: #5e7297;
-      }
-      .metric .v {
-        margin-top: 6px;
-        font-size: 15px;
-        font-weight: 600;
-      }
-      .portal {
-        border: 1px solid var(--line);
-        border-radius: 26px;
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 24px 52px rgba(33, 73, 141, 0.14);
-        padding: 24px 20px;
+        margin: 0 auto 10px;
+        border: 1px solid #bfd8ff;
+        background: #ebf3ff;
         display: grid;
-        align-content: start;
-        gap: 14px;
+        place-items: center;
+        font-weight: 700;
+        color: #1f4ca9;
       }
-      .portal h3 {
+      h1 {
         margin: 0;
-        font-size: 22px;
+        font-size: 24px;
       }
-      .portal p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.7;
+      p {
+        margin: 10px 0 0;
+        color: #4f6283;
+        line-height: 1.75;
+        font-size: 14px;
+      }
+      .spinner {
+        width: 28px;
+        height: 28px;
+        margin: 16px auto 0;
+        border-radius: 50%;
+        border: 3px solid #d9e6ff;
+        border-top-color: #2d6cf0;
+        animation: spin .85s linear infinite;
       }
       .btn {
-        width: 100%;
-        min-height: 48px;
-        border-radius: 12px;
+        margin-top: 14px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
-        font-weight: 600;
+        min-height: 44px;
+        border-radius: 11px;
+        padding: 0 14px;
+        border: 1px solid #c8dbff;
         text-decoration: none;
-        border: 1px solid #c9dbfb;
-        color: #1f3f73;
-        background: #f3f8ff;
+        color: #1f3f74;
+        background: #f4f8ff;
+        font-size: 14px;
       }
-      .btn.primary {
-        color: #fff;
-        border-color: #245fcc;
-        background: linear-gradient(180deg, #2c72ff 0%, #1f58d6 100%);
-      }
-      .note {
-        border: 1px solid #d9e7ff;
-        border-radius: 12px;
-        background: #f7fbff;
-        color: #5a6d90;
-        font-size: 12px;
-        line-height: 1.7;
-        padding: 10px 12px;
-      }
-      .foot {
-        font-size: 12px;
-        color: #607291;
-        display: flex;
-        justify-content: space-between;
-        gap: 14px;
-      }
-      @media (max-width: 980px) {
-        .canvas {
-          grid-template-columns: 1fr;
-        }
-        .intro-top h2 {
-          font-size: 34px;
-        }
-      }
-      @media (max-width: 640px) {
-        .stage {
-          padding: 18px 14px 14px;
-          gap: 14px;
-        }
-        .masthead {
-          align-items: flex-start;
-          flex-direction: column;
-          gap: 10px;
-        }
-        .intro-top, .metric-grid {
-          padding-left: 16px;
-          padding-right: 16px;
-        }
-        .metric-grid {
-          grid-template-columns: 1fr;
-          padding-bottom: 16px;
-        }
-        .intro-top h2 {
-          font-size: 30px;
-        }
-        .foot {
-          flex-direction: column;
-          gap: 6px;
-        }
-      }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    <script>
+      (function redirectToSingleLogin() {
+        var target = "/#/login";
+        if (window.location.hash && window.location.hash.indexOf("#/login") === 0) return;
+        setTimeout(function () { window.location.replace(target); }, 120);
+      })();
+    </script>
   </head>
   <body>
-    <main class="stage">
-      <header class="masthead">
-        <div class="logo">
-          <div class="logo-mark">DCF</div>
-          <h1>DCF Workspace</h1>
-        </div>
-        <div class="locale">简体中文（默认）</div>
-      </header>
-
-      <section class="canvas">
-        <article class="intro">
-          <div class="intro-top">
-            <h2>企业数字员工<br />协作入口</h2>
-            <p>
-              登录后按身份动态展示可见模块与操作权限。
-              面向桌面端与移动端统一适配，不在默认入口暴露管理后台链接。
-            </p>
-          </div>
-          <div class="metric-grid">
-            <div class="metric">
-              <div class="k">交互体验</div>
-              <div class="v">统一会话入口</div>
-            </div>
-            <div class="metric">
-              <div class="k">安全策略</div>
-              <div class="v">多租户隔离</div>
-            </div>
-            <div class="metric">
-              <div class="k">治理能力</div>
-              <div class="v">审计与权限控制</div>
-            </div>
-          </div>
-        </article>
-
-        <aside class="portal">
-          <h3>登录系统</h3>
-          <p>使用企业账号进入工作区，功能展示将根据你的角色自动收敛。</p>
-          <a class="btn primary" href="/#/login">账号登录</a>
-          <a class="btn" href="/#/register">创建账号</a>
-          <div class="note">
-            默认登录页仅提供用户入口。管理后台入口在登录后由系统基于身份策略决定是否展示。
-          </div>
-        </aside>
-      </section>
-
-      <footer class="foot">
-        <span>DCF Workspace · Enterprise Agent Collaboration</span>
-        <span>Versioned Login Surface · 2026-03-04</span>
-      </footer>
-    </main>
+    <section class="shell">
+      <div class="logo">DCF</div>
+      <h1>正在进入统一登录页</h1>
+      <p>系统已预置服务器地址与默认语言，无需手动配置。</p>
+      <div class="spinner" aria-hidden="true"></div>
+      <a class="btn" href="/#/login">未自动跳转？点击进入</a>
+    </section>
   </body>
 </html>
