@@ -6,9 +6,24 @@
     }
   },
   "default_server_name": "localhost",
-  "brand": "DCF Matrix",
+  "brand": "DCF Light Bot",
+  "default_theme": "light",
   "disable_custom_urls": true,
   "disable_guests": true,
   "disable_login_language_selector": false,
-  "show_labs_settings": true
+  "show_labs_settings": true,
+  "branding": {
+    "welcome_background_url": "http://127.0.0.1:8081/dcf-login-bg.svg",
+    "auth_header_logo_url": "http://127.0.0.1:8081/dcf-login-logo.svg",
+    "auth_footer_links": [
+      { "text": "DCF 管理后台", "url": "http://127.0.0.1:3010/admin/login.html" },
+      { "text": "Matrix 服务状态", "url": "http://127.0.0.1:8008/_matrix/client/versions" }
+    ],
+    "welcomeBackgroundUrl": "http://127.0.0.1:8081/dcf-login-bg.svg",
+    "authHeaderLogoUrl": "http://127.0.0.1:8081/dcf-login-logo.svg",
+    "authFooterLinks": [
+      { "text": "DCF 管理后台", "url": "http://127.0.0.1:3010/admin/login.html" },
+      { "text": "Matrix 服务状态", "url": "http://127.0.0.1:8008/_matrix/client/versions" }
+    ]
+  }
 }
