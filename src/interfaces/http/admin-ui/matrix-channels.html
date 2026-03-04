@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>渠道运营</title>
+    <title>渠道健康</title>
     <link rel="stylesheet" href="/admin/layout.css" />
   </head>
   <body data-required-permission="admin.employees.page.overview.read">
@@ -12,7 +12,7 @@
         <h2>管理后台</h2>
         <a href="/admin/index.html">总览</a>
         <a href="/admin/employees.html">员工管理</a>
-        <a class="active" href="/admin/matrix-channels.html">渠道运营</a>
+        <a class="active" href="/admin/matrix-channels.html">渠道健康</a>
         <a href="/admin/skills.html">技能管理</a>
         <a href="/admin/tools.html">工具管理</a>
         <a href="/admin/logs.html">行为日志</a>
@@ -20,19 +20,19 @@
       </aside>
       <main class="content">
         <section class="page-head">
-          <h1 class="page-title">Matrix 渠道运营</h1>
-          <p class="page-subtitle">管理 Matrix 房间与实例绑定关系，确保渠道与数字员工实例正确对接。</p>
+          <h1 class="page-title">Matrix 渠道健康</h1>
+          <p class="page-subtitle">员工与会话通道采用系统固定映射，后台仅做状态观测、投递质量监控与审计追踪。</p>
           <div class="stat-strip">
             <div class="stat-item">
-              <div class="stat-label">房间总数</div>
+              <div class="stat-label">会话通道</div>
               <div id="channelCount" class="stat-value">0</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">已绑定</div>
+              <div class="stat-label">已映射</div>
               <div id="boundCount" class="stat-value">0</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">未绑定</div>
+              <div class="stat-label">未映射</div>
               <div id="unboundCount" class="stat-value">0</div>
             </div>
             <div class="stat-item">
@@ -52,52 +52,38 @@
 
         <section class="card">
           <div class="section-head">
-            <h3>房间绑定</h3>
+            <h3>固定会话映射（只读）</h3>
           </div>
           <div class="toolbar filter-toolbar">
             <div class="toolbar-group">
               <label for="channelKeyword">搜索</label>
-              <input class="admin-input" id="channelKeyword" type="text" placeholder="房间ID/实例ID/租户" />
+              <input class="admin-input" id="channelKeyword" type="text" placeholder="会话ID/实例ID/租户" />
             </div>
             <div class="toolbar-group">
               <label for="channelStatus">状态</label>
               <select class="admin-select" id="channelStatus">
                 <option value="">全部</option>
-                <option value="bound">已绑定</option>
-                <option value="unbound">未绑定</option>
+                <option value="bound">已映射</option>
+                <option value="unbound">未映射</option>
               </select>
-            </div>
-            <div class="toolbar-group">
-              <label for="newRoomId">新增绑定</label>
-              <input class="admin-input" id="newRoomId" type="text" placeholder="!room:localhost" />
-            </div>
-            <div class="toolbar-group">
-              <label for="newInstanceId">目标实例</label>
-              <select class="admin-select" id="newInstanceId">
-                <option value="">选择实例</option>
-              </select>
-            </div>
-            <div class="toolbar-group">
-              <label>&nbsp;</label>
-              <button id="bindNewChannelBtn" type="button" class="primary" data-required-permission="admin.employees.write">绑定房间</button>
             </div>
           </div>
+          <div class="toolbar-note" style="margin-bottom:6px;">说明：会话映射由系统自动维护，不提供手工配置房间入口。</div>
           <div id="channelStatusText" class="toolbar-note" style="margin-bottom:10px;"></div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>房间ID</th>
-                  <th>绑定实例</th>
+                  <th>会话ID</th>
+                  <th>映射实例</th>
                   <th>租户</th>
                   <th>实例状态</th>
                   <th>24h 事件</th>
                   <th>最近事件时间</th>
-                  <th>操作</th>
                 </tr>
               </thead>
               <tbody id="channelRows">
-                <tr><td colspan="7" class="empty">加载中...</td></tr>
+                <tr><td colspan="6" class="empty">加载中...</td></tr>
               </tbody>
             </table>
           </div>

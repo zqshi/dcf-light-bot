@@ -199,6 +199,11 @@
       }
       .entry-links a:hover { text-decoration: underline; }
       .error { margin-top: 8px; min-height: 18px; font-size: 13px; color: #8a1f1f; font-weight: 500; }
+      .build-mark {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #6a7e9f;
+      }
       @media (max-width: 900px) {
         .shell { grid-template-columns: 1fr; max-width: 520px; }
         .hero { border-right: 0; border-bottom: 1px solid #e2eaf7; padding: 22px 20px 18px; }
@@ -224,7 +229,7 @@
           <p>当前平台以 Matrix 为用户主渠道，OpenClaw 作为租户实例执行引擎，后台聚焦实例运营、共享资产与审计治理。</p>
           <div class="chips">
             <span class="chip">多租户实例隔离</span>
-            <span class="chip">Matrix 渠道运营</span>
+            <span class="chip">Matrix 渠道健康</span>
             <span class="chip">技能/工具/知识共享</span>
             <span class="chip">行为审计与权限治理</span>
           </div>
@@ -232,7 +237,7 @@
             <div class="title">DCF CONTROL PLANE CAPABILITIES</div>
             <ul>
               <li><span class="dot"></span>员工管理：实例创建、启动、停止、重建、删除</li>
-              <li><span class="dot"></span>渠道运营：房间绑定、Bot 状态、消息投递质量</li>
+              <li><span class="dot"></span>渠道健康：固定会话映射、Bot 状态、消息投递质量</li>
               <li><span class="dot"></span>通知中心：异常实例、审批积压、投递失败统一处置</li>
             </ul>
           </div>
@@ -271,6 +276,7 @@
             <a href="http://127.0.0.1:8081" target="_blank" rel="noopener noreferrer">Matrix 客户端（Element）: http://127.0.0.1:8081</a>
             <a href="/admin/login.html">管理后台入口: /admin/login.html</a>
           </div>
+          <div class="build-mark">登录页版本：2026-03-04.1</div>
         </section>
       </div>
     </div>

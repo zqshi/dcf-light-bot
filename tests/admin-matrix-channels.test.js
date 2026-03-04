@@ -80,7 +80,7 @@ async function login(agent) {
 }
 
 describe('admin matrix channels routes', () => {
-  test('lists channels and supports bind/unbind', async () => {
+  test('lists channels and rejects manual bind/unbind', async () => {
     const app = createServer(makeContext(makeAuth()));
     const agent = request.agent(app);
     await login(agent);
@@ -95,17 +95,17 @@ describe('admin matrix channels routes', () => {
     const bindRes = await agent
       .post('/api/admin/matrix/channels/%21roomX%3Alocalhost/bind-instance')
       .send({ instanceId: 'inst_b' });
-    expect(bindRes.status).toBe(200);
-    expect(bindRes.body.success).toBe(true);
+    expect(bindRes.status).toBe(410);
+    expect(bindRes.body.reason).toBe('fixed_session_mapping');
 
     const afterBind = await agent.get('/api/admin/matrix/channels?keyword=roomX');
     expect(afterBind.status).toBe(200);
-    expect(afterBind.body.rows[0].bound).toBe(true);
-    expect(afterBind.body.rows[0].boundInstanceId).toBe('inst_b');
+    expect(afterBind.body.rows[0].bound).toBe(false);
+    expect(afterBind.body.rows[0].boundInstanceId).toBe('');
 
     const unbindRes = await agent.post('/api/admin/matrix/channels/%21roomX%3Alocalhost/unbind').send({});
-    expect(unbindRes.status).toBe(200);
-    expect(unbindRes.body.success).toBe(true);
+    expect(unbindRes.status).toBe(410);
+    expect(unbindRes.body.reason).toBe('fixed_session_mapping');
 
     const statusRes = await agent.get('/api/admin/matrix/status');
     expect(statusRes.status).toBe(200);

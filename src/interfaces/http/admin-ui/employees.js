@@ -379,7 +379,7 @@ function renderTopicDrawer(employeeId, type) {
           <div><span>实例ID</span><strong>${escapeHtml(employee.id || '-')}</strong></div>
           <div><span>姓名</span><strong>${escapeHtml(employee.name || '-')}</strong></div>
           <div><span>租户</span><strong>${escapeHtml(employee.tenantId || '-')}</strong></div>
-          <div><span>Matrix 房间</span><strong>${escapeHtml(employee.matrixRoomId || '-')}</strong></div>
+          <div><span>固定会话ID</span><strong>${escapeHtml(employee.matrixRoomId || '-')}</strong></div>
           <div><span>部门/岗位</span><strong>${escapeHtml(formatDeptRoleText(employee.department, employee.role))}</strong></div>
         </div>
       </section>
@@ -493,7 +493,7 @@ function fillEditForm(detail) {
     readonlyMeta.innerHTML = `
       <div><span>实例ID</span><strong>${escapeHtml(detail.id || '-')}</strong></div>
       <div><span>租户</span><strong>${escapeHtml(detail.tenantId || '-')}</strong></div>
-      <div><span>Matrix 房间</span><strong>${escapeHtml(detail.matrixRoomId || '-')}</strong></div>
+      <div><span>固定会话ID</span><strong>${escapeHtml(detail.matrixRoomId || '-')}</strong></div>
     `;
   }
   const name = getNode('editName');

@@ -169,7 +169,7 @@ function buildAdminCompatRouter(context) {
     return [
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
-      { path: '/admin/matrix-channels.html', label: '渠道运营', permission: 'admin.employees.page.overview.read' },
+      { path: '/admin/matrix-channels.html', label: '渠道健康', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
       { path: '/admin/notifications.html', label: '通知中心', permission: 'admin.logs.page.behavior.read' },
@@ -870,7 +870,7 @@ function buildAdminCompatRouter(context) {
         source: 'matrix-delivery',
         title: 'Matrix 消息投递失败',
         detail: `过去24小时投递失败 ${deliveryFailed.length} 次，请检查 relay 与网络连通性。`,
-        action: '查看渠道运营页 delivery_fail 指标',
+        action: '查看渠道健康页 delivery_fail 指标',
         at: String(deliveryFailed[0].at || '')
       });
     }
@@ -900,62 +900,30 @@ function buildAdminCompatRouter(context) {
 
   router.post('/api/admin/matrix/channels/:roomId/bind-instance', async (req, res) => {
     const roomId = String(req.params.roomId || '').trim();
-    const instanceId = String((req.body && req.body.instanceId) || '').trim();
-    if (!roomId || !instanceId) {
-      res.status(400).json({ error: 'roomId and instanceId are required' });
-      return;
-    }
-    const instances = await listInstances();
-    const target = instances.find((x) => String(x.id || '') === instanceId);
-    if (!target) {
-      res.status(404).json({ error: 'instance not found' });
-      return;
-    }
-
-    for (const [id, mappedRoomId] of matrixRoomOverrideByInstance.entries()) {
-      if (String(mappedRoomId || '') === roomId || String(id || '') === instanceId) {
-        matrixRoomOverrideByInstance.delete(id);
-      }
-    }
-    matrixRoomOverrideByInstance.set(instanceId, roomId);
-    await context.auditService.log('admin.matrix.channel.bound', {
+    await context.auditService.log('admin.matrix.channel.bind_rejected', {
       actor: req.adminSession.user.username,
       roomId,
-      instanceId
+      reason: 'fixed_session_mapping'
     });
-
-    res.json({
-      success: true,
-      roomId,
-      instanceId,
-      channel: {
-        roomId,
-        bound: true,
-        boundInstanceId: instanceId,
-        instanceName: String(target.name || target.id || ''),
-        tenantId: String(target.tenantId || ''),
-        instanceState: String(target.state || 'unknown')
-      }
+    res.status(410).json({
+      error: 'manual room binding is disabled',
+      reason: 'fixed_session_mapping',
+      message: '会话映射由系统自动维护，已禁用手工绑定。'
     });
   });
 
   router.post('/api/admin/matrix/channels/:roomId/unbind', async (req, res) => {
     const roomId = String(req.params.roomId || '').trim();
-    if (!roomId) {
-      res.status(400).json({ error: 'roomId is required' });
-      return;
-    }
-    const instances = await listInstances();
-    const matched = instances.filter((x) => resolveInstanceRoomId(x) === roomId);
-    for (const row of matched) {
-      matrixRoomOverrideByInstance.set(String(row.id || ''), '');
-    }
-    await context.auditService.log('admin.matrix.channel.unbound', {
+    await context.auditService.log('admin.matrix.channel.unbind_rejected', {
       actor: req.adminSession.user.username,
       roomId,
-      affectedInstances: matched.map((x) => String(x.id || ''))
+      reason: 'fixed_session_mapping'
     });
-    res.json({ success: true, roomId, affectedInstances: matched.map((x) => String(x.id || '')) });
+    res.status(410).json({
+      error: 'manual room unbind is disabled',
+      reason: 'fixed_session_mapping',
+      message: '会话映射由系统自动维护，已禁用手工解绑。'
+    });
   });
 
   router.get('/api/admin/employees', async (req, res) => {

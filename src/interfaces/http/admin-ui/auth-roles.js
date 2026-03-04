@@ -69,7 +69,7 @@ function resolvePermissionGroup(item) {
     if (first.startsWith('/admin/runtime') || first === '/admin/index.html') return '运行管理';
     if (first.startsWith('/admin/tasks')) return '任务管理';
     if (first.startsWith('/admin/employees')) return '员工管理';
-    if (first.startsWith('/admin/matrix')) return '渠道运营';
+    if (first.startsWith('/admin/matrix')) return '渠道健康';
     if (first.startsWith('/admin/skills')) return '技能管理';
     if (first.startsWith('/admin/tools')) return '工具管理';
     if (first.startsWith('/admin/notifications')) return '通知中心';
@@ -139,7 +139,7 @@ function resolveApiFeatureByPath(pathname, method) {
     { pattern: '/api/admin/auth/users', label: verb === 'POST' ? '维护账号用户' : '查看账号用户' },
     { pattern: '/api/admin/auth/roles', label: verb === 'POST' ? '维护角色权限配置' : '查看角色权限配置' },
     { pattern: '/api/admin/employees', label: verb === 'POST' ? '维护员工管理配置' : '查看员工管理数据' },
-    { pattern: '/api/admin/matrix', label: verb === 'POST' ? '维护渠道绑定关系' : '查看渠道运营数据' },
+    { pattern: '/api/admin/matrix', label: verb === 'POST' ? '变更渠道配置（受限）' : '查看渠道健康数据' },
     { pattern: '/api/admin/instances', label: verb === 'POST' ? '维护实例运行配置' : '查看实例运行数据' },
     { pattern: '/api/admin/logs', label: verb === 'POST' ? '维护日志审计配置' : '查看日志审计数据' },
     { pattern: '/api/admin/skills', label: verb === 'POST' ? '维护技能资产配置' : '查看技能资产数据' },
@@ -174,7 +174,7 @@ function resolvePageFunctionLabel(pathname) {
     '/admin/auth-roles.html': '角色管理',
     '/admin/auth-members.html': '成员管理',
     '/admin/employees.html': '员工总览',
-    '/admin/matrix-channels.html': '渠道运营',
+    '/admin/matrix-channels.html': '渠道健康',
     '/admin/skills.html': '技能管理',
     '/admin/tools.html': '工具资产',
     '/admin/notifications.html': '通知中心',

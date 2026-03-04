@@ -92,7 +92,7 @@
             <div><span>实例ID</span><strong>${escapeHtml(detail.id || '-')}</strong></div>
             <div><span>姓名</span><strong>${escapeHtml(detail.name || '-')}</strong></div>
             <div><span>租户</span><strong>${escapeHtml(detail.tenantId || '-')}</strong></div>
-            <div><span>Matrix 房间</span><strong>${escapeHtml(detail.matrixRoomId || '-')}</strong></div>
+            <div><span>固定会话ID</span><strong>${escapeHtml(detail.matrixRoomId || '-')}</strong></div>
             <div><span>部门/岗位</span><strong>${escapeHtml(formatDeptRoleText(detail.department, detail.role))}</strong></div>
             <div><span>员工状态</span><strong>${escapeHtml(detail.status || '-')}</strong></div>
           </div>
