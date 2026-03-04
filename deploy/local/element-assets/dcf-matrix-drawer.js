@@ -1,0 +1,196 @@
+(function () {
+  var DRAWER_ID = "dcfMatrixMessageDrawer";
+  var MASK_ID = "dcfMatrixMessageDrawerMask";
+  var BODY_OPEN_CLASS = "dcf-matrix-drawer-open";
+  var STYLE_ID = "dcfMatrixDrawerStyle";
+
+  function ready(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn, { once: true });
+      return;
+    }
+    fn();
+  }
+
+  function isRoomView() {
+    return String(window.location.hash || "").indexOf("#/room") === 0;
+  }
+
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    var style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = [
+      "body." + BODY_OPEN_CLASS + " .mx_RoomView { transition: margin-right .18s ease; margin-right: 420px; }",
+      "#" + MASK_ID + " { position: fixed; inset: 0; background: rgba(8, 15, 28, 0.25); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity .18s ease; }",
+      "#" + MASK_ID + ".open { opacity: 1; pointer-events: auto; }",
+      "#" + DRAWER_ID + " { position: fixed; top: 0; right: 0; height: 100vh; width: 420px; max-width: 92vw; background: #fff; border-left: 1px solid #e1e8f5; box-shadow: -16px 0 40px rgba(18, 38, 72, 0.2); z-index: 9999; transform: translateX(100%); transition: transform .2s ease; display: flex; flex-direction: column; }",
+      "#" + DRAWER_ID + ".open { transform: translateX(0); }",
+      "#" + DRAWER_ID + " .dcf-hd { min-height: 56px; padding: 10px 14px; border-bottom: 1px solid #e6edf8; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(180deg,#f8fbff,#f4f8ff); }",
+      "#" + DRAWER_ID + " .dcf-hd strong { font-size: 15px; color: #14233b; }",
+      "#" + DRAWER_ID + " .dcf-close { border: 0; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; background: #edf3ff; color: #2f4b79; font-size: 16px; }",
+      "#" + DRAWER_ID + " .dcf-bd { padding: 14px; overflow: auto; display: grid; gap: 12px; }",
+      "#" + DRAWER_ID + " .dcf-meta { border: 1px solid #dfebff; border-radius: 12px; background: #f9fcff; padding: 10px 12px; display: grid; gap: 8px; }",
+      "#" + DRAWER_ID + " .dcf-meta-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; }",
+      "#" + DRAWER_ID + " .dcf-meta-row span { color: #6280aa; }",
+      "#" + DRAWER_ID + " .dcf-meta-row strong { color: #1e385f; font-weight: 600; text-align: right; word-break: break-all; }",
+      "#" + DRAWER_ID + " .dcf-msg { border: 1px solid #d8e6ff; border-radius: 12px; background: #fff; padding: 10px 12px; color: #1c314f; font-size: 14px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; }",
+      "#" + DRAWER_ID + " .dcf-actions { display: flex; gap: 8px; flex-wrap: wrap; }",
+      "#" + DRAWER_ID + " .dcf-actions button { border: 1px solid #bed2f7; background: #f2f7ff; color: #24508e; border-radius: 10px; min-height: 34px; padding: 0 10px; cursor: pointer; font-size: 12px; }",
+      "#" + DRAWER_ID + " .dcf-actions button:hover { filter: brightness(1.03); }",
+      "@media (max-width: 980px) { body." + BODY_OPEN_CLASS + " .mx_RoomView { margin-right: 0; } #" + DRAWER_ID + " { width: 100vw; max-width: 100vw; } }"
+    ].join("\n");
+    document.head.appendChild(style);
+  }
+
+  function ensureNodes() {
+    var mask = document.getElementById(MASK_ID);
+    if (!mask) {
+      mask = document.createElement("div");
+      mask.id = MASK_ID;
+      document.body.appendChild(mask);
+    }
+
+    var drawer = document.getElementById(DRAWER_ID);
+    if (!drawer) {
+      drawer = document.createElement("aside");
+      drawer.id = DRAWER_ID;
+      drawer.setAttribute("aria-hidden", "true");
+      drawer.innerHTML = [
+        '<div class="dcf-hd"><strong>会话详情</strong><button class="dcf-close" type="button" aria-label="关闭">×</button></div>',
+        '<div class="dcf-bd">',
+        '<div class="dcf-meta">',
+        '<div class="dcf-meta-row"><span>发送方</span><strong data-k="sender">-</strong></div>',
+        '<div class="dcf-meta-row"><span>时间</span><strong data-k="time">-</strong></div>',
+        '<div class="dcf-meta-row"><span>事件ID</span><strong data-k="eventId">-</strong></div>',
+        "</div>",
+        '<div class="dcf-msg" data-k="body">-</div>',
+        '<div class="dcf-actions">',
+        '<button type="button" data-a="copy">复制消息</button>',
+        '<button type="button" data-a="quote">@引用到输入框</button>',
+        "</div>",
+        "</div>"
+      ].join("");
+      document.body.appendChild(drawer);
+    }
+    return { mask: mask, drawer: drawer };
+  }
+
+  function openDrawer(data) {
+    var nodes = ensureNodes();
+    var drawer = nodes.drawer;
+    var mask = nodes.mask;
+    drawer.querySelector('[data-k="sender"]').textContent = data.sender || "-";
+    drawer.querySelector('[data-k="time"]').textContent = data.time || "-";
+    drawer.querySelector('[data-k="eventId"]').textContent = data.eventId || "-";
+    drawer.querySelector('[data-k="body"]').textContent = data.body || "-";
+    drawer.dataset.message = data.body || "";
+    drawer.classList.add("open");
+    drawer.setAttribute("aria-hidden", "false");
+    mask.classList.add("open");
+    document.body.classList.add(BODY_OPEN_CLASS);
+  }
+
+  function closeDrawer() {
+    var drawer = document.getElementById(DRAWER_ID);
+    var mask = document.getElementById(MASK_ID);
+    if (drawer) {
+      drawer.classList.remove("open");
+      drawer.setAttribute("aria-hidden", "true");
+    }
+    if (mask) mask.classList.remove("open");
+    document.body.classList.remove(BODY_OPEN_CLASS);
+  }
+
+  function getText(node, selectors) {
+    for (var i = 0; i < selectors.length; i += 1) {
+      var n = node.querySelector(selectors[i]);
+      var t = (n && n.textContent ? n.textContent : "").trim();
+      if (t) return t;
+    }
+    return "";
+  }
+
+  function extractMessage(tile) {
+    var sender = getText(tile, [
+      ".mx_SenderProfile_name",
+      ".mx_DisambiguatedProfile_displayName",
+      ".mx_EventTile_sender",
+      "[data-testid='member-name']"
+    ]);
+    var time = getText(tile, ["time", ".mx_MessageTimestamp", ".mx_EventTile_timestamp"]);
+    var body = getText(tile, [
+      ".mx_MTextBody",
+      ".mx_EventTile_body",
+      ".mx_EventTile_line .mx_Body",
+      ".mx_EventTile_content"
+    ]);
+    if (!body) {
+      body = (tile.textContent || "").trim().replace(/\s+/g, " ");
+      if (body.length > 1200) body = body.slice(0, 1200) + " ...";
+    }
+    var eventId = String(tile.getAttribute("data-event-id") || "").trim();
+    if (!eventId) {
+      var token = String(tile.getAttribute("data-scroll-tokens") || "").trim();
+      if (token) eventId = token;
+    }
+    return { sender: sender, time: time, body: body, eventId: eventId };
+  }
+
+  function insertQuoteToComposer(text) {
+    var composer = document.querySelector(".mx_BasicMessageComposer_input");
+    if (!composer) return;
+    var quoted = ["> " + String(text || "").replace(/\n/g, "\n> "), ""].join("\n");
+    composer.focus();
+    try {
+      document.execCommand("insertText", false, quoted);
+    } catch {
+      composer.textContent = (composer.textContent || "") + quoted;
+    }
+  }
+
+  function bindGlobalEvents() {
+    document.addEventListener("click", function (event) {
+      if (!isRoomView()) return;
+      var target = event.target;
+      if (!(target instanceof Element)) return;
+
+      if (target.closest("#" + MASK_ID) || target.closest("#" + DRAWER_ID + " .dcf-close")) {
+        closeDrawer();
+        return;
+      }
+
+      var actionBtn = target.closest("#" + DRAWER_ID + " [data-a]");
+      if (actionBtn) {
+        var drawer = document.getElementById(DRAWER_ID);
+        if (!drawer) return;
+        var action = String(actionBtn.getAttribute("data-a") || "");
+        var message = String(drawer.dataset.message || "");
+        if (action === "copy" && message) {
+          navigator.clipboard && navigator.clipboard.writeText(message).catch(function () {});
+        }
+        if (action === "quote" && message) {
+          insertQuoteToComposer(message);
+        }
+        return;
+      }
+
+      var tile = target.closest(".mx_EventTile");
+      if (!tile) return;
+      if (target.closest("a, button, input, textarea, .mx_ReactionsRow")) return;
+      var data = extractMessage(tile);
+      if (!data.body) return;
+      openDrawer(data);
+    }, true);
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeDrawer();
+    });
+  }
+
+  ready(function () {
+    ensureStyle();
+    ensureNodes();
+    bindGlobalEvents();
+  });
+})();

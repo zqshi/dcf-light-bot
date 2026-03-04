@@ -25,6 +25,46 @@ function renderList(id, items) {
   el.innerHTML = items.map((item) => `<div class="overview-item">${item}</div>`).join('');
 }
 
+async function checkEndpoint(path, options) {
+  try {
+    await api(path, options);
+    return { ok: true, detail: 'ok' };
+  } catch (error) {
+    return { ok: false, detail: String((error && error.message) || 'failed') };
+  }
+}
+
+async function checkAdminCompleteness() {
+  const checks = [
+    { key: 'instances', label: '员工/实例管理接口', call: () => checkEndpoint('/api/admin/instances') },
+    { key: 'skills', label: '技能管理接口', call: () => checkEndpoint('/api/admin/assets/skill') },
+    { key: 'tools', label: '工具管理接口', call: () => checkEndpoint('/api/admin/assets/tool') },
+    { key: 'logs', label: '行为日志接口', call: () => checkEndpoint('/api/admin/logs') },
+    { key: 'auth', label: '权限管理接口', call: () => checkEndpoint('/api/admin/auth/users') },
+    { key: 'openclaw', label: 'OpenClaw 配置接口', call: () => checkEndpoint('/api/admin/runtime/openclaw-config') },
+    { key: 'matrix', label: 'Matrix 渠道状态接口', call: () => checkEndpoint('/api/admin/matrix/status') },
+    { key: 'sso', label: 'SSO 能力接口', call: () => checkEndpoint('/api/auth/sso/capabilities') }
+  ];
+
+  const rows = [];
+  for (const item of checks) {
+    // eslint-disable-next-line no-await-in-loop
+    const result = await item.call();
+    rows.push({
+      label: item.label,
+      ok: Boolean(result.ok),
+      detail: result.detail
+    });
+  }
+
+  const okCount = rows.filter((x) => x.ok).length;
+  const failed = rows.length - okCount;
+  const summary = failed === 0
+    ? `关键能力 ${okCount}/${rows.length} 可用，后台功能逻辑完整度良好。`
+    : `关键能力 ${okCount}/${rows.length} 可用，存在 ${failed} 项待补齐。`;
+  return { rows, summary, failed };
+}
+
 function buildOverviewFromLegacy(runtime = {}, bootstrap = {}, metrics = {}) {
   const counters = runtime.counters || {};
   const queue = runtime.queue || {};
@@ -182,16 +222,30 @@ function renderPage(overviewPayload) {
   renderList('focusList', focus);
 }
 
+function renderCompleteness(result) {
+  const summaryNode = document.getElementById('completenessSummary');
+  if (summaryNode) summaryNode.textContent = result.summary || '-';
+  const list = (result.rows || []).map((x) => {
+    const status = x.ok ? '已支持' : '未完成';
+    return `${x.label}：${status}${x.ok ? '' : `（${x.detail}）`}`;
+  });
+  renderList('completenessList', list);
+}
+
 (async () => {
   try {
     if (window.__adminReady) await window.__adminReady;
     const overview = await loadOverview();
     renderPage(overview);
+    const completeness = await checkAdminCompleteness();
+    renderCompleteness(completeness);
   } catch (error) {
     setText('summary', '数据加载失败，请检查登录状态或权限配置。');
     setText('statusHeadline', String(error && error.message ? error.message : '加载失败'));
     renderList('opsChecklist', []);
     renderList('qualityList', []);
     renderList('focusList', []);
+    renderList('completenessList', []);
+    setText('completenessSummary', '功能完备度检查失败，请检查权限或服务状态。');
   }
 })();
