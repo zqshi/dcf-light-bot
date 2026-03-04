@@ -14,7 +14,6 @@ const managerInfoExpandedBySkillId = new Map();
 const selectedResourcePathBySkillId = new Map();
 let currentDetailDigest = '';
 let currentSession = null;
-let canUseDebugMode = false;
 let canDeleteSkill = false;
 let canUnlinkEmployee = false;
 let employeeCandidates = [];
@@ -487,35 +486,6 @@ async function loadEmployeeCandidates() {
   renderEmployeeFilterOptions();
 }
 
-function renderLinkEmployeeSection(detail, linkedEmployees) {
-  const linkedSet = new Set(linkedEmployees.map((item) => String(item.id || '')));
-  const candidates = employeeCandidates.filter((item) => !linkedSet.has(String(item.id || '')));
-  const optionsHtml = candidates
-    .map((employee) => {
-      const label = [employee.name || employee.employeeCode || employee.id, employee.department, employee.role]
-        .filter(Boolean)
-        .join(' / ');
-      return `<option value="${escapeHtml(employee.id || '')}">${escapeHtml(label || employee.id || '-')}</option>`;
-    })
-    .join('');
-  const selectorHtml = candidates.length
-    ? `<select class="admin-select" data-link-employee-select>
-        <option value="">请选择数字员工</option>
-        ${optionsHtml}
-      </select>`
-    : `<div class="empty">${employeeCandidatesLoaded ? '暂无可关联员工（可能已全部关联）' : `员工列表不可用：${escapeHtml(employeeCandidatesError || '加载中')}`}</div>`;
-  return `
-    <div class="skill-detail-card">
-      <h4>手动关联数字员工能力</h4>
-      <div class="toolbar-note">将当前技能手动关联到指定数字员工。</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-        ${selectorHtml}
-        <button type="button" data-link-employee-btn data-link-skill-id="${escapeHtml(detail.id || '')}" data-required-permission="admin.skills.write" ${candidates.length ? '' : 'disabled'}>关联</button>
-      </div>
-    </div>
-  `;
-}
-
 function setText(id, text) {
   const node = document.getElementById(id);
   if (node) node.textContent = text;
@@ -528,7 +498,7 @@ function applyActionAcl(root) {
 }
 
 function renderEmpty(message) {
-  document.getElementById('rows').innerHTML = `<tr><td colspan="5" class="empty">${message}</td></tr>`;
+  document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty">${message}</td></tr>`;
 }
 
 function escapeHtml(input) {
@@ -545,6 +515,30 @@ function renderStatus(message, isError = false) {
   if (!node) return;
   node.textContent = message || '';
   node.style.color = isError ? '#932727' : '#5e6f8e';
+}
+
+function skillStatusTone(status) {
+  const value = String(status || '').toLowerCase();
+  if (['approved', 'published', 'active'].includes(value)) return 'ok';
+  if (['rejected', 'rollback', 'rolled_back'].includes(value)) return 'warn';
+  return '';
+}
+
+async function performSkillAssetAction(skillId, action) {
+  const id = encodeURIComponent(String(skillId || ''));
+  const op = String(action || '').trim().toLowerCase();
+  const payload = {};
+  if (op === 'bind') {
+    const tenantId = window.prompt('请输入目标租户ID（tenantId）', '') || '';
+    const finalTenantId = String(tenantId).trim();
+    if (!finalTenantId) throw new Error('tenantId 不能为空');
+    payload.tenantId = finalTenantId;
+  }
+  await api(`/api/admin/assets/skill/${id}/${op}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
 }
 
 function canAccess(permission) {
@@ -666,7 +660,17 @@ async function load() {
           <td>${escapeHtml(s.type || '-')}</td>
           <td>${escapeHtml(s.domain || '-')}</td>
           <td>${escapeHtml(formatSkillSourceLabel(s.source))}</td>
+          <td><span class="badge ${skillStatusTone(s.status)}">${escapeHtml(s.status || '-')}</span></td>
           <td>${s.createdAt ? escapeHtml(new Date(s.createdAt).toLocaleString()) : '-'}</td>
+          <td>
+            <div class="row-actions">
+              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="approve" data-required-permission="admin.skills.write">审核通过</button>
+              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="reject" data-required-permission="admin.skills.write">驳回</button>
+              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="publish" data-required-permission="admin.skills.write">发布</button>
+              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="bind" data-required-permission="admin.skills.write">绑定租户</button>
+              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="rollback" data-required-permission="admin.skills.write">回滚</button>
+            </div>
+          </td>
         </tr>
       `)
       .join('');
@@ -837,6 +841,31 @@ function bindEvents() {
         renderStatus(`详情加载失败：${error.message}`, true);
       }
     });
+    rows.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest('button[data-skill-action][data-skill-id]');
+      if (!button) return;
+      if (!canWriteSkills) {
+        renderStatus('当前账号没有技能写入权限（admin.skills.write）', true);
+        return;
+      }
+      const skillId = String(button.getAttribute('data-skill-id') || '').trim();
+      const action = String(button.getAttribute('data-skill-action') || '').trim().toLowerCase();
+      if (!skillId || !action) return;
+      const labels = { approve: '审核通过', reject: '驳回', publish: '发布', bind: '绑定租户', rollback: '回滚' };
+      const label = labels[action] || action;
+      try {
+        button.setAttribute('disabled', 'disabled');
+        await performSkillAssetAction(skillId, action);
+        renderStatus(`${label}成功：${skillId}`);
+        await load();
+      } catch (error) {
+        renderStatus(`${label}失败：${error.message}`, true);
+      } finally {
+        button.removeAttribute('disabled');
+      }
+    });
   }
 
   if (closeDrawerBtn) closeDrawerBtn.addEventListener('click', () => setDrawerVisibility(false));
@@ -955,7 +984,6 @@ function bindEvents() {
   } catch {
     currentSession = null;
   }
-  canUseDebugMode = canAccess('admin.skills.action.debug-toggle');
   canDeleteSkill = canAccess('admin.skills.action.delete');
   canUnlinkEmployee = canAccess('admin.skills.action.unlink-employee');
   canWriteSkills = canAccess('admin.skills.write');
