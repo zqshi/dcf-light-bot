@@ -70,6 +70,40 @@ function newId(prefix) {
   return `${String(prefix || 'id')}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
+function normalizeMatrixUserId(input) {
+  return String(input || '').trim().toLowerCase();
+}
+
+function normalizeTagList(input) {
+  if (!Array.isArray(input)) return [];
+  return Array.from(new Set(
+    input
+      .map((x) => String(x || '').trim())
+      .filter(Boolean)
+      .slice(0, 30)
+  ));
+}
+
+function normalizeSharedAgent(input = {}, seed = {}) {
+  const now = nowIso();
+  const merged = { ...seed, ...input };
+  return {
+    id: String(seed.id || input.id || newId('shared_agent')),
+    name: String(merged.name || '').trim(),
+    capabilitySignature: String(merged.capabilitySignature || '').trim(),
+    ownerEmployeeId: String(merged.ownerEmployeeId || '').trim() || null,
+    ownerType: String(merged.ownerType || 'shared').trim(),
+    source: String(merged.source || 'digital_employee').trim(),
+    status: String(merged.status || 'active').trim(),
+    tags: normalizeTagList(merged.tags),
+    jobCodes: normalizeTagList(merged.jobCodes),
+    description: String(merged.description || '').trim(),
+    usageCount: Math.max(0, Number(merged.usageCount || 0)),
+    createdAt: String(seed.createdAt || merged.createdAt || now),
+    updatedAt: now
+  };
+}
+
 function toMs(value) {
   if (!value) return 0;
   const ts = new Date(value).getTime();
@@ -152,6 +186,9 @@ function buildAdminCompatRouter(context) {
   const toolServiceStore = new Map();
   let toolStoreHydrated = false;
   const ossCaseState = new Map();
+  const sharedAgentStore = new Map();
+  let sharedAgentHydrated = false;
+  let sharedAgentHydrating = null;
   const matrixRoomOverrideByInstance = new Map();
   const providerKeyByName = new Map(
     (Array.isArray(context.config.providers) ? context.config.providers : [])
@@ -178,13 +215,15 @@ function buildAdminCompatRouter(context) {
         apiKey: providerKeyByName.get('minimax') || ''
       }
     },
-    permissionTemplate: {
+    permissionTemplate: safeJson(context.config.openclawPermissionTemplate, null) || {
       commandAllowlist: ['/help', '/status', '/report'],
       approvalByRisk: buildDefaultApprovalPolicy().byRisk
     },
     updatedAt: nowIso(),
     updatedBy: 'system'
   };
+  let openclawConfigHydrated = false;
+  let openclawConfigHydrating = null;
 
   const roleStore = new Map();
   Object.entries(ROLE_PERMISSIONS).forEach(([role, perms]) => {
@@ -208,6 +247,8 @@ function buildAdminCompatRouter(context) {
     return [
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
+      { path: '/admin/shared-agents.html', label: '共享Agent', permission: 'admin.employees.page.overview.read' },
+      { path: '/admin/identity-mappings.html', label: '身份映射', permission: 'admin.auth.page.members.read' },
       { path: '/admin/openclaw-config.html', label: 'OpenClaw 配置', permission: 'admin.runtime.page.openclaw-config.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
@@ -257,6 +298,10 @@ function buildAdminCompatRouter(context) {
     context.config.deepseekModel = String(deepseek.model || '');
     context.config.minimaxApiBase = String(minimax.apiBase || '');
     context.config.minimaxModel = String(minimax.model || '');
+    context.config.openclawPermissionTemplate = safeJson(openclawConfigState.permissionTemplate, {
+      commandAllowlist: ['/help', '/status', '/report'],
+      approvalByRisk: buildDefaultApprovalPolicy().byRisk
+    });
     const providerRows = [];
     if (deepseek.enabled && String(deepseek.apiKey || '').trim()) {
       providerRows.push({ name: 'deepseek', key: String(deepseek.apiKey || '').trim() });
@@ -265,6 +310,65 @@ function buildAdminCompatRouter(context) {
       providerRows.push({ name: 'minimax', key: String(minimax.apiKey || '').trim() });
     }
     context.config.providers = providerRows;
+  }
+
+  function applyPersistedOpenclawConfig(input) {
+    if (!input || typeof input !== 'object') return;
+    const runtime = input.runtime && typeof input.runtime === 'object' ? input.runtime : {};
+    const providers = input.providers && typeof input.providers === 'object' ? input.providers : {};
+    const deepseek = providers.deepseek && typeof providers.deepseek === 'object' ? providers.deepseek : {};
+    const minimax = providers.minimax && typeof providers.minimax === 'object' ? providers.minimax : {};
+    const permissionTemplate = input.permissionTemplate && typeof input.permissionTemplate === 'object'
+      ? input.permissionTemplate
+      : null;
+
+    openclawConfigState.runtime.openclawImage = String(runtime.openclawImage || openclawConfigState.runtime.openclawImage || '').trim();
+    openclawConfigState.runtime.openclawRuntimeVersion = String(runtime.openclawRuntimeVersion || openclawConfigState.runtime.openclawRuntimeVersion || '').trim();
+    openclawConfigState.runtime.openclawSourcePath = String(runtime.openclawSourcePath || openclawConfigState.runtime.openclawSourcePath || '').trim();
+
+    if (deepseek && Object.keys(deepseek).length) {
+      openclawConfigState.providers.deepseek.enabled = Boolean(deepseek.enabled);
+      openclawConfigState.providers.deepseek.apiBase = String(deepseek.apiBase || openclawConfigState.providers.deepseek.apiBase || '').trim();
+      openclawConfigState.providers.deepseek.model = String(deepseek.model || openclawConfigState.providers.deepseek.model || '').trim();
+      if (String(deepseek.apiKey || '').trim()) {
+        openclawConfigState.providers.deepseek.apiKey = String(deepseek.apiKey || '').trim();
+      }
+    }
+    if (minimax && Object.keys(minimax).length) {
+      openclawConfigState.providers.minimax.enabled = Boolean(minimax.enabled);
+      openclawConfigState.providers.minimax.apiBase = String(minimax.apiBase || openclawConfigState.providers.minimax.apiBase || '').trim();
+      openclawConfigState.providers.minimax.model = String(minimax.model || openclawConfigState.providers.minimax.model || '').trim();
+      if (String(minimax.apiKey || '').trim()) {
+        openclawConfigState.providers.minimax.apiKey = String(minimax.apiKey || '').trim();
+      }
+    }
+
+    if (permissionTemplate) {
+      openclawConfigState.permissionTemplate = safeJson(permissionTemplate, openclawConfigState.permissionTemplate);
+    }
+    openclawConfigState.updatedAt = String(input.updatedAt || openclawConfigState.updatedAt || nowIso());
+    openclawConfigState.updatedBy = String(input.updatedBy || openclawConfigState.updatedBy || 'system');
+    syncContextWithOpenclawConfig();
+  }
+
+  async function ensureOpenclawConfigHydrated() {
+    if (openclawConfigHydrated) return;
+    if (openclawConfigHydrating) {
+      await openclawConfigHydrating;
+      return;
+    }
+    openclawConfigHydrating = (async () => {
+      if (context.repo && typeof context.repo.getPlatformConfig === 'function') {
+        const persisted = await context.repo.getPlatformConfig('openclawConfig');
+        applyPersistedOpenclawConfig(persisted);
+      }
+      openclawConfigHydrated = true;
+      openclawConfigHydrating = null;
+    })().catch((error) => {
+      openclawConfigHydrating = null;
+      throw error;
+    });
+    await openclawConfigHydrating;
   }
 
   function buildSession(req) {
@@ -344,6 +448,45 @@ function buildAdminCompatRouter(context) {
     toolStoreHydrated = true;
   }
 
+  async function ensureSharedAgentsHydrated() {
+    if (sharedAgentHydrated) return;
+    if (sharedAgentHydrating) {
+      await sharedAgentHydrating;
+      return;
+    }
+    sharedAgentHydrating = (async () => {
+      if (context.repo && typeof context.repo.getPlatformConfig === 'function') {
+        const persisted = await context.repo.getPlatformConfig('sharedAgentHall');
+        const rows = Array.isArray(persisted && persisted.agents) ? persisted.agents : [];
+        rows.forEach((row) => {
+          const normalized = normalizeSharedAgent(row);
+          if (!normalized.name) return;
+          sharedAgentStore.set(normalized.id, normalized);
+        });
+      }
+      sharedAgentHydrated = true;
+      sharedAgentHydrating = null;
+    })().catch((error) => {
+      sharedAgentHydrating = null;
+      throw error;
+    });
+    await sharedAgentHydrating;
+  }
+
+  async function persistSharedAgents(actor = 'system') {
+    if (!context.repo || typeof context.repo.setPlatformConfig !== 'function') return;
+    await context.repo.setPlatformConfig('sharedAgentHall', {
+      agents: Array.from(sharedAgentStore.values()),
+      updatedAt: nowIso(),
+      updatedBy: actor
+    });
+  }
+
+  async function listSharedAgents() {
+    await ensureSharedAgentsHydrated();
+    return Array.from(sharedAgentStore.values()).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
+  }
+
   function normalizeToolRow(input = {}, seed = {}) {
     return {
       id: String(seed.id || input.id || newId('tool')),
@@ -366,26 +509,48 @@ function buildAdminCompatRouter(context) {
     const linked = employeeSkillLinks.get(instance.id) || [];
     const policy = employeePolicyOverrides.get(instance.id) || buildDefaultJobPolicy(instance);
     const approvalPolicy = employeeApprovalOverrides.get(instance.id) || buildDefaultApprovalPolicy();
-    const department = String(profile.department || 'operations');
-    const role = String(profile.role || pickInstanceRole(instance.name));
+    const department = String(profile.department || instance.department || 'operations');
+    const role = String(profile.role || instance.jobCode || pickInstanceRole(instance.name));
     const resolvedMatrixRoomId = matrixRoomOverrideByInstance.has(instance.id)
       ? matrixRoomOverrideByInstance.get(instance.id)
       : instance.matrixRoomId;
+    const ownedSharedAgents = Array.from(sharedAgentStore.values())
+      .filter((x) => String(x.ownerEmployeeId || '') === String(instance.id || ''))
+      .map((x) => ({
+        id: x.id,
+        name: x.name,
+        status: x.status,
+        shared: true,
+        capabilitySignature: x.capabilitySignature,
+        usageCount: x.usageCount,
+        tags: x.tags
+      }));
+    const childAgents = [
+      ...(Array.isArray(profile.childAgents) ? profile.childAgents : []),
+      ...ownedSharedAgents
+    ];
     return {
       id: instance.id,
       name: String(profile.name || instance.name || instance.id),
       displayName: String(profile.displayName || profile.name || instance.name || instance.id),
       department,
       role,
+      employeeId: String(instance.employeeId || ''),
+      employeeNo: String(instance.employeeNo || ''),
+      email: String(instance.email || ''),
+      jobCode: String(instance.jobCode || ''),
+      jobTitle: String(instance.jobTitle || ''),
+      permissionTemplateId: String(instance.permissionTemplateId || ''),
       status: String(instance.state || 'unknown'),
       tenantId: String(instance.tenantId || ''),
       creator: String(instance.creator || ''),
+      enterpriseUserId: String(instance.enterpriseUserId || ''),
       matrixRoomId: resolvedMatrixRoomId || null,
       runtimeEndpoint: instance.runtime && instance.runtime.endpoint ? instance.runtime.endpoint : null,
       capabilities: Array.isArray(profile.capabilities) ? profile.capabilities : [],
       knowledge: Array.isArray(profile.knowledge) ? profile.knowledge : [],
       linkedSkillIds: Array.isArray(linked) ? linked : [],
-      childAgents: Array.isArray(profile.childAgents) ? profile.childAgents : [],
+      childAgents,
       runtimeProfile: {
         agentId: String(profile.agentId || 'main'),
         policyId: String(profile.policyId || 'default'),
@@ -401,6 +566,7 @@ function buildAdminCompatRouter(context) {
   }
 
   async function listEmployees() {
+    await ensureSharedAgentsHydrated();
     const instances = await listInstances();
     return instances.map((row) => employeeFromInstance(row));
   }
@@ -437,6 +603,17 @@ function buildAdminCompatRouter(context) {
     return rows.find((x) => x.id === id) || null;
   }
 
+  async function getIdentityMappingByMatrixUserId(matrixUserId) {
+    if (!context.repo || typeof context.repo.getPlatformConfig !== 'function') return null;
+    const key = normalizeMatrixUserId(matrixUserId);
+    if (!key) return null;
+    const directory = await context.repo.getPlatformConfig('identityDirectory');
+    const records = directory && typeof directory.records === 'object' ? directory.records : {};
+    const row = records[key];
+    if (!row || typeof row !== 'object') return null;
+    return row;
+  }
+
   function rolePayload(role) {
     return {
       role: role.role,
@@ -455,6 +632,29 @@ function buildAdminCompatRouter(context) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
+  }
+
+  function actorOf(req) {
+    return (req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin';
+  }
+
+  function resolveSessionPermissions(session) {
+    const user = session && session.user ? session.user : {};
+    const role = String(user.role || '').trim();
+    const roleModel = role ? roleStore.get(role) : null;
+    if (roleModel && Array.isArray(roleModel.permissions)) {
+      return roleModel.permissions;
+    }
+    return Array.isArray(user.permissions) ? user.permissions : [];
+  }
+
+  function hasAdminConsoleAccess(permissions) {
+    const list = Array.isArray(permissions) ? permissions : [];
+    if (list.includes('*')) return true;
+    return list.some((perm) => {
+      const val = String(perm || '').trim().toLowerCase();
+      return val.startsWith('admin.') || val.startsWith('control:');
+    });
   }
 
   router.post('/api/auth/login', async (req, res) => {
@@ -502,6 +702,60 @@ function buildAdminCompatRouter(context) {
     });
   });
 
+  router.get('/api/auth/matrix-admin-entry', async (req, res) => {
+    const existingSession = buildSession(req);
+    if (existingSession) {
+      const permissions = resolveSessionPermissions(existingSession);
+      res.json({
+        showAdminEntry: hasAdminConsoleAccess(permissions),
+        adminUrl: '/admin/index.html'
+      });
+      return;
+    }
+
+    const matrixUserId = normalizeMatrixUserId((req.query && req.query.matrixUserId) || '');
+    if (!matrixUserId) {
+      res.json({ showAdminEntry: false, adminUrl: '/admin/index.html' });
+      return;
+    }
+
+    let username = '';
+    if (context.repo && typeof context.repo.getPlatformConfig === 'function') {
+      const directory = await context.repo.getPlatformConfig('identityDirectory');
+      const records = directory && typeof directory.records === 'object' ? directory.records : {};
+      const profile = records[matrixUserId] && typeof records[matrixUserId] === 'object' ? records[matrixUserId] : null;
+      if (profile) {
+        username = String(profile.username || profile.enterpriseUserId || profile.employeeId || '').trim();
+      }
+    }
+    if (!username) {
+      const mx = String(matrixUserId || '');
+      if (mx.startsWith('@') && mx.includes(':')) {
+        username = mx.slice(1, mx.indexOf(':')).trim();
+      }
+    }
+    if (!username) {
+      res.json({ showAdminEntry: false, adminUrl: '/admin/index.html' });
+      return;
+    }
+
+    const row = userStore.get(username);
+    if (!row || row.disabled) {
+      res.json({ showAdminEntry: false, adminUrl: '/admin/index.html' });
+      return;
+    }
+
+    const role = String(row.role || '').trim();
+    const roleModel = roleStore.get(role);
+    const permissions = roleModel && Array.isArray(roleModel.permissions)
+      ? roleModel.permissions
+      : (Array.isArray(row.permissions) ? row.permissions : []);
+    res.json({
+      showAdminEntry: hasAdminConsoleAccess(permissions),
+      adminUrl: '/admin/index.html'
+    });
+  });
+
   router.post('/api/auth/renew', (req, res) => {
     const session = buildSession(req);
     if (!session) {
@@ -517,15 +771,104 @@ function buildAdminCompatRouter(context) {
   });
 
   router.get('/api/auth/sso/capabilities', (_req, res) => {
-    res.json({ enabled: false, provider: 'none', bridgeLoginEnabled: false, authorizeConfigured: false });
+    const enabled = Boolean(context.config.ssoEnabled);
+    const provider = String(context.config.ssoProvider || 'oidc');
+    const bridgeLoginEnabled = enabled && Boolean(context.config.ssoBridgeLoginEnabled !== false);
+    const authorizeConfigured = enabled && Boolean(String(context.config.ssoAuthorizeUrl || '').trim());
+    res.json({ enabled, provider, bridgeLoginEnabled, authorizeConfigured });
   });
 
-  router.get('/api/auth/sso/authorize', (_req, res) => {
-    res.status(400).json({ error: 'SSO_NOT_CONFIGURED' });
+  router.get('/api/auth/sso/authorize', (req, res) => {
+    if (!context.config.ssoEnabled || !String(context.config.ssoAuthorizeUrl || '').trim()) {
+      res.status(400).json({ error: 'SSO_NOT_CONFIGURED' });
+      return;
+    }
+    const authorizeUrl = new URL(String(context.config.ssoAuthorizeUrl));
+    const state = String((req.query && req.query.state) || '');
+    const next = String((req.query && req.query.next) || '');
+    if (state) authorizeUrl.searchParams.set('state', state);
+    if (next) authorizeUrl.searchParams.set('next', next);
+    if (String(context.config.ssoCallbackUrl || '').trim()) {
+      authorizeUrl.searchParams.set('redirect_uri', String(context.config.ssoCallbackUrl));
+    }
+    res.json({ authorizeUrl: authorizeUrl.toString() });
   });
 
-  router.post('/api/auth/sso/bridge-login', (_req, res) => {
-    res.status(400).json({ error: 'SSO_NOT_CONFIGURED' });
+  router.post('/api/auth/sso/bridge-login', async (req, res) => {
+    if (!context.config.ssoEnabled || context.config.ssoBridgeLoginEnabled === false) {
+      res.status(400).json({ error: 'SSO_NOT_CONFIGURED' });
+      return;
+    }
+    const profile = req.body && typeof req.body === 'object' ? req.body : {};
+    const mapping = context.config.ssoProfileMapping || {};
+    const username = String(
+      profile.username
+      || profile[mapping.username]
+      || profile.sub
+      || ''
+    ).trim();
+    if (!username) {
+      res.status(400).json({ error: 'SSO_USERNAME_REQUIRED' });
+      return;
+    }
+    const displayName = String(profile.displayName || profile[mapping.displayName] || username).trim();
+    const role = String(profile.role || profile[mapping.role] || 'ops_admin').trim();
+    const email = String(profile.email || profile[mapping.email] || '').trim();
+    const matrixUserId = normalizeMatrixUserId(
+      profile.matrixUserId
+      || profile.matrix_user_id
+      || profile.mxid
+      || ''
+    );
+    const jobCode = String(profile.jobCode || profile.job_code || profile.job || '').trim();
+    const jobTitle = String(profile.jobTitle || profile.job_title || '').trim();
+    const department = String(profile.department || profile.dept || '').trim();
+    const employeeNo = String(profile.employeeNo || profile.employee_no || '').trim();
+    const employeeId = String(profile.employeeId || profile.employee_id || '').trim();
+    const enterpriseUserId = String(profile.enterpriseUserId || profile.enterprise_user_id || username).trim();
+    const permissions = Array.isArray(ROLE_PERMISSIONS[role]) ? Array.from(new Set(ROLE_PERMISSIONS[role])) : ['control:instance:read'];
+
+    if (matrixUserId && context.repo && typeof context.repo.getPlatformConfig === 'function' && typeof context.repo.setPlatformConfig === 'function') {
+      const directory = await context.repo.getPlatformConfig('identityDirectory');
+      const records = directory && typeof directory.records === 'object' ? { ...directory.records } : {};
+      records[matrixUserId] = {
+        username,
+        email,
+        role,
+        matrixUserId,
+        enterpriseUserId,
+        employeeId: employeeId || '',
+        employeeNo: employeeNo || '',
+        jobCode: jobCode || '',
+        jobTitle: jobTitle || '',
+        department: department || '',
+        updatedAt: nowIso()
+      };
+      await context.repo.setPlatformConfig('identityDirectory', {
+        records,
+        updatedAt: nowIso(),
+        updatedBy: username
+      });
+    }
+
+    const sid = crypto.randomBytes(24).toString('hex');
+    sessions.set(sid, {
+      token: `sso:${sid}`,
+      user: { username, displayName, role, permissions },
+      expiresAt: Date.now() + (sessionTtlSec * 1000)
+    });
+    setSessionCookie(res, sid, sessionTtlSec);
+    await context.auditService.log('auth.sso.bridge_login.succeeded', {
+      username,
+      role,
+      provider: String(context.config.ssoProvider || 'oidc'),
+      matrixUserId: matrixUserId || null
+    });
+    res.json({
+      authenticated: true,
+      user: { username, displayName, role, permissions },
+      expiresInSec: sessionTtlSec
+    });
   });
 
   router.get('/api/framework', (_req, res) => {
@@ -565,6 +908,7 @@ function buildAdminCompatRouter(context) {
       /^\/overview$/,
       /^\/instances(\/|$)/,
       /^\/employees(\/|$)/,
+      /^\/agents(\/|$)/,
       /^\/matrix(\/|$)/,
       /^\/skills(\/|$)/,
       /^\/assets(\/|$)/,
@@ -582,7 +926,7 @@ function buildAdminCompatRouter(context) {
   });
 
   router.get('/api/admin/overview', async (_req, res) => {
-    const [instances, dashboard, audits, sharedSkills, sharedTools, sharedKnowledge, skillBindings, toolBindings, knowledgeBindings] = await Promise.all([
+    const [instances, dashboard, audits, sharedSkills, sharedTools, sharedKnowledge, skillBindings, toolBindings, knowledgeBindings, sharedAgents] = await Promise.all([
       listInstances(),
       (context.assetService || context.skillService).getReviewDashboard({ reviewer: '' }),
       context.auditService.list(1000),
@@ -591,7 +935,8 @@ function buildAdminCompatRouter(context) {
       listSharedAssets('knowledge'),
       (context.assetService || context.skillService).listAssetBindings('skill'),
       (context.assetService || context.skillService).listAssetBindings('tool'),
-      (context.assetService || context.skillService).listAssetBindings('knowledge')
+      (context.assetService || context.skillService).listAssetBindings('knowledge'),
+      listSharedAgents()
     ]);
     const instanceSummary = summarizeInstanceStates(instances);
     const totalTasks = audits.filter((x) => {
@@ -615,7 +960,7 @@ function buildAdminCompatRouter(context) {
     const pendingReviews = Number(dashboard.pendingTotal || 0);
     const overdueReviews = Number(dashboard.overdueTotal || 0);
     const healthLevel = instanceSummary.abnormal > 0 || overdueReviews > 0 ? 'degraded' : 'healthy';
-    const sharedTotal = sharedSkills.length + sharedTools.length + sharedKnowledge.length;
+    const sharedTotal = sharedSkills.length + sharedTools.length + sharedKnowledge.length + sharedAgents.length;
     res.json({
       overview: {
         platform: {
@@ -631,6 +976,7 @@ function buildAdminCompatRouter(context) {
           sharedSkills: sharedSkills.length,
           sharedTools: sharedTools.length,
           sharedKnowledge: sharedKnowledge.length,
+          sharedAgents: sharedAgents.length,
           sharedTotal,
           bindingsTotal,
           pendingReviews,
@@ -667,6 +1013,7 @@ function buildAdminCompatRouter(context) {
         skillsTotal: sharedSkills.length,
         findingsTotal: sharedKnowledge.length,
         toolsTotal: sharedTools.length,
+        sharedAgents: sharedAgents.length,
         sharedTotal,
         bindingsTotal,
         skillReused: 0,
@@ -685,7 +1032,7 @@ function buildAdminCompatRouter(context) {
       focus: [
         `当前运行实例 ${instanceSummary.running}/${instanceSummary.total}，异常 ${instanceSummary.abnormal}。`,
         `资产待审批 ${pendingReviews} 项，逾期 ${overdueReviews} 项，建议优先清理积压。`,
-        `共享资产 ${sharedTotal} 项，已绑定 ${bindingsTotal} 次，建议持续推动高频能力复用。`
+        `共享资产 ${sharedTotal} 项（含共享Agent ${sharedAgents.length}），已绑定 ${bindingsTotal} 次，建议持续推动高频能力复用。`
       ]
     });
   });
@@ -720,10 +1067,12 @@ function buildAdminCompatRouter(context) {
   });
 
   router.get('/api/admin/runtime/openclaw-config', async (_req, res) => {
+    await ensureOpenclawConfigHydrated();
     res.json(buildOpenclawConfigView());
   });
 
   router.post('/api/admin/runtime/openclaw-config', async (req, res) => {
+    await ensureOpenclawConfigHydrated();
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const runtime = body.runtime && typeof body.runtime === 'object' ? body.runtime : {};
     const providers = body.providers && typeof body.providers === 'object' ? body.providers : {};
@@ -767,6 +1116,18 @@ function buildAdminCompatRouter(context) {
     openclawConfigState.updatedAt = nowIso();
     openclawConfigState.updatedBy = String((req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin');
     syncContextWithOpenclawConfig();
+    if (context.repo && typeof context.repo.setPlatformConfig === 'function') {
+      await context.repo.setPlatformConfig('openclawConfig', {
+        runtime: safeJson(openclawConfigState.runtime, {}),
+        providers: {
+          deepseek: safeJson(openclawConfigState.providers.deepseek, {}),
+          minimax: safeJson(openclawConfigState.providers.minimax, {})
+        },
+        permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {}),
+        updatedAt: openclawConfigState.updatedAt,
+        updatedBy: openclawConfigState.updatedBy
+      });
+    }
     await context.auditService.log('admin.runtime.openclaw_config.updated', {
       actor: openclawConfigState.updatedBy,
       runtime: safeJson(openclawConfigState.runtime, {}),
@@ -1131,6 +1492,236 @@ function buildAdminCompatRouter(context) {
     });
   });
 
+  router.post('/api/admin/employees/:id/sync-identity', async (req, res) => {
+    const id = String(req.params.id || '').trim();
+    if (!id) {
+      res.status(400).json({ error: 'employee id is required' });
+      return;
+    }
+    let instance = null;
+    try {
+      instance = await context.instanceService.get(id);
+    } catch {
+      instance = null;
+    }
+    if (!instance) {
+      res.status(404).json({ error: 'employee not found' });
+      return;
+    }
+    const mapping = await getIdentityMappingByMatrixUserId(instance.creator || '');
+    if (!mapping) {
+      res.status(404).json({ error: 'identity mapping not found for employee creator' });
+      return;
+    }
+    const prev = employeeProfileOverrides.get(id) || {};
+    employeeProfileOverrides.set(id, {
+      ...prev,
+      department: String(mapping.department || prev.department || instance.department || '').trim(),
+      role: String(mapping.jobCode || prev.role || instance.jobCode || '').trim(),
+      updatedAt: nowIso()
+    });
+    await context.auditService.log('admin.employee.identity.synced', {
+      actor: actorOf(req),
+      employeeId: id,
+      matrixUserId: String(instance.creator || '')
+    });
+    const row = await getEmployeeById(id);
+    res.json({
+      success: true,
+      employeeId: id,
+      mapping: {
+        matrixUserId: String(instance.creator || ''),
+        employeeNo: String(mapping.employeeNo || ''),
+        email: String(mapping.email || ''),
+        jobCode: String(mapping.jobCode || ''),
+        jobTitle: String(mapping.jobTitle || ''),
+        department: String(mapping.department || '')
+      },
+      employee: row
+    });
+  });
+
+  router.get('/api/admin/agents/shared', async (req, res) => {
+    let rows = await listSharedAgents();
+    const keyword = String((req.query && req.query.keyword) || '').trim().toLowerCase();
+    const status = String((req.query && req.query.status) || '').trim().toLowerCase();
+    const owner = String((req.query && req.query.ownerEmployeeId) || '').trim();
+    if (keyword) {
+      rows = rows.filter((x) => [
+        x.id,
+        x.name,
+        x.capabilitySignature,
+        x.description,
+        ...(Array.isArray(x.tags) ? x.tags : [])
+      ].join(' ').toLowerCase().includes(keyword));
+    }
+    if (status) rows = rows.filter((x) => String(x.status || '').toLowerCase() === status);
+    if (owner) rows = rows.filter((x) => String(x.ownerEmployeeId || '') === owner);
+
+    const summary = {
+      total: rows.length,
+      active: rows.filter((x) => String(x.status || '').toLowerCase() === 'active').length,
+      paused: rows.filter((x) => String(x.status || '').toLowerCase() === 'paused').length,
+      owned: rows.filter((x) => String(x.ownerEmployeeId || '').trim()).length,
+      shared: rows.filter((x) => !String(x.ownerEmployeeId || '').trim()).length
+    };
+    res.json({ rows, summary });
+  });
+
+  router.post('/api/admin/agents/shared/register', async (req, res) => {
+    await ensureSharedAgentsHydrated();
+    const actor = actorOf(req);
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const row = normalizeSharedAgent(body);
+    if (!row.name) {
+      res.status(400).json({ error: 'name is required' });
+      return;
+    }
+    if (!row.capabilitySignature) {
+      row.capabilitySignature = `${row.name}:${row.jobCodes.join(',') || 'general'}`;
+    }
+    const duplicated = Array.from(sharedAgentStore.values()).find((x) => (
+      String(x.capabilitySignature || '').toLowerCase() === String(row.capabilitySignature || '').toLowerCase()
+      && String(x.status || '').toLowerCase() !== 'deleted'
+    ));
+    if (duplicated) {
+      duplicated.usageCount = Math.max(0, Number(duplicated.usageCount || 0)) + 1;
+      duplicated.updatedAt = nowIso();
+      sharedAgentStore.set(duplicated.id, duplicated);
+      await persistSharedAgents(actor);
+      await context.auditService.log('admin.shared_agent.reused', {
+        actor,
+        sharedAgentId: duplicated.id,
+        capabilitySignature: duplicated.capabilitySignature
+      });
+      res.json({ reused: true, row: duplicated });
+      return;
+    }
+    sharedAgentStore.set(row.id, row);
+    await persistSharedAgents(actor);
+    await context.auditService.log('admin.shared_agent.registered', {
+      actor,
+      sharedAgentId: row.id,
+      name: row.name,
+      ownerEmployeeId: row.ownerEmployeeId || null
+    });
+    res.status(201).json({ reused: false, row });
+  });
+
+  router.post('/api/admin/agents/shared/:id', async (req, res) => {
+    await ensureSharedAgentsHydrated();
+    const actor = actorOf(req);
+    const id = String(req.params.id || '').trim();
+    if (!id) {
+      res.status(400).json({ error: 'id is required' });
+      return;
+    }
+    const seed = sharedAgentStore.get(id);
+    if (!seed) {
+      res.status(404).json({ error: 'shared agent not found' });
+      return;
+    }
+    const patch = req.body && typeof req.body === 'object' ? req.body : {};
+    const next = normalizeSharedAgent(patch, seed);
+    sharedAgentStore.set(id, next);
+    await persistSharedAgents(actor);
+    await context.auditService.log('admin.shared_agent.updated', {
+      actor,
+      sharedAgentId: id
+    });
+    res.json(next);
+  });
+
+  router.post('/api/admin/agents/shared/:id/delete', async (req, res) => {
+    await ensureSharedAgentsHydrated();
+    const actor = actorOf(req);
+    const id = String(req.params.id || '').trim();
+    const seed = sharedAgentStore.get(id);
+    if (!seed) {
+      res.status(404).json({ error: 'shared agent not found' });
+      return;
+    }
+    const next = { ...seed, status: 'deleted', updatedAt: nowIso() };
+    sharedAgentStore.set(id, next);
+    await persistSharedAgents(actor);
+    await context.auditService.log('admin.shared_agent.deleted', {
+      actor,
+      sharedAgentId: id
+    });
+    res.json({ success: true, id });
+  });
+
+  router.get('/api/admin/agents/shared/recommend', async (req, res) => {
+    const jobCode = String((req.query && req.query.jobCode) || '').trim().toLowerCase();
+    const keyword = String((req.query && req.query.keyword) || '').trim().toLowerCase();
+    let rows = (await listSharedAgents()).filter((x) => String(x.status || '').toLowerCase() === 'active');
+    if (jobCode) {
+      rows = rows.filter((x) => (
+        Array.isArray(x.jobCodes) && x.jobCodes.map((k) => String(k || '').toLowerCase()).includes(jobCode)
+      ));
+    }
+    if (keyword) {
+      rows = rows.filter((x) => [
+        x.name,
+        x.capabilitySignature,
+        ...(Array.isArray(x.tags) ? x.tags : [])
+      ].join(' ').toLowerCase().includes(keyword));
+    }
+    rows.sort((a, b) => (Number(b.usageCount || 0) - Number(a.usageCount || 0)) || (toMs(b.updatedAt) - toMs(a.updatedAt)));
+    res.json({
+      rows: rows.slice(0, 30),
+      summary: {
+        total: rows.length,
+        jobCode: jobCode || null,
+        keyword: keyword || null
+      }
+    });
+  });
+
+  router.post('/api/admin/agents/shared/auto-bind/:employeeId', async (req, res) => {
+    await ensureSharedAgentsHydrated();
+    const actor = actorOf(req);
+    const employeeId = String(req.params.employeeId || '').trim();
+    const sharedAgentId = String((req.body && req.body.sharedAgentId) || '').trim();
+    if (!employeeId || !sharedAgentId) {
+      res.status(400).json({ error: 'employeeId and sharedAgentId are required' });
+      return;
+    }
+    const sharedAgent = sharedAgentStore.get(sharedAgentId);
+    if (!sharedAgent || String(sharedAgent.status || '').toLowerCase() === 'deleted') {
+      res.status(404).json({ error: 'shared agent not found' });
+      return;
+    }
+    const profile = employeeProfileOverrides.get(employeeId) || {};
+    const childAgents = Array.isArray(profile.childAgents) ? profile.childAgents.slice() : [];
+    const existed = childAgents.find((x) => String((x && x.id) || '') === sharedAgentId);
+    if (!existed) {
+      childAgents.push({
+        id: sharedAgent.id,
+        name: sharedAgent.name,
+        status: sharedAgent.status || 'active',
+        shared: true,
+        capabilitySignature: sharedAgent.capabilitySignature,
+        usageCount: sharedAgent.usageCount || 0,
+        tags: Array.isArray(sharedAgent.tags) ? sharedAgent.tags : []
+      });
+    }
+    employeeProfileOverrides.set(employeeId, { ...profile, childAgents, updatedAt: nowIso() });
+
+    sharedAgent.usageCount = Math.max(0, Number(sharedAgent.usageCount || 0)) + 1;
+    sharedAgent.updatedAt = nowIso();
+    sharedAgentStore.set(sharedAgent.id, sharedAgent);
+    await persistSharedAgents(actor);
+    await context.auditService.log('admin.shared_agent.auto_bound', {
+      actor,
+      employeeId,
+      sharedAgentId
+    });
+
+    const row = await getEmployeeById(employeeId);
+    res.json({ success: true, employeeId, sharedAgentId, employee: row });
+  });
+
   router.get('/api/admin/skills', async (req, res) => {
     const shared = await listSharedAssets('skill');
     const rows = shared
@@ -1422,6 +2013,56 @@ function buildAdminCompatRouter(context) {
 
   router.get('/api/admin/auth/health', (_req, res) => {
     res.json({ ok: true, users: userStore.size, roles: roleStore.size, updatedAt: nowIso() });
+  });
+
+  router.get('/api/admin/auth/identity-mappings', async (_req, res) => {
+    if (!context.repo || typeof context.repo.getPlatformConfig !== 'function') {
+      res.json({ rows: [], summary: { total: 0 } });
+      return;
+    }
+    const directory = await context.repo.getPlatformConfig('identityDirectory');
+    const records = directory && typeof directory.records === 'object' ? directory.records : {};
+    const rows = Object.keys(records).map((key) => ({
+      matrixUserId: key,
+      ...(records[key] || {})
+    })).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
+    res.json({
+      rows,
+      summary: { total: rows.length, updatedAt: directory && directory.updatedAt ? directory.updatedAt : null }
+    });
+  });
+
+  router.post('/api/admin/auth/identity-mappings/:matrixUserId', async (req, res) => {
+    if (!context.repo || typeof context.repo.getPlatformConfig !== 'function' || typeof context.repo.setPlatformConfig !== 'function') {
+      res.status(501).json({ error: 'identity mapping persistence unavailable' });
+      return;
+    }
+    const matrixUserId = normalizeMatrixUserId(req.params.matrixUserId);
+    if (!matrixUserId) {
+      res.status(400).json({ error: 'matrixUserId is required' });
+      return;
+    }
+    const patch = req.body && typeof req.body === 'object' ? req.body : {};
+    const directory = await context.repo.getPlatformConfig('identityDirectory');
+    const records = directory && typeof directory.records === 'object' ? { ...directory.records } : {};
+    const prev = records[matrixUserId] && typeof records[matrixUserId] === 'object' ? records[matrixUserId] : {};
+    const next = {
+      ...prev,
+      ...patch,
+      matrixUserId,
+      updatedAt: nowIso()
+    };
+    records[matrixUserId] = next;
+    await context.repo.setPlatformConfig('identityDirectory', {
+      records,
+      updatedAt: nowIso(),
+      updatedBy: actorOf(req)
+    });
+    await context.auditService.log('admin.auth.identity_mapping.updated', {
+      actor: actorOf(req),
+      matrixUserId
+    });
+    res.json(next);
   });
 
   router.get('/api/admin/auth/users', (_req, res) => {

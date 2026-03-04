@@ -3,6 +3,12 @@
   var MASK_ID = "dcfMatrixMessageDrawerMask";
   var BODY_OPEN_CLASS = "dcf-matrix-drawer-open";
   var STYLE_ID = "dcfMatrixDrawerStyle";
+  var ADMIN_ENTRY_ITEM_CLASS = "dcf-admin-entry-item";
+  var adminEntryState = {
+    checked: false,
+    visible: false,
+    adminUrl: "/admin/index.html"
+  };
 
   function ready(fn) {
     if (document.readyState === "loading") {
@@ -38,6 +44,7 @@
       "#" + DRAWER_ID + " .dcf-actions { display: flex; gap: 8px; flex-wrap: wrap; }",
       "#" + DRAWER_ID + " .dcf-actions button { border: 1px solid #bed2f7; background: #f2f7ff; color: #24508e; border-radius: 10px; min-height: 34px; padding: 0 10px; cursor: pointer; font-size: 12px; }",
       "#" + DRAWER_ID + " .dcf-actions button:hover { filter: brightness(1.03); }",
+      "." + ADMIN_ENTRY_ITEM_CLASS + " { color: #1a4f98 !important; font-weight: 600 !important; }",
       ".mx_AuthFooter { display: none !important; }",
       "@media (max-width: 980px) { body." + BODY_OPEN_CLASS + " .mx_RoomView { margin-right: 0; } #" + DRAWER_ID + " { width: 100vw; max-width: 100vw; } }"
     ].join("\n");
@@ -150,6 +157,103 @@
     }
   }
 
+  function normalizeText(input) {
+    return String(input || "").trim().toLowerCase();
+  }
+
+  function getMatrixUserId() {
+    return String(localStorage.getItem("mx_user_id") || "").trim();
+  }
+
+  function hasNotificationLabel(text) {
+    var t = normalizeText(text);
+    return t === "通知" || t === "notifications";
+  }
+
+  function openAdminInNewTab() {
+    var url = String(adminEntryState.adminUrl || "/admin/index.html");
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function findNotificationAnchor() {
+    var nodes = document.querySelectorAll("button, a, [role='menuitem']");
+    for (var i = 0; i < nodes.length; i += 1) {
+      var node = nodes[i];
+      if (!(node instanceof Element)) continue;
+      if (node.closest("#" + DRAWER_ID)) continue;
+      if (!node.offsetParent) continue;
+      if (!hasNotificationLabel(node.textContent || "")) continue;
+      return node;
+    }
+    return null;
+  }
+
+  function ensureAdminEntryItem() {
+    var old = document.querySelectorAll("." + ADMIN_ENTRY_ITEM_CLASS);
+    if (!adminEntryState.visible) {
+      old.forEach(function (n) { n.remove(); });
+      return;
+    }
+    if (old.length > 1) {
+      for (var i = 1; i < old.length; i += 1) old[i].remove();
+    }
+    if (old.length === 1) return;
+    var anchor = findNotificationAnchor();
+    if (!anchor || !anchor.parentElement) return;
+    var item;
+    if (anchor.tagName === "A") {
+      item = document.createElement("a");
+      item.href = String(adminEntryState.adminUrl || "/admin/index.html");
+      item.target = "_blank";
+      item.rel = "noopener noreferrer";
+    } else {
+      item = document.createElement("button");
+      item.type = "button";
+      item.addEventListener("click", function (event) {
+        event.preventDefault();
+        openAdminInNewTab();
+      });
+    }
+    item.className = String(anchor.className || "").trim() + " " + ADMIN_ENTRY_ITEM_CLASS;
+    item.setAttribute("role", anchor.getAttribute("role") || "menuitem");
+    item.textContent = "管理后台";
+    anchor.parentElement.insertBefore(item, anchor);
+  }
+
+  function fetchAdminEntryCapability() {
+    if (adminEntryState.checked) return Promise.resolve();
+    adminEntryState.checked = true;
+    var matrixUserId = getMatrixUserId();
+    if (!matrixUserId) {
+      adminEntryState.visible = false;
+      return Promise.resolve();
+    }
+    var query = "/api/auth/matrix-admin-entry?matrixUserId=" + encodeURIComponent(matrixUserId);
+    return fetch(query, { credentials: "include", cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("admin entry capability request failed");
+        return r.json();
+      })
+      .then(function (data) {
+        adminEntryState.visible = Boolean(data && data.showAdminEntry);
+        adminEntryState.adminUrl = String((data && data.adminUrl) || "/admin/index.html");
+      })
+      .catch(function () {
+        adminEntryState.visible = false;
+      });
+  }
+
+  function watchAdminEntryMenu() {
+    fetchAdminEntryCapability().then(function () {
+      ensureAdminEntryItem();
+      var observer = new MutationObserver(function () {
+        ensureAdminEntryItem();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      setInterval(ensureAdminEntryItem, 1200);
+    });
+  }
+
   function bindGlobalEvents() {
     document.addEventListener("click", function (event) {
       if (!isRoomView()) return;
@@ -193,5 +297,6 @@
     ensureStyle();
     ensureNodes();
     bindGlobalEvents();
+    watchAdminEntryMenu();
   });
 })();
