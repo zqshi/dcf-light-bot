@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>个人待办中心</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "background-light": "#F5F5F7",
+                        "background-dark": "#1C1C1E",
+                        "apple-gray": "#8E8E93"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.25rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { font-family: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; -webkit-font-smoothing: antialiased; }
+        }
+        .glass-sidebar { 
+            background: rgba(249, 249, 249, 0.8); 
+            backdrop-filter: blur(20px); 
+            border-right: 1px solid rgba(0, 0, 0, 0.08); 
+        }
+        .macos-shadow {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .task-card {
+            background: white;
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .task-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+        .layout-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        .apple-checkbox {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 1.5px solid #C7C7CC;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .apple-checkbox:checked {
+            background-color: #007AFF;
+            border-color: #007AFF;
+        }
+        .apple-checkbox:checked::after {
+            content: "check";
+            font-family: 'Material Symbols Outlined';
+            font-size: 14px;
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .expand-btn {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .task-card:hover .expand-btn {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden h-screen">
+<div class="layout-container">
+<aside class="w-16 glass-sidebar flex flex-col items-center py-6 gap-6 z-30 shrink-0">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md mb-2">
+<span class="material-symbols-outlined text-2xl">check_circle</span>
+</div>
+<nav class="flex flex-col gap-4 flex-1">
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center transition-all hover:bg-black/5">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center transition-all hover:bg-black/5">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center transition-all">
+<span class="material-symbols-outlined fill-1">task_alt</span>
+</button>
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center transition-all hover:bg-black/5">
+<span class="material-symbols-outlined">calendar_month</span>
+</button>
+<div class="h-px w-6 bg-slate-200 mx-auto my-1"></div>
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center transition-all hover:bg-black/5">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<div class="mt-auto">
+<div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-black/5">
+<img alt="用户头像" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8gidja6zNFp5d2j_xE8Y2dvNgiVh6eqQujbqA3S1gYSUnM6RPcCM7sBZU8e-RwVj9bFBuxKgUl55MtY5Un8tRI82HA8dRr7Xded9TYgNiysLj-2eKxENPh7SFr-T_0LQ2rv32qeWLYjA3Ne91gZ05WGwSyMhoAyNiILrL3baFWiMDhyMN6guBLCVWRK6QwRen6y24Fivq-Rt8zhLvu7dRYOFMBSdVIqu5WOxMDL8qCiTzTY4hEQDEN96hMigdZQ4WLMB8-rcAoFw"/>
+</div>
+</div>
+</aside>
+<aside class="w-64 bg-white/50 backdrop-blur-sm border-r border-slate-200 dark:border-slate-800 flex flex-col z-20 shrink-0">
+<div class="p-5">
+<div class="flex items-center justify-between mb-6">
+<h1 class="text-xl font-bold tracking-tight">个人待办</h1>
+<button class="text-slate-400 p-1 rounded-full hover:bg-slate-100">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+<div class="relative mb-6">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-black/5 dark:bg-white/5 border-none rounded-lg pl-9 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="搜索待办事项..." type="text"/>
+</div>
+<nav class="space-y-1">
+<button class="w-full flex items-center gap-3 p-2.5 bg-primary/10 text-primary rounded-lg font-medium text-sm">
+<span class="material-symbols-outlined text-xl">today</span>
+<span>今日待办</span>
+<span class="ml-auto text-xs opacity-70">5</span>
+</button>
+<button class="w-full flex items-center gap-3 p-2.5 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-black/5 text-sm">
+<span class="material-symbols-outlined text-xl">upcoming</span>
+<span>即将到来</span>
+<span class="ml-auto text-xs opacity-50">12</span>
+</button>
+<button class="w-full flex items-center gap-3 p-2.5 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-black/5 text-sm">
+<span class="material-symbols-outlined text-xl">check_circle</span>
+<span>已完成</span>
+</button>
+<div class="py-3 px-2">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">清单</span>
+</div>
+<button class="w-full flex items-center gap-3 p-2.5 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-black/5 text-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+<span>工作项目</span>
+</button>
+<button class="w-full flex items-center gap-3 p-2.5 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-black/5 text-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+<span>个人生活</span>
+</button>
+</nav>
+</div>
+</aside>
+<main class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 min-w-0 overflow-hidden">
+<header class="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+<div class="flex items-center gap-3">
+<h2 class="font-bold text-lg">今日待办</h2>
+<span class="text-sm text-slate-400 font-normal">10月24日，星期四</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><span class="material-symbols-outlined">filter_list</span></button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-8">
+<div class="max-w-3xl mx-auto w-full flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-800 rounded-xl p-1 macos-shadow flex items-center gap-2 border border-black/5 mb-4">
+<div class="p-2 text-primary">
+<span class="material-symbols-outlined">add</span>
+</div>
+<input class="flex-1 border-none focus:ring-0 text-sm bg-transparent py-3" placeholder="添加待办事项..." type="text"/>
+<div class="px-3 flex gap-2">
+<button class="text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-xl">event</span></button>
+<button class="text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-xl">flag</span></button>
+</div>
+</div>
+<section>
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        高优先级
+                    </h3>
+<div class="space-y-3">
+<div class="task-card rounded-xl p-4 flex items-start gap-4">
+<input class="apple-checkbox mt-0.5 shrink-0" type="checkbox"/>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-semibold text-slate-900 dark:text-white truncate">审核桌面客户端重构 PR</h4>
+<span class="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight">高</span>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span>今日 14:00</span>
+</div>
+<div class="flex items-center gap-1.5 text-primary text-xs font-medium">
+<span class="material-symbols-outlined text-sm">group</span>
+<span>前端开发小组</span>
+</div>
+</div>
+<button class="expand-btn text-slate-400 hover:text-primary transition-colors" title="展开详情">
+<span class="material-symbols-outlined text-lg">open_in_full</span>
+</button>
+</div>
+</div>
+</div>
+<div class="task-card rounded-xl p-4 flex items-start gap-4">
+<input class="apple-checkbox mt-0.5 shrink-0" type="checkbox"/>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-semibold text-slate-900 dark:text-white truncate">准备季度财务汇报演示文稿</h4>
+<span class="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight">高</span>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span>今日 17:30</span>
+</div>
+<div class="flex items-center gap-1.5 text-slate-500 text-xs">
+<span class="material-symbols-outlined text-sm">description</span>
+<span>财务报表_Q3.pdf</span>
+</div>
+</div>
+<button class="expand-btn text-slate-400 hover:text-primary transition-colors" title="展开详情">
+<span class="material-symbols-outlined text-lg">open_in_full</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        日常事务
+                    </h3>
+<div class="space-y-3">
+<div class="task-card rounded-xl p-4 flex items-start gap-4">
+<input class="apple-checkbox mt-0.5 shrink-0" type="checkbox"/>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-semibold text-slate-900 dark:text-white truncate">回复 Alex 关于暗黑模式的疑问</h4>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-sm">chat</span>
+<span>来自私聊会话</span>
+</div>
+</div>
+<button class="expand-btn text-slate-400 hover:text-primary transition-colors" title="展开详情">
+<span class="material-symbols-outlined text-lg">open_in_full</span>
+</button>
+</div>
+</div>
+</div>
+<div class="task-card rounded-xl p-4 flex items-start gap-4">
+<input class="apple-checkbox mt-0.5 shrink-0" type="checkbox"/>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-semibold text-slate-900 dark:text-white truncate">预定下周二的会议室</h4>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span>10月29日</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="opacity-60">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">已完成</h3>
+<div class="space-y-3">
+<div class="task-card rounded-xl p-4 flex items-start gap-4 bg-slate-50/50">
+<input checked="" class="apple-checkbox mt-0.5 shrink-0" type="checkbox"/>
+<div class="flex-1 min-w-0">
+<h4 class="font-medium text-slate-500 line-through truncate">更新个人周报</h4>
+<div class="mt-1 text-[10px] text-slate-400">完成于 上午 09:15</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<aside class="w-[30%] bg-white dark:bg-slate-900 flex flex-col shrink-0 border-l border-slate-200 dark:border-slate-800 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] relative z-10">
+<div class="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0">
+<h2 class="font-bold text-base">任务详情</h2>
+<button class="p-1.5 hover:bg-slate-100 rounded-lg"><span class="material-symbols-outlined text-slate-500">close</span></button>
+</div>
+<div class="p-6 overflow-y-auto space-y-8">
+<section>
+<div class="mb-6">
+<span class="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-50 px-2 py-1 rounded">高优先级待办</span>
+<h3 class="text-xl font-bold mt-3 leading-tight">审核桌面客户端重构 PR</h3>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between py-2 border-b border-slate-100">
+<span class="text-sm text-slate-500">截止日期</span>
+<span class="text-sm font-medium">今天 14:00</span>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-slate-100">
+<span class="text-sm text-slate-500">关联频道</span>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-primary">前端开发小组</span>
+<span class="material-symbols-outlined text-sm text-slate-400">chevron_right</span>
+</div>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-slate-100">
+<span class="text-sm text-slate-500">关联文档</span>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium truncate max-w-[120px]">重构设计规范.md</span>
+<span class="material-symbols-outlined text-sm text-slate-400">open_in_new</span>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">协作成员</h4>
+<div class="flex -space-x-2">
+<img alt="Sarah Chen" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7nQlFgCd7wh3FTdCZG0_geSGQZx0Zl1nm27l9jCrDKdbm_fk6eJeCQIvybXYXAL_rxtHa6XjIvhUI7mfB-0h-h3E7qioOfc815QqQMno4oqEznzWNzi7Gf30jlBakEi6IAu59NkU5JhTNt7yohG4V0Ikro1bFrpIQx20lFR1eiRQ3oKE1jXD9VO4qUV5wvkbFMwCuAQ3KIXrbu9YQVEFbAgwILLKOmEmJpj12Z_yEe9xNQEEksErSIg8LPHYwrBQzDDHdZZBCWh8"/>
+<img alt="Alex Rivera" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHeEPh3w9knn7jsaYyrPTJrnwodbViWEkqoeKyZAPr35ebMX8yJRqOZtEGbOX8PeIWD-GklhJtgLKohtcXvIdnn_W7qZttb_CkVNwmT2-o6P0SS20cpRTS4tNNNOhJ-B6q40StI9-2U6uIEw1rBEdNUAuZXLHaQHJTwNxGQ5N3pe0VJd381hahHn5849oLXAZ1Ev8r-8Ensi1nbjWdXiJ-krW0MJEBFfc469pWGGW9-Ckfb5kCHqV-Yi08lUFbKrrt-_Gh96-GY2U"/>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">+1</div>
+</div>
+</section>
+<section>
+<div class="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+<h4 class="text-sm font-bold text-primary mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-base">auto_awesome</span> 待办小贴士
+                    </h4>
+<p class="text-xs text-slate-600 leading-relaxed">
+                        根据您的日历安排，今天下午 2:00 - 3:00 您有一段专注时间，适合进行代码审核工作。
+                    </p>
+</div>
+</section>
+</div>
+<div class="mt-auto p-6 border-t border-slate-100">
+<button class="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+                标记为已完成
+            </button>
+</div>
+</aside>
+</div>
+
+</body></html>

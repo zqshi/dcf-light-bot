@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>表格 AI 公式助手 - 企业知识库</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "background-light": "#F5F5F7",
+                        "background-dark": "#1C1C1E",
+                        "excel-green": "#1D7446"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1.25rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        .dark .glass-effect {
+            background: rgba(28, 28, 30, 0.75);
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+        .ai-glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(30px) saturate(200%);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
+        .dark .ai-glass {
+            background: rgba(44, 44, 46, 0.85);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .sidebar-item-active {
+            background-color: rgba(0, 122, 255, 0.1);
+            color: #007AFF;
+        }
+        .grid-cell {
+            border-right: 1px solid rgba(0,0,0,0.06);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            padding: 0 8px;
+            font-size: 12px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+        }
+        .dark .grid-cell {
+            border-right: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .col-header {
+            background: #F8F9FA;
+            font-weight: 500;
+            color: #666;
+            justify-content: center;
+        }
+        .dark .col-header {
+            background: #2C2C2E;
+            color: #A1A1AA;
+        }
+        .row-header {
+            background: #F8F9FA;
+            width: 40px;
+            justify-content: center;
+            color: #999;
+        }
+        .dark .row-header {
+            background: #2C2C2E;
+        }
+        body { font-size: 0.8125rem; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-700 dark:text-slate-300 antialiased h-screen overflow-hidden">
+<div class="flex h-full">
+<aside class="w-16 flex flex-col items-center py-6 border-r border-slate-200/60 dark:border-slate-800/60 glass-effect z-30">
+<div class="mb-8">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-2xl">hub</span>
+</div>
+</div>
+<nav class="flex flex-col gap-6 flex-1">
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">chat</span>
+</button>
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">group</span>
+</button>
+<button class="p-2 rounded-xl text-primary bg-primary/10 transition-all">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">auto_stories</span>
+</button>
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">calendar_month</span>
+</button>
+</nav>
+<div class="mt-auto flex flex-col gap-6">
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+<div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-white dark:ring-slate-800">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdbSHLrD5JxMSM8yqqULqwyFBa22Cme-_bgKpO2vIK8Jl2w1GebqJQ6xegMVRMQI867uLFBi66cttlIIG4YysyxOdQsm89UAldEzRcFBET6lRBKvy1Joi0FRV_WZmIvOAnyFmNPMCzn4pGaG8k0Fefh4_hvPqOPQtkQq1rYXOhlzTTBlz0A9JpDv3EKiuVURWvpi93yTRZCmSIFWpO2XGYyGP6BTOEQrFUEcd4PrHkn8eHyiu6oQfxt4kpFaX5_UIrr4WLSww3XM4"/>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col bg-white dark:bg-black/20 overflow-hidden relative">
+<header class="h-14 flex items-center justify-between px-6 border-b border-slate-200/60 dark:border-slate-800/60 glass-effect relative z-30">
+<nav class="flex items-center gap-2 text-[13px]">
+<a class="text-slate-500 hover:text-primary transition-colors" href="#">部门资产</a>
+<span class="material-symbols-outlined text-[16px] text-slate-300">chevron_right</span>
+<span class="text-slate-500">财务部 (Finance)</span>
+<span class="material-symbols-outlined text-[16px] text-slate-300">chevron_right</span>
+<span class="font-semibold text-slate-900 dark:text-white">2024年销售收入统计表.xlsx</span>
+</nav>
+<div class="flex items-center gap-3">
+<div class="flex items-center bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-lg border border-transparent hover:border-primary/20 transition-all cursor-default">
+<span class="material-symbols-outlined text-[16px] text-primary mr-2" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+<span class="text-[12px] font-medium text-slate-600 dark:text-slate-300">AI 公式助手已就绪</span>
+</div>
+<div class="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+<button class="bg-primary text-white px-4 py-1.5 rounded-lg text-[12px] font-semibold flex items-center gap-2 hover:bg-primary/90 shadow-md shadow-primary/10 transition-all">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                    保存更改
+                </button>
+</div>
+</header>
+<div class="h-10 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center px-4 gap-2 bg-white dark:bg-slate-900/50">
+<div class="text-[12px] font-medium text-slate-400 w-10 text-center">fx</div>
+<div class="h-4 w-px bg-slate-200 dark:bg-slate-700"></div>
+<div class="flex-1 text-[13px] text-slate-700 dark:text-slate-300 font-mono">=SUMIF(C2:C100, "&gt;=50000", D2:D100)</div>
+</div>
+<div class="flex-1 overflow-auto custom-scrollbar relative bg-[#F8F9FA] dark:bg-slate-900">
+<div class="inline-block min-w-full">
+<div class="flex sticky top-0 z-20">
+<div class="grid-cell row-header border-t"></div>
+<div class="grid-cell col-header border-t w-32">A</div>
+<div class="grid-cell col-header border-t w-48">B</div>
+<div class="grid-cell col-header border-t w-48">C</div>
+<div class="grid-cell col-header border-t w-48">D</div>
+<div class="grid-cell col-header border-t w-48">E</div>
+<div class="grid-cell col-header border-t w-48">F</div>
+</div>
+<div class="flex flex-col bg-white dark:bg-slate-950">
+<div class="flex">
+<div class="grid-cell row-header">1</div>
+<div class="grid-cell w-32 font-bold bg-slate-50 dark:bg-slate-900/40">日期</div>
+<div class="grid-cell w-48 font-bold bg-slate-50 dark:bg-slate-900/40">项目名称</div>
+<div class="grid-cell w-48 font-bold bg-slate-50 dark:bg-slate-900/40">销售额</div>
+<div class="grid-cell w-48 font-bold bg-slate-50 dark:bg-slate-900/40">部门</div>
+<div class="grid-cell w-48 font-bold bg-slate-50 dark:bg-slate-900/40">负责人</div>
+<div class="grid-cell w-48 font-bold bg-slate-50 dark:bg-slate-900/40">备注</div>
+</div>
+<div class="flex">
+<div class="grid-cell row-header">2</div>
+<div class="grid-cell w-32">2024-03-01</div>
+<div class="grid-cell w-48">云服务 A 合约</div>
+<div class="grid-cell w-48">125,000.00</div>
+<div class="grid-cell w-48">华东销售部</div>
+<div class="grid-cell w-48">张晓明</div>
+<div class="grid-cell w-48">已到账</div>
+</div>
+<div class="flex">
+<div class="grid-cell row-header">3</div>
+<div class="grid-cell w-32">2024-03-05</div>
+<div class="grid-cell w-48">硬件采购订单</div>
+<div class="grid-cell w-48">45,600.00</div>
+<div class="grid-cell w-48">华南销售部</div>
+<div class="grid-cell w-48">李静</div>
+<div class="grid-cell w-48">待审核</div>
+</div>
+<div class="flex">
+<div class="grid-cell row-header">4</div>
+<div class="grid-cell w-32">2024-03-10</div>
+<div class="grid-cell w-48">软件授权升级</div>
+<div class="grid-cell w-48">89,000.00</div>
+<div class="grid-cell w-48">华北销售部</div>
+<div class="grid-cell w-48">王志强</div>
+<div class="grid-cell w-48">已到账</div>
+</div>
+<div class="flex relative">
+<div class="grid-cell row-header">5</div>
+<div class="grid-cell w-32"></div>
+<div class="grid-cell w-48 font-semibold text-slate-400 italic">合计汇总</div>
+<div class="grid-cell w-48 border-2 border-primary z-10 bg-white dark:bg-slate-900 ring-2 ring-primary/20">
+<span class="font-mono text-[12px]">=SUMIF(</span>
+<span class="w-0.5 h-4 bg-primary ml-0.5 animate-pulse"></span>
+</div>
+<div class="absolute left-[220px] top-[28px] w-[280px] ai-glass rounded-xl p-2 z-40 border border-white/20">
+<div class="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-slate-200/40 dark:border-slate-700/40">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AI 智能建议</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<button class="flex flex-col text-left px-3 py-2 rounded-lg hover:bg-primary/10 group transition-all">
+<div class="flex items-center justify-between w-full mb-0.5">
+<span class="text-[13px] font-semibold text-slate-700 dark:text-slate-200">计算本月销售总额</span>
+<span class="text-[10px] text-primary opacity-0 group-hover:opacity-100 font-bold">按 ENTER 补全</span>
+</div>
+<span class="text-[11px] text-slate-500 font-mono">=SUMIF(A:A, "&gt;=2024-03-01", C:C)</span>
+</button>
+<button class="flex flex-col text-left px-3 py-2 rounded-lg hover:bg-primary/10 group transition-all">
+<div class="flex items-center justify-between w-full mb-0.5">
+<span class="text-[13px] font-semibold text-slate-700 dark:text-slate-200">按部门汇总支出</span>
+<span class="text-[10px] text-primary opacity-0 group-hover:opacity-100 font-bold">按 ENTER 补全</span>
+</div>
+<span class="text-[11px] text-slate-500 font-mono">=SUMIF(D:D, "华东销售部", C:C)</span>
+</button>
+<div class="my-1 border-t border-slate-200/40 dark:border-slate-700/40"></div>
+<div class="px-3 py-2">
+<div class="flex items-center gap-1.5 text-[12px] font-bold text-slate-800 dark:text-slate-100 mb-1">
+<span class="material-symbols-outlined text-[16px] text-slate-400">info</span>
+                                        SUMIF 函数语法
+                                    </div>
+<p class="text-[11px] text-slate-500 leading-relaxed">
+                                        用于对区域中符合指定条件的单元格求和。<br/>
+<span class="text-primary font-mono">SUMIF(range, criteria, [sum_range])</span>
+</p>
+</div>
+</div>
+<div class="mt-2 p-2 bg-gradient-to-r from-primary/5 to-transparent rounded-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">magic_button</span>
+<span class="text-[11px] text-slate-600 dark:text-slate-400">输入您的自然语言需求，让 AI 生成公式</span>
+</div>
+</div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+</div>
+<div class="flex">
+<div class="grid-cell row-header">6</div>
+<div class="grid-cell w-32"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+</div>
+<div class="flex">
+<div class="grid-cell row-header">7</div>
+<div class="grid-cell w-32"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+<div class="grid-cell w-48"></div>
+</div>
+</div>
+</div>
+</div>
+<footer class="h-8 border-t border-slate-200/60 dark:border-slate-800/60 glass-effect flex items-center px-4 justify-between z-20">
+<div class="flex items-center gap-4 text-[11px] text-slate-500">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    在线协作中 (3人)
+                </div>
+<div>选中区域: C5</div>
+</div>
+<div class="flex items-center gap-4 text-[11px] text-slate-500">
+<div>计数: 3</div>
+<div>求和: 259,600.00</div>
+<div class="h-3 w-px bg-slate-200 dark:bg-slate-800"></div>
+<div class="flex items-center gap-1 cursor-pointer hover:text-primary">
+<span class="material-symbols-outlined text-[14px]">zoom_in</span>
+                    100%
+                </div>
+</div>
+</footer>
+</main>
+</div>
+
+</body></html>

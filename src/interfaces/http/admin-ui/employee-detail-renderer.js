@@ -61,6 +61,32 @@
       `;
     }
 
+    function matrixStatusMeta(status) {
+      const key = String(status || '').toLowerCase();
+      if (key === 'ready') return { text: '可聊', tone: 'ok' };
+      if (key === 'failed') return { text: '不可聊', tone: 'warn' };
+      if (key === 'degraded') return { text: '不可聊', tone: 'warn' };
+      return { text: '未知', tone: '' };
+    }
+
+    function matrixIssueText(issue) {
+      const map = {
+        room_not_bound: '未绑定 Matrix 会话房间',
+        matrix_user_missing: '缺少 Matrix 用户ID配置',
+        matrix_homeserver_missing: '缺少 Matrix Homeserver 配置',
+        matrix_auth_missing: '缺少 Matrix 鉴权配置（Token/Password）',
+        runtime_not_ready: 'OpenClaw 实例未就绪',
+        provision_failed: '实例创建失败'
+      };
+      return map[String(issue || '').trim()] || String(issue || '未知问题');
+    }
+
+    function renderMatrixIssues(issues = []) {
+      const list = Array.isArray(issues) ? issues.filter(Boolean) : [];
+      if (!list.length) return '<div class="overview-item">无异常，链路可用。</div>';
+      return list.map((item) => `<div class="overview-item">${escapeHtml(matrixIssueText(item))}</div>`).join('');
+    }
+
     return function renderEmployeeDetail(detail) {
       const body = getNode('employeeDrawerBody');
       const title = getNode('employeeDrawerTitle');
@@ -83,6 +109,14 @@
       const effectiveRetrievalMode = (runtimeSummary.effectiveRetrievalMode && typeof runtimeSummary.effectiveRetrievalMode === 'object')
         ? runtimeSummary.effectiveRetrievalMode
         : { mode: '-', source: '-' };
+      const matrixCheck = (
+        detail.checks && detail.checks.matrix && typeof detail.checks.matrix === 'object'
+          ? detail.checks.matrix
+          : ((runtimeSummary.matrixChannelCheck && typeof runtimeSummary.matrixChannelCheck === 'object')
+            ? runtimeSummary.matrixChannelCheck
+            : {})
+      );
+      const matrixStatus = matrixStatusMeta(matrixCheck.status);
 
       title.textContent = `员工详情 · ${detail.id || '-'}`;
       body.innerHTML = `
@@ -91,9 +125,15 @@
           <div class="overview-kpis">
             <div><span>实例ID</span><strong>${escapeHtml(detail.id || '-')}</strong></div>
             <div><span>姓名</span><strong>${escapeHtml(detail.name || '-')}</strong></div>
+            <div><span>数字员工ID</span><strong>${escapeHtml(detail.employeeId || '-')}</strong></div>
+            <div><span>工号</span><strong>${escapeHtml(detail.employeeNo || '-')}</strong></div>
+            <div><span>邮箱</span><strong>${escapeHtml(detail.email || '-')}</strong></div>
+            <div><span>企业用户ID</span><strong>${escapeHtml(detail.enterpriseUserId || '-')}</strong></div>
             <div><span>租户</span><strong>${escapeHtml(detail.tenantId || '-')}</strong></div>
             <div><span>固定会话ID</span><strong>${escapeHtml(detail.matrixRoomId || '-')}</strong></div>
             <div><span>部门/岗位</span><strong>${escapeHtml(formatDeptRoleText(detail.department, detail.role))}</strong></div>
+            <div><span>岗位名称</span><strong>${escapeHtml(detail.jobTitle || '-')}</strong></div>
+            <div><span>权限模板</span><strong>${escapeHtml(detail.permissionTemplateId || '-')}</strong></div>
             <div><span>员工状态</span><strong>${escapeHtml(detail.status || '-')}</strong></div>
           </div>
         </section>
@@ -129,6 +169,21 @@
             <summary>System Prompt</summary>
             <pre class="mono">${escapeHtml(runtimeProfile.systemPrompt || '未配置')}</pre>
           </details>
+          <div style="margin-top:10px;">
+            <div class="toolbar-note">Matrix Channel 检查</div>
+            <div class="overview-kpis" style="margin-top:6px;">
+              <div><span>连通状态</span><strong><span class="badge ${matrixStatus.tone}">${escapeHtml(matrixStatus.text)}</span></strong></div>
+              <div><span>原始状态</span><strong>${escapeHtml(matrixCheck.status || '-')}</strong></div>
+              <div><span>检查时间</span><strong>${escapeHtml(formatDate(matrixCheck.checkedAt || '-'))}</strong></div>
+              <div><span>会话房间</span><strong>${escapeHtml(matrixCheck.roomId || detail.matrixRoomId || '-')}</strong></div>
+              <div><span>鉴权配置</span><strong>${matrixCheck.authConfigured ? '已配置' : '未配置'}</strong></div>
+              <div><span>运行时就绪</span><strong>${matrixCheck.runtimeReady ? '已就绪' : '未就绪'}</strong></div>
+            </div>
+            <div style="margin-top:8px;">
+              <div class="toolbar-note">不可聊原因</div>
+              <div class="overview-list">${renderMatrixIssues(matrixCheck.issues)}</div>
+            </div>
+          </div>
         </section>
 
         <section class="detail-section">

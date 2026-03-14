@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7b00ff",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#190f23",
+                        "apple-blue": "#007AFF",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "-apple-system", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(123, 0, 255, 0.1);
+        }
+        .apple-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(123, 0, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 h-screen overflow-hidden flex">
+<!-- Left Dock (72px) -->
+<aside class="w-[72px] h-full glass flex flex-col items-center py-8 z-50 flex-shrink-0">
+<div class="mb-10 text-primary">
+<span class="material-icons-round text-3xl">command</span>
+</div>
+<nav class="flex flex-col gap-6 flex-1"><button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
+<span class="material-icons-round">chat</span>
+</button>
+<button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
+<span class="material-icons-round">group</span>
+</button>
+<button class="p-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/30 transition-all">
+<span class="material-icons-round">auto_stories</span>
+</button>
+<button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
+<span class="material-icons-round">calendar_month</span>
+</button></nav>
+<div class="mt-auto flex flex-col gap-6">
+<button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
+<span class="material-icons-round">settings</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-primary/30">
+<img class="w-full h-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBN2YHYPKMfbogZlvjay6GxNoQAUOwlT2BlmPW1V1igePmuNH4htGZvhB-fF2OKTQU9Rn0_fYIBsHGJEEydqsTk7F0y7gBZ_BmlUb6I0RYUudxLuZyIkmJUeVZzPIvamTyw6tVPQC-Em4v8N1U7idG-Q0_nz4_c8blT_wFsEOVI6yBA_zdY3-KpngErLyrWSM7sjf8PEpEaazt-XOpaXfuVLZI93VHnjqht_d0f-0bCHBl3L85DsWgsO051Rw5KJpWAZuTkfOioEd4"/>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Center Column (Information Flow) -->
+<section class="flex-1 flex flex-col h-full bg-background-light/50 dark:bg-background-dark/50 overflow-hidden">
+<!-- Header -->
+<header class="h-20 px-8 flex items-center justify-between glass sticky top-0 z-40">
+<div><h1 class="text-xl font-bold tracking-tight">市场动态</h1>
+<p class="text-xs text-slate-500 font-medium">2分钟前更新</p></div>
+<div class="flex items-center gap-4">
+<div class="relative"><h1 class="text-xl font-bold tracking-tight">市场动态</h1>
+<p class="text-xs text-slate-500 font-medium">2分钟前更新</p></div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 apple-shadow">
+<span class="material-icons-round text-slate-600 dark:text-slate-300">tune</span>
+</button>
+</div>
+</header>
+<!-- Subscription Feed -->
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+<div class="max-w-3xl mx-auto flex flex-col gap-6">
+<!-- Card 1 (Selected) -->
+<article class="bg-white dark:bg-slate-800 p-6 rounded-xl border-2 border-primary apple-shadow transition-all cursor-pointer"><div class="flex items-center justify-between mb-4">
+<span class="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">彭博社</span>
+<span class="text-[11px] text-slate-400">14:20 PM</span>
+</div>
+<h3 class="text-lg font-bold mb-2 leading-snug">全球科技股在半导体转型中面临波动</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">市场分析师预测，随着第三季度新贸易规则的生效，供应链物流将发生15%的转变。主要企业正在实现制造地点的多元化...</p>
+<div class="flex items-center gap-2">
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#半导体</span>
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#市场转变</span>
+</div></article>
+<!-- Card 2 -->
+<article class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-transparent hover:border-primary/20 apple-shadow transition-all cursor-pointer"><div class="flex items-center justify-between mb-4">
+<span class="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">科技节点</span>
+<span class="text-[11px] text-slate-400">12:05 PM</span>
+</div>
+<h3 class="text-lg font-bold mb-2 leading-snug">生成式AI在企业资源规划中的兴起</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">初创公司目前正将大语言模型直接集成到ERP系统中，以大规模自动化采购和供应商选择流程。</p>
+<div class="flex items-center gap-2">
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#人工智能</span>
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#ERP</span>
+</div></article>
+<!-- Card 3 -->
+<article class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-transparent hover:border-primary/20 apple-shadow transition-all cursor-pointer"><div class="flex items-center justify-between mb-4">
+<span class="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">华尔街日报</span>
+<span class="text-[11px] text-slate-400">09:15 AM</span>
+</div>
+<h3 class="text-lg font-bold mb-2 leading-snug">利率预测及其对风投融资的影响</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">随着美联储对本财年降息持谨慎态度，风险投资公司正在收紧B轮融资的标准。</p>
+<div class="flex items-center gap-2">
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#金融</span>
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#风险投资</span>
+</div></article>
+<!-- Card 4 -->
+<article class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-transparent hover:border-primary/20 apple-shadow transition-all cursor-pointer opacity-80"><div class="flex items-center justify-between mb-4">
+<span class="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">路透社</span>
+<span class="text-[11px] text-slate-400">昨天</span>
+</div>
+<h3 class="text-lg font-bold mb-2 leading-snug">可再生能源基础设施目标超出预期</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">与之前的两年预测相比，北欧的太阳能和风能采用率加速了30%，降低了数据中心的能源成本。</p>
+<div class="flex items-center gap-2">
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#能源</span>
+<span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">#可持续发展</span>
+</div></article>
+</div>
+</div>
+</section>
+<!-- Right Drawer (Intelligence Details) -->
+<aside class="w-[480px] h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col z-50">
+<header class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-icons-round text-lg">auto_awesome</span>
+</div>
+<h2 class="font-bold text-base">智能分析详情</h2>
+</div>
+<button class="text-slate-400 hover:text-slate-600">
+<span class="material-icons-round">close</span>
+</button>
+</header>
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+<!-- Deep Dive Text Analysis -->
+<section class="mb-10"><div class="flex items-center gap-2 mb-4">
+<span class="w-1 h-5 bg-primary rounded-full"></span>
+<h4 class="text-sm font-bold uppercase tracking-wider text-slate-500">战略分析</h4>
+</div>
+<div class="space-y-4 text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+<p>目前科技股的波动主要由“芯片战争”叙事推动。我们发现美国和欧盟的晶圆厂选址公告与前5大半导体设备制造商的短期股价飙升之间存在显著相关性。</p>
+<p>我们的AI模型预测将会有4-6周的稳定期，随后随着生产周期的正常化，GPU相关行业可能会有8%的潜在增长。</p>
+<ul class="space-y-2 list-none p-0">
+<li class="flex items-start gap-2">
+<span class="material-icons-round text-primary text-sm mt-0.5">check_circle</span>
+<span>风险评估：中等 (3.4/5.0)</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-icons-round text-primary text-sm mt-0.5">check_circle</span>
+<span>流动性影响：中盘股板块影响显著</span>
+</li>
+</ul>
+</div></section>
+<!-- Professional Line Chart -->
+<section class="mb-10">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-sm font-bold uppercase tracking-wider text-slate-500">市场趋势 (6个月)</h4>
+<span class="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">+12.4%</span>
+</div>
+<div class="relative h-48 w-full bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 flex flex-col justify-end">
+<!-- Simplified Line Chart Representation -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<svg class="w-full h-full p-4" fill="none" viewbox="0 0 400 100">
+<path d="M0 80 Q 50 70, 100 85 T 200 60 T 300 40 T 400 20" fill="none" stroke="url(#gradient)" stroke-width="3"></path>
+<defs>
+<lineargradient id="gradient" x1="0" x2="400" y1="0" y2="0">
+<stop offset="0%" stop-color="#7b00ff"></stop>
+<stop offset="100%" stop-color="#007AFF"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+<div class="flex justify-between text-[10px] text-slate-400 mt-2"><span>1月</span>
+<span>3月</span>
+<span>5月</span>
+<span>6月</span></div>
+</div>
+</section>
+<!-- Related Nodes -->
+<section><h4 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">相关情报</h4>
+<div class="grid grid-cols-2 gap-3">
+<div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-white dark:hover:bg-slate-750 transition-colors">
+<p class="text-[11px] font-bold mb-1">ASML 财报</p>
+<span class="text-[10px] text-slate-400">相关影响: 84%</span>
+</div>
+<div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-white dark:hover:bg-slate-750 transition-colors">
+<p class="text-[11px] font-bold mb-1">台积电扩张</p>
+<span class="text-[10px] text-slate-400">相关影响: 72%</span>
+</div>
+</div></section>
+</div>
+<!-- Natural Language Configuration Box -->
+<footer class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+<div class="relative">
+<div class="absolute -top-10 left-0 right-0 flex justify-center gap-2"><button class="px-3 py-1 bg-white dark:bg-slate-800 apple-shadow rounded-full text-[10px] font-medium border border-slate-200 dark:border-slate-700">添加 "英伟达"</button>
+<button class="px-3 py-1 bg-white dark:bg-slate-800 apple-shadow rounded-full text-[10px] font-medium border border-slate-200 dark:border-slate-700">每日摘要</button></div>
+<div class="flex items-center gap-2 p-1.5 bg-white dark:bg-slate-800 rounded-2xl apple-shadow border border-slate-200 dark:border-slate-700">
+<div class="p-2 bg-primary/10 text-primary rounded-xl">
+<span class="material-icons-round text-lg">auto_fix_high</span>
+</div>
+<input class="flex-1 border-none focus:ring-0 text-sm bg-transparent" placeholder="更新偏好或寻求见解..." type="text"/>
+<button class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center">
+<span class="material-icons-round text-sm">arrow_upward</span>
+</button>
+</div>
+<p class="text-[10px] text-center text-slate-400 mt-3">AI驱动的订阅管理</p>
+</div>
+</footer>
+</aside>
+</main>
+</body></html>

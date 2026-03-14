@@ -1,0 +1,40 @@
+import { useEffect, type ReactNode } from 'react';
+import { Icon } from './Icon';
+
+interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ReactNode;
+  width?: string;
+}
+
+export function Modal({ open, onClose, title, children, width = 'max-w-md' }: ModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative ${width} w-full mx-4 bg-bg-white-var rounded-2xl shadow-lg p-6 dcf-fade-in`}>
+        {title && (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-text-primary">{title}</h3>
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+              <Icon name="close" size={20} />
+            </button>
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}

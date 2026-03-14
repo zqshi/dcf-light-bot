@@ -14,6 +14,7 @@ LOCAL_RATE_LIMIT_WINDOW_MS="${LOCAL_RATE_LIMIT_WINDOW_MS:-60000}"
 LOG_FILE="$ROOT_DIR/runtime/dcf-app.log"
 PID_FILE="$ROOT_DIR/runtime/dcf-app.pid"
 BOT_TOKEN_FILE="$ROOT_DIR/runtime/matrix-bot.token"
+BOT_DEVICE_FILE="$ROOT_DIR/runtime/matrix-bot.device"
 
 mkdir -p "$ROOT_DIR/runtime"
 
@@ -85,6 +86,22 @@ ensure_bot_token() {
   fi
 }
 
+resolve_bot_device_id() {
+  local token="$1"
+  local out=""
+  out="$(curl -sS "${MATRIX_HS}/_matrix/client/v3/account/whoami" -H "Authorization: Bearer ${token}" || true)"
+  if echo "$out" | rg -q '"device_id"'; then
+    echo "$out" | json_field device_id | tee "$BOT_DEVICE_FILE" >/dev/null
+    cat "$BOT_DEVICE_FILE"
+    return
+  fi
+  if [ -f "$BOT_DEVICE_FILE" ]; then
+    cat "$BOT_DEVICE_FILE" | tr -d '\r\n'
+    return
+  fi
+  echo ""
+}
+
 if [ -f "$PID_FILE" ]; then
   OLD_PID="$(cat "$PID_FILE" || true)"
   if [ -n "${OLD_PID:-}" ] && kill -0 "$OLD_PID" >/dev/null 2>&1; then
@@ -102,13 +119,16 @@ fi
 
 BOT_TOKEN="$(ensure_bot_token)"
 MATRIX_USER_ID="@${BOT_LOCALPART}:localhost"
+MATRIX_DEVICE_ID="$(resolve_bot_device_id "$BOT_TOKEN")"
 
 nohup env \
   PORT="$APP_PORT" \
   HOST="$APP_HOST" \
   MATRIX_HOMESERVER="$MATRIX_HS" \
   MATRIX_USER_ID="$MATRIX_USER_ID" \
+  MATRIX_DEVICE_ID="$MATRIX_DEVICE_ID" \
   MATRIX_ACCESS_TOKEN="$BOT_TOKEN" \
+  MATRIX_E2EE_ENABLED="${MATRIX_E2EE_ENABLED:-false}" \
   MATRIX_RELAY_ENABLED=true \
   KUBERNETES_SIMULATION_MODE="${KUBERNETES_SIMULATION_MODE:-true}" \
   PLATFORM_BASE_URL="http://${APP_HOST}:${APP_PORT}" \

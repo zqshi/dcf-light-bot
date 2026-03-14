@@ -10,6 +10,8 @@ class FileStore {
     if (!fs.existsSync(this.filePath)) {
       const initial = {
         instances: [],
+        provisioningJobs: [],
+        identityMappings: [],
         skillReports: [],
         skills: [],
         skillBindings: [],

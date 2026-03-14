@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OpenClaw AI Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00D4B8", // Cyan accent from prompt
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0A0F1E", // Deep space blue from prompt
+                        "glass": "rgba(255, 255, 255, 0.03)",
+                        "glass-border": "rgba(255, 255, 255, 0.1)",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "system-ui", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .glass-panel {
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 212, 184, 0.2); border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display overflow-hidden h-screen flex flex-col">
+<!-- Top Status Bar -->
+<header class="h-14 border-b border-glass-border flex items-center justify-between px-6 glass-panel z-50">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(0,212,184,0.4)]">
+<span class="material-symbols-outlined text-background-dark font-bold">smart_toy</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-white">OpenClaw</h1>
+</div>
+<div class="h-4 w-[1px] bg-glass-border mx-2"></div>
+<div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+<div class="flex items-center gap-1.5">
+<span class="size-2 rounded-full bg-primary animate-pulse"></span>
+<span>代理状态: 运行中</span>
+</div>
+<div class="flex items-center gap-1.5"><div class="flex items-center gap-2">
+<span class="text-slate-500 mr-1">IM 通道:</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-primary" title="Lark 已连接">chat_bubble</span>
+<span class="material-symbols-outlined text-sm text-primary" title="钉钉 已连接">send_and_archive</span>
+<span class="material-symbols-outlined text-sm text-slate-600" title="企业微信 未连接">forum</span>
+</div>
+</div></div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="bg-primary/10 border border-primary/20 px-3 py-1 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">toll</span>
+<span class="text-xs font-mono text-primary">令牌计数器: 1,240,892</span>
+</div>
+<div class="text-xs font-mono text-slate-300 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                12:45:08 PM
+            </div>
+<div class="flex items-center gap-3 pl-4 border-l border-glass-border">
+<div class="text-right">
+<p class="text-[10px] text-slate-500 uppercase tracking-widest">Administrator</p>
+<p class="text-xs font-semibold">Alex Chen</p>
+</div>
+<div class="size-9 rounded-full bg-gradient-to-tr from-primary to-blue-500 p-[1px]">
+<div class="size-full rounded-full bg-background-dark flex items-center justify-center overflow-hidden">
+<img class="size-full object-cover" data-alt="User profile avatar of Alex Chen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDk4sb4BEJMC8UzBzMguDnWVE5x57jUbEgdspc3VCackn9c4kYIkpkBakUlsTYDOGy1-Hv-_IqdhHhXhn_yNKIKoj_rjGo9qj0LXq8Qk4f0PZL_m5LYqG3SXOd2fXOes4eszgrisbCkOgx2Qn9sg5nKGHPcBtgdD6cPI1KeBHh4DdBRRNmGmwMhbjMqUUeYH0hAg0JR7UoNp8Eo0HsWtqfYlC8I2XFrADCuJIuEpWZHe2xIsgRruBCuSnCFmss4yGASrehy7y3RUT5E"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex overflow-hidden"><!-- Far Left Dock -->
+<aside class="w-16 border-r border-glass-border glass-panel flex flex-col items-center py-6 gap-6 z-50">
+<div class="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary cursor-pointer hover:bg-primary/30 transition-all">
+<span class="material-symbols-outlined text-2xl">chat</span>
+</div>
+<div class="size-10 rounded-xl flex items-center justify-center text-slate-500 cursor-pointer hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined text-2xl">grid_view</span>
+</div>
+<div class="size-10 rounded-xl flex items-center justify-center text-slate-500 cursor-pointer hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined text-2xl">group</span>
+</div>
+<div class="size-10 rounded-xl flex items-center justify-center text-slate-500 cursor-pointer hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined text-2xl">folder_open</span>
+</div>
+<div class="mt-auto">
+<div class="size-10 rounded-xl flex items-center justify-center text-slate-500 cursor-pointer hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined text-2xl">help</span>
+</div>
+</div>
+</aside>
+<!-- Left Sidebar: Digital Employees -->
+<aside class="w-64 border-r border-glass-border glass-panel flex flex-col">
+<div class="p-4 border-b border-glass-border">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">我的数字员工</h2>
+<span class="material-symbols-outlined text-slate-500 cursor-pointer hover:text-primary transition-colors">add_circle</span>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">search</span>
+<input class="w-full bg-white/5 border-none rounded-lg py-2 pl-9 pr-3 text-xs focus:ring-1 focus:ring-primary/50 placeholder:text-slate-600" placeholder="搜索员工..." type="text"/>
+</div>
+</div>
+<nav class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20 group cursor-pointer">
+<div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">person_search</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-white truncate">个人助理</p>
+<p class="text-[10px] text-primary flex items-center gap-1">
+<span class="size-1.5 rounded-full bg-primary"></span> 空闲中
+                        </p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="size-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-400">terminal</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-300 truncate">开发机器人 (Alpha)</p>
+<p class="text-[10px] text-blue-400 flex items-center gap-1">
+<span class="size-1.5 rounded-full bg-blue-400"></span> 正在编码...
+                        </p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="size-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-purple-400">insights</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-300 truncate">市场分析师</p>
+<p class="text-[10px] text-slate-500 flex items-center gap-1">
+<span class="size-1.5 rounded-full bg-slate-500"></span> 离线
+                        </p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="size-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-orange-400">shield_person</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-300 truncate">安全专家</p>
+<p class="text-[10px] text-primary flex items-center gap-1">
+<span class="size-1.5 rounded-full bg-primary"></span> 监控中
+                        </p>
+</div>
+</div>
+</nav>
+<div class="p-4 border-t border-glass-border">
+<div class="flex items-center gap-3 text-slate-400 hover:text-white transition-colors cursor-pointer px-2 py-1">
+<span class="material-symbols-outlined text-xl">settings</span>
+<span class="text-sm font-medium">系统配置</span>
+</div>
+</div>
+</aside>
+<!-- Central Chat Area -->
+<section class="flex-1 flex flex-col bg-background-dark/50 relative">
+<div class="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+<!-- User Message -->
+<div class="flex justify-end gap-3">
+<div class="flex flex-col items-end gap-1.5">
+<div class="bg-primary/10 border border-primary/20 text-slate-200 px-4 py-3 rounded-2xl rounded-tr-none max-w-md shadow-lg shadow-black/20">
+<p class="text-sm leading-relaxed">请帮我检查一下当前项目的代码安全性，并分析最近一周的市场波动趋势。</p>
+</div>
+<span class="text-[10px] text-slate-500">12:42 PM · 已送达</span>
+</div>
+<div class="size-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-slate-400 text-sm">person</span>
+</div>
+</div>
+<!-- Agent Message with Thinking Process -->
+<div class="flex justify-start gap-3">
+<div class="size-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-sm">auto_awesome</span>
+</div>
+<div class="flex flex-col items-start gap-3 w-full max-w-2xl">
+<!-- Thinking Timeline -->
+<div class="w-full bg-white/5 rounded-xl border border-glass-border p-4">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-sm">psychology</span>
+<span class="text-xs font-bold text-slate-300 tracking-wider">思维链路 (Chain of Thought)</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-start gap-4 group">
+<div class="flex flex-col items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-primary text-lg">check_circle</span>
+<div class="w-[1.5px] h-6 bg-primary/30"></div>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-200">扫描代码仓库</p>
+<p class="text-xs text-slate-500">发现 3 个潜在依赖风险点。</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="flex flex-col items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-primary text-lg">check_circle</span>
+<div class="w-[1.5px] h-6 bg-primary/30"></div>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-200">检索知识库</p>
+<p class="text-xs text-slate-500">已提取 OWASP 2024 最新安全准则。</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="flex flex-col items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-primary text-lg animate-spin">progress_activity</span>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-200">生成初步安全建议</p>
+<p class="text-xs text-primary/70">正在分析内存泄漏风险...</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Final Output with Type Effect Simulation -->
+<div class="bg-white/5 border border-glass-border text-slate-200 px-4 py-3 rounded-2xl rounded-tl-none w-full shadow-lg shadow-black/20">
+<p class="text-sm leading-relaxed">
+                                正在为您生成报告。初步检查发现模块 <code class="text-primary font-mono px-1">auth-service.js</code> 存在一处 JWT 密钥硬编码风险。此外，市场分析模型显示科技板块波动率上升了 12.5%，我建议加强相关仓位的风控。
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Input Area -->
+<div class="p-6 border-t border-glass-border glass-panel">
+<div class="max-w-4xl mx-auto">
+<div class="relative flex items-end gap-3 bg-white/5 border border-glass-border rounded-2xl p-2 transition-all focus-within:ring-2 focus-within:ring-primary/20">
+<div class="flex items-center gap-1 pb-1">
+<button class="size-10 flex items-center justify-center text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">attach_file</span>
+</button>
+<button class="size-10 flex items-center justify-center text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</div>
+<textarea class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-200 py-3 resize-none max-h-32 placeholder:text-slate-600" placeholder="发送消息或输入 '/' 唤起指令圈..." rows="1"></textarea>
+<div class="flex items-center gap-2 pb-1 pr-1">
+<button class="size-10 flex items-center justify-center rounded-xl bg-primary text-background-dark hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined font-bold">send</span>
+</button>
+</div>
+<!-- Shortcut Command Ring Floating UI Simulation -->
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 opacity-0 pointer-events-none group-focus-within:opacity-100 group-focus-within:top-[-48px] transition-all duration-300">
+<span class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-[10px] text-slate-400 hover:border-primary cursor-pointer">/search 搜索</span>
+<span class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-[10px] text-slate-400 hover:border-primary cursor-pointer">/code 代码</span>
+<span class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-[10px] text-slate-400 hover:border-primary cursor-pointer">/analyze 分析</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Canvas Panel -->
+<aside class="w-80 border-l border-glass-border glass-panel flex flex-col">
+<div class="p-4 border-b border-glass-border flex items-center justify-between">
+<h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">实时任务面板</h2>
+<span class="material-symbols-outlined text-slate-500 text-lg">dashboard_customize</span>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4"><!-- Global Notifications Component -->
+<div class="bg-white/5 border border-glass-border rounded-xl p-4 mb-4">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">全局通知</h3>
+<span class="flex items-center justify-center size-5 bg-red-500 text-[10px] text-white rounded-full font-bold">3</span>
+</div>
+<div class="space-y-3">
+<!-- Msg 1 -->
+<div class="p-2 rounded-lg bg-white/5 border border-white/5 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">chat_bubble</span>
+<span class="text-[10px] font-bold text-slate-300">Lark - 王经理</span>
+</div>
+<span class="text-[9px] text-slate-500">12:44</span>
+</div>
+<p class="text-[11px] text-slate-400 line-clamp-1">安全扫描报告已经看过了，什么时候可以开始修复？</p>
+<button class="text-right text-[10px] text-primary hover:underline">回复</button>
+</div>
+<!-- Msg 2 -->
+<div class="p-2 rounded-lg bg-white/5 border border-white/5 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">send_and_archive</span>
+<span class="text-[10px] font-bold text-slate-300">钉钉 - 系统报警</span>
+</div>
+<span class="text-[9px] text-slate-500">12:40</span>
+</div>
+<p class="text-[11px] text-slate-400 line-clamp-1">检测到生产环境 CPU 占用率超过 85%</p>
+<button class="text-right text-[10px] text-primary hover:underline">回复</button>
+</div>
+</div>
+</div>
+<!-- Task Progress Card -->
+<div class="bg-white/5 border border-glass-border rounded-xl p-4 space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-xs font-semibold text-slate-300">市场监测 (Market Monitoring)</span>
+<span class="text-xs font-mono text-primary">80%</span>
+</div>
+<div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_10px_rgba(0,212,184,0.5)]" style="width: 80%"></div>
+</div>
+<div class="flex justify-between items-center text-[10px] text-slate-500">
+<span>当前: NASDAQ-100</span>
+<span>预计剩余: 2m</span>
+</div>
+</div>
+<div class="bg-white/5 border border-glass-border rounded-xl p-4 space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-xs font-semibold text-slate-300">漏洞扫描 (Vulnerability)</span>
+<span class="text-xs font-mono text-blue-400">45%</span>
+</div>
+<div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-blue-400" style="width: 45%"></div>
+</div>
+<div class="flex justify-between items-center text-[10px] text-slate-500">
+<span>正在分析: API Gateway</span>
+<span class="flex items-center gap-1 text-red-400"><span class="size-1 bg-red-400 rounded-full"></span> 发现高危</span>
+</div>
+</div>
+<!-- Data Visualization Placeholder Card -->
+<div class="bg-white/5 border border-glass-border rounded-xl p-4">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs font-semibold text-slate-300">资源占用趋势</span>
+<span class="material-symbols-outlined text-slate-500 text-sm">open_in_full</span>
+</div>
+<div class="h-32 flex items-end gap-1.5 px-1">
+<!-- Mock Chart Bars -->
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all" style="height: 40%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all" style="height: 65%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all" style="height: 50%"></div>
+<div class="flex-1 bg-primary/40 hover:bg-primary/60 rounded-t-sm transition-all" style="height: 85%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all" style="height: 35%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all" style="height: 55%"></div>
+<div class="flex-1 bg-primary/30 hover:bg-primary/50 rounded-t-sm transition-all" style="height: 70%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all" style="height: 45%"></div>
+</div>
+<div class="flex justify-between mt-2 text-[9px] text-slate-600 font-mono">
+<span>08:00</span>
+<span>10:00</span>
+<span>12:00</span>
+</div>
+</div>
+<!-- Insight Card -->
+<div class="relative overflow-hidden bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-xl p-4">
+<div class="absolute -right-2 -top-2 opacity-10">
+<span class="material-symbols-outlined text-6xl">lightbulb</span>
+</div>
+<p class="text-[10px] text-primary font-bold uppercase mb-1">AI 洞察推荐</p>
+<p class="text-xs text-slate-300 leading-normal">
+                        基于最近的 PR 记录，建议升级 <code class="text-primary text-[10px]">lodash</code> 库以修复已知的原型污染漏洞。
+                    </p>
+<button class="mt-3 w-full py-1.5 rounded-lg bg-primary/20 text-primary text-[10px] font-bold hover:bg-primary/30 transition-all border border-primary/30">
+                        执行自动升级
+                    </button>
+</div>
+</div>
+</aside>
+</main>
+<!-- Floating Notification -->
+<div class="fixed bottom-6 right-6 z-[100]">
+<div class="relative group">
+<div class="size-12 rounded-full bg-slate-900 border border-glass-border flex items-center justify-center text-slate-400 hover:text-primary transition-all cursor-pointer shadow-2xl">
+<span class="material-symbols-outlined">notifications</span>
+</div>
+<!-- Notification Dot -->
+<div class="absolute -top-1 -right-1 size-4 bg-red-500 border-2 border-slate-900 rounded-full flex items-center justify-center">
+<span class="text-[8px] font-bold text-white">2</span>
+</div>
+<!-- Tooltip -->
+<div class="absolute right-14 bottom-0 bg-slate-900 border border-glass-border text-xs px-3 py-2 rounded-lg text-slate-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                有 2 个新任务动态
+            </div>
+</div>
+</div>
+<!-- Quick Reply Modal Overlay -->
+<div class="fixed inset-0 z-[110] flex items-center justify-center bg-background-dark/60 backdrop-blur-sm">
+<div class="w-full max-w-md bg-[#121826] border border-glass-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+<!-- Modal Header -->
+<div class="p-4 border-b border-glass-border flex items-center justify-between bg-white/5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary text-2xl">person</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-white">Lark - 王经理</h3>
+<p class="text-[10px] text-slate-500">刚刚</p>
+</div>
+</div>
+<button class="text-slate-500 hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Original Message Content -->
+<div class="p-5">
+<div class="bg-white/5 rounded-xl p-4 border border-white/5 mb-6">
+<p class="text-sm text-slate-300 leading-relaxed italic">
+                    “安全扫描报告已经看过了，什么时候可以开始下一阶段的部署工作？”
+                </p>
+</div>
+<!-- Reply Input -->
+<div class="relative mb-4">
+<textarea class="w-full bg-background-dark border border-glass-border rounded-xl p-3 text-sm text-slate-200 placeholder:text-slate-600 focus:ring-1 focus:ring-primary/50 focus:border-primary/50 outline-none transition-all resize-none h-24" placeholder="输入您的回复..."></textarea>
+</div>
+<!-- Quick Action Buttons -->
+<div class="flex flex-wrap gap-2 mb-6">
+<button class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:border-primary/50 hover:bg-primary/5 transition-all">收到，明白了</button>
+<button class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:border-primary/50 hover:bg-primary/5 transition-all">正在检查，请稍等</button>
+<button class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:border-primary/50 hover:bg-primary/5 transition-all">让我确认一下</button>
+</div>
+<!-- Submit Button -->
+<button class="w-full py-3 bg-primary text-background-dark font-bold rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">send</span>
+                发送
+            </button>
+</div>
+</div>
+</div></body></html>

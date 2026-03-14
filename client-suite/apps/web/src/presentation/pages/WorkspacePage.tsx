@@ -1,0 +1,49 @@
+/**
+ * WorkspacePage — 主工作台
+ * 通过 dockRegistry 声明式路由，替换原有 switch-case
+ */
+import { useEffect } from 'react';
+import { AppShell } from '../layouts/AppShell';
+import { Sidebar } from '../layouts/Sidebar';
+import { useUIStore } from '../../application/stores/uiStore';
+import { useAuthStore } from '../../application/stores/authStore';
+import { useAgentStore } from '../../application/stores/agentStore';
+import { useNotificationStore } from '../../application/stores/notificationStore';
+import { useTodoStore } from '../../application/stores/todoStore';
+import { useMatrixClient } from '../../application/hooks/useMatrixClient';
+import { getDockRoute } from '../routing/dockRegistry';
+import { registerAllRoutes } from '../routing/registerRoutes';
+
+// Register routes once at module load
+registerAllRoutes();
+
+export function WorkspacePage() {
+  const currentDock = useUIStore((s) => s.currentDock);
+  const isBackendConnected = useAuthStore((s) => s.isBackendConnected);
+  const { logout } = useMatrixClient();
+
+  // When backend is connected, fetch live data from DCF API
+  useEffect(() => {
+    if (!isBackendConnected) return;
+    useAgentStore.getState().fetchFromBackend();
+    useNotificationStore.getState().fetchFromBackend();
+    useTodoStore.getState().fetchFromBackend();
+  }, [isBackendConnected]);
+
+  const subView = useUIStore((s) => s.subView);
+  const route = getDockRoute(currentDock);
+  const SidebarContent = route?.Sidebar;
+  const MainContent = route?.Main;
+
+  // Hide sidebar in full-screen sub-views (e.g. AI creation panel)
+  const hideSidebar = subView === 'apps:create' || subView === 'apps:view' || subView === 'apps:edit';
+
+  return (
+    <AppShell
+      sidebar={hideSidebar ? null : <Sidebar>{SidebarContent ? <SidebarContent /> : null}</Sidebar>}
+      onLogout={logout}
+    >
+      {MainContent ? <MainContent /> : null}
+    </AppShell>
+  );
+}

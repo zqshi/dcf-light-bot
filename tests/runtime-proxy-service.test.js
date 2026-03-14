@@ -70,4 +70,50 @@ describe('RuntimeProxyService', () => {
     expect(out.mode).toBe('degraded');
     expect(out.reason).toBe('circuit_open');
   });
+
+  test('emits shared agent discovered audit events from runtime response', async () => {
+    const audits = [];
+    const httpClient = {
+      post: async () => ({
+        status: 200,
+        data: {
+          createdAgents: [
+            {
+              name: '采购比价子Agent',
+              capabilitySignature: 'procurement:compare-price:v1',
+              tags: ['采购', '比价'],
+              jobCodes: ['procurement']
+            }
+          ]
+        }
+      })
+    };
+    const instanceService = { get: async () => runningInstance() };
+    const service = new RuntimeProxyService(
+      instanceService,
+      { kubernetesSimulationMode: false },
+      {
+        httpClient,
+        auditService: {
+          log: async (type, payload) => {
+            audits.push({ type, payload });
+          }
+        }
+      }
+    );
+
+    const out = await service.invoke('inst_1', {
+      input: '请根据任务创建子数字员工',
+      sender: '@employee01:localhost',
+      roomId: '!room:localhost',
+      channel: 'matrix'
+    });
+    expect(out.mode).toBe('kubernetes');
+    const discovered = audits.filter((x) => x.type === 'runtime.openclaw.shared_agent.discovered');
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0].payload.capabilitySignature).toBe('procurement:compare-price:v1');
+    expect(discovered[0].payload.ownerEmployeeId).toBe('inst_1');
+    expect(discovered[0].payload.spawnedBy).toBe('@employee01:localhost');
+    expect(discovered[0].payload.source).toBe('runtime/openclaw');
+  });
 });

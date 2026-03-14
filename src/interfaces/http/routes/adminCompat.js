@@ -87,13 +87,16 @@ function normalizeTagList(input) {
 function normalizeSharedAgent(input = {}, seed = {}) {
   const now = nowIso();
   const merged = { ...seed, ...input };
+  const source = String(merged.source || seed.source || 'runtime/openclaw').trim();
+  const ownerEmployeeId = String(merged.ownerEmployeeId || seed.ownerEmployeeId || '').trim() || null;
   return {
     id: String(seed.id || input.id || newId('shared_agent')),
     name: String(merged.name || '').trim(),
     capabilitySignature: String(merged.capabilitySignature || '').trim(),
-    ownerEmployeeId: String(merged.ownerEmployeeId || '').trim() || null,
+    ownerEmployeeId,
     ownerType: String(merged.ownerType || 'shared').trim(),
-    source: String(merged.source || 'digital_employee').trim(),
+    source,
+    spawnedBy: String(merged.spawnedBy || seed.spawnedBy || '').trim() || null,
     status: String(merged.status || 'active').trim(),
     tags: normalizeTagList(merged.tags),
     jobCodes: normalizeTagList(merged.jobCodes),
@@ -187,6 +190,8 @@ function buildAdminCompatRouter(context) {
   let toolStoreHydrated = false;
   const ossCaseState = new Map();
   const sharedAgentStore = new Map();
+  const sharedAgentRuntimeEventIds = new Set();
+  const sharedAgentRuntimeEventIdLimit = 5000;
   let sharedAgentHydrated = false;
   let sharedAgentHydrating = null;
   const matrixRoomOverrideByInstance = new Map();
@@ -248,7 +253,6 @@ function buildAdminCompatRouter(context) {
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/shared-agents.html', label: '共享Agent', permission: 'admin.employees.page.overview.read' },
-      { path: '/admin/identity-mappings.html', label: '身份映射', permission: 'admin.auth.page.members.read' },
       { path: '/admin/openclaw-config.html', label: 'OpenClaw 配置', permission: 'admin.runtime.page.openclaw-config.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
@@ -463,6 +467,14 @@ function buildAdminCompatRouter(context) {
           if (!normalized.name) return;
           sharedAgentStore.set(normalized.id, normalized);
         });
+        const processed = Array.isArray(persisted && persisted.runtime && persisted.runtime.processedAuditEventIds)
+          ? persisted.runtime.processedAuditEventIds
+          : [];
+        processed.forEach((id) => {
+          const eventId = String(id || '').trim();
+          if (!eventId) return;
+          sharedAgentRuntimeEventIds.add(eventId);
+        });
       }
       sharedAgentHydrated = true;
       sharedAgentHydrating = null;
@@ -477,13 +489,114 @@ function buildAdminCompatRouter(context) {
     if (!context.repo || typeof context.repo.setPlatformConfig !== 'function') return;
     await context.repo.setPlatformConfig('sharedAgentHall', {
       agents: Array.from(sharedAgentStore.values()),
+      runtime: {
+        processedAuditEventIds: Array.from(sharedAgentRuntimeEventIds).slice(-sharedAgentRuntimeEventIdLimit)
+      },
       updatedAt: nowIso(),
       updatedBy: actor
     });
   }
 
+  function parseRuntimeSharedAgentEvent(event) {
+    const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
+    const candidate = payload.agent && typeof payload.agent === 'object' ? payload.agent : payload;
+    const name = String(candidate.name || payload.name || '').trim();
+    const capabilitySignatureRaw = String(candidate.capabilitySignature || payload.capabilitySignature || '').trim();
+    const tags = normalizeTagList(
+      Array.isArray(candidate.tags) ? candidate.tags : (Array.isArray(payload.tags) ? payload.tags : [])
+    );
+    const jobCodes = normalizeTagList(
+      Array.isArray(candidate.jobCodes) ? candidate.jobCodes : (Array.isArray(payload.jobCodes) ? payload.jobCodes : [])
+    );
+    const capabilitySignature = capabilitySignatureRaw || `${name || 'runtime-agent'}:${jobCodes.join(',') || 'general'}`;
+    if (!name && !capabilitySignatureRaw) return null;
+    return {
+      id: String(candidate.id || payload.agentId || '').trim() || undefined,
+      name: name || String(candidate.label || payload.label || '子数字员工').trim(),
+      capabilitySignature,
+      ownerEmployeeId: String(payload.ownerEmployeeId || payload.instanceId || payload.employeeId || payload.sourceInstanceId || '').trim() || null,
+      ownerType: 'employee',
+      source: 'runtime/openclaw',
+      spawnedBy: String(payload.spawnedBy || payload.sender || payload.actor || '').trim() || null,
+      status: 'active',
+      tags,
+      jobCodes,
+      description: String(candidate.description || payload.description || '').trim()
+    };
+  }
+
+  function upsertSharedAgentBySignature(input = {}) {
+    const normalizedInput = normalizeSharedAgent(input);
+    if (!normalizedInput.name || !normalizedInput.capabilitySignature) return { changed: false, row: null };
+    const signature = String(normalizedInput.capabilitySignature || '').toLowerCase();
+    const existed = Array.from(sharedAgentStore.values()).find((x) => (
+      String(x.capabilitySignature || '').toLowerCase() === signature
+      && String(x.status || '').toLowerCase() !== 'deleted'
+    ));
+    if (existed) {
+      const next = normalizeSharedAgent({
+        ...existed,
+        name: existed.name || normalizedInput.name,
+        ownerEmployeeId: normalizedInput.ownerEmployeeId || existed.ownerEmployeeId || null,
+        ownerType: normalizedInput.ownerType || existed.ownerType || 'employee',
+        source: 'runtime/openclaw',
+        spawnedBy: normalizedInput.spawnedBy || existed.spawnedBy || null,
+        tags: normalizeTagList([...(Array.isArray(existed.tags) ? existed.tags : []), ...(Array.isArray(normalizedInput.tags) ? normalizedInput.tags : [])]),
+        jobCodes: normalizeTagList([...(Array.isArray(existed.jobCodes) ? existed.jobCodes : []), ...(Array.isArray(normalizedInput.jobCodes) ? normalizedInput.jobCodes : [])]),
+        description: normalizedInput.description || existed.description || '',
+        usageCount: Math.max(0, Number(existed.usageCount || 0)) + 1,
+        status: 'active'
+      }, existed);
+      sharedAgentStore.set(existed.id, next);
+      return { changed: true, row: next, created: false };
+    }
+    const created = normalizeSharedAgent({
+      ...normalizedInput,
+      source: 'runtime/openclaw',
+      ownerType: normalizedInput.ownerType || 'employee',
+      usageCount: 1,
+      status: 'active'
+    });
+    sharedAgentStore.set(created.id, created);
+    return { changed: true, row: created, created: true };
+  }
+
+  async function reconcileSharedAgentsFromRuntimeEvents() {
+    if (!context.auditService || typeof context.auditService.list !== 'function') return;
+    const events = await context.auditService.list(1000);
+    const ordered = Array.isArray(events) ? events.slice().reverse() : [];
+    let changed = false;
+    for (const event of ordered) {
+      const type = String(event && event.type || '').trim();
+      const eventId = String(event && event.id || '').trim();
+      if (!eventId || sharedAgentRuntimeEventIds.has(eventId)) continue;
+      if (type !== 'runtime.openclaw.shared_agent.discovered') continue;
+      const parsed = parseRuntimeSharedAgentEvent(event);
+      if (!parsed) {
+        sharedAgentRuntimeEventIds.add(eventId);
+        continue;
+      }
+      const result = upsertSharedAgentBySignature(parsed);
+      if (result.changed) changed = true;
+      sharedAgentRuntimeEventIds.add(eventId);
+      while (sharedAgentRuntimeEventIds.size > sharedAgentRuntimeEventIdLimit) {
+        const first = sharedAgentRuntimeEventIds.values().next().value;
+        if (!first) break;
+        sharedAgentRuntimeEventIds.delete(first);
+      }
+    }
+    if (changed) {
+      await persistSharedAgents('runtime/openclaw');
+      await context.auditService.log('runtime.openclaw.shared_agent.synced', {
+        changed: true,
+        total: sharedAgentStore.size
+      });
+    }
+  }
+
   async function listSharedAgents() {
     await ensureSharedAgentsHydrated();
+    await reconcileSharedAgentsFromRuntimeEvents();
     return Array.from(sharedAgentStore.values()).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
   }
 
@@ -557,6 +670,13 @@ function buildAdminCompatRouter(context) {
         toolScope: Array.isArray(profile.toolScope) ? profile.toolScope : ['matrix', 'runtime_proxy'],
         systemPrompt: String(profile.systemPrompt || ''),
         extraSystemPrompt: String(profile.extraSystemPrompt || '')
+      },
+      checks: {
+        matrix: (
+          instance.runtime && instance.runtime.matrixChannelCheck && typeof instance.runtime.matrixChannelCheck === 'object'
+            ? safeJson(instance.runtime.matrixChannelCheck, {})
+            : {}
+        )
       },
       jobPolicy: safeJson(policy, buildDefaultJobPolicy(instance)),
       approvalPolicy: safeJson(approvalPolicy, buildDefaultApprovalPolicy()),
@@ -1568,87 +1688,51 @@ function buildAdminCompatRouter(context) {
     res.json({ rows, summary });
   });
 
-  router.post('/api/admin/agents/shared/register', async (req, res) => {
+  router.post('/api/admin/agents/shared/register', async (_req, res) => {
+    res.status(410).json({
+      error: 'manual_register_disabled',
+      message: '共享Agent改为运行时自动沉淀模式，不支持后台手工注册。'
+    });
+  });
+
+  router.post('/api/admin/agents/shared/runtime-events', async (req, res) => {
     await ensureSharedAgentsHydrated();
     const actor = actorOf(req);
     const body = req.body && typeof req.body === 'object' ? req.body : {};
-    const row = normalizeSharedAgent(body);
-    if (!row.name) {
-      res.status(400).json({ error: 'name is required' });
-      return;
+    const events = Array.isArray(body.events) ? body.events : [body.event || body];
+    let upserted = 0;
+    const rows = [];
+    for (const item of events) {
+      const parsed = parseRuntimeSharedAgentEvent({ payload: item });
+      if (!parsed) continue;
+      const result = upsertSharedAgentBySignature(parsed);
+      if (!result.changed || !result.row) continue;
+      upserted += 1;
+      rows.push(result.row);
     }
-    if (!row.capabilitySignature) {
-      row.capabilitySignature = `${row.name}:${row.jobCodes.join(',') || 'general'}`;
-    }
-    const duplicated = Array.from(sharedAgentStore.values()).find((x) => (
-      String(x.capabilitySignature || '').toLowerCase() === String(row.capabilitySignature || '').toLowerCase()
-      && String(x.status || '').toLowerCase() !== 'deleted'
-    ));
-    if (duplicated) {
-      duplicated.usageCount = Math.max(0, Number(duplicated.usageCount || 0)) + 1;
-      duplicated.updatedAt = nowIso();
-      sharedAgentStore.set(duplicated.id, duplicated);
-      await persistSharedAgents(actor);
-      await context.auditService.log('admin.shared_agent.reused', {
+    if (upserted > 0) {
+      await persistSharedAgents(`runtime:${actor}`);
+      await context.auditService.log('runtime.openclaw.shared_agent.upserted', {
         actor,
-        sharedAgentId: duplicated.id,
-        capabilitySignature: duplicated.capabilitySignature
+        upserted,
+        source: 'runtime-events-api'
       });
-      res.json({ reused: true, row: duplicated });
-      return;
     }
-    sharedAgentStore.set(row.id, row);
-    await persistSharedAgents(actor);
-    await context.auditService.log('admin.shared_agent.registered', {
-      actor,
-      sharedAgentId: row.id,
-      name: row.name,
-      ownerEmployeeId: row.ownerEmployeeId || null
-    });
-    res.status(201).json({ reused: false, row });
+    res.json({ success: true, upserted, rows });
   });
 
-  router.post('/api/admin/agents/shared/:id', async (req, res) => {
-    await ensureSharedAgentsHydrated();
-    const actor = actorOf(req);
-    const id = String(req.params.id || '').trim();
-    if (!id) {
-      res.status(400).json({ error: 'id is required' });
-      return;
-    }
-    const seed = sharedAgentStore.get(id);
-    if (!seed) {
-      res.status(404).json({ error: 'shared agent not found' });
-      return;
-    }
-    const patch = req.body && typeof req.body === 'object' ? req.body : {};
-    const next = normalizeSharedAgent(patch, seed);
-    sharedAgentStore.set(id, next);
-    await persistSharedAgents(actor);
-    await context.auditService.log('admin.shared_agent.updated', {
-      actor,
-      sharedAgentId: id
+  router.post('/api/admin/agents/shared/:id', async (_req, res) => {
+    res.status(410).json({
+      error: 'manual_update_disabled',
+      message: '共享Agent改为只读运营视图，不支持后台手工更新。'
     });
-    res.json(next);
   });
 
-  router.post('/api/admin/agents/shared/:id/delete', async (req, res) => {
-    await ensureSharedAgentsHydrated();
-    const actor = actorOf(req);
-    const id = String(req.params.id || '').trim();
-    const seed = sharedAgentStore.get(id);
-    if (!seed) {
-      res.status(404).json({ error: 'shared agent not found' });
-      return;
-    }
-    const next = { ...seed, status: 'deleted', updatedAt: nowIso() };
-    sharedAgentStore.set(id, next);
-    await persistSharedAgents(actor);
-    await context.auditService.log('admin.shared_agent.deleted', {
-      actor,
-      sharedAgentId: id
+  router.post('/api/admin/agents/shared/:id/delete', async (_req, res) => {
+    res.status(410).json({
+      error: 'manual_delete_disabled',
+      message: '共享Agent改为只读运营视图，不支持后台手工删除。'
     });
-    res.json({ success: true, id });
   });
 
   router.get('/api/admin/agents/shared/recommend', async (req, res) => {
@@ -1678,48 +1762,11 @@ function buildAdminCompatRouter(context) {
     });
   });
 
-  router.post('/api/admin/agents/shared/auto-bind/:employeeId', async (req, res) => {
-    await ensureSharedAgentsHydrated();
-    const actor = actorOf(req);
-    const employeeId = String(req.params.employeeId || '').trim();
-    const sharedAgentId = String((req.body && req.body.sharedAgentId) || '').trim();
-    if (!employeeId || !sharedAgentId) {
-      res.status(400).json({ error: 'employeeId and sharedAgentId are required' });
-      return;
-    }
-    const sharedAgent = sharedAgentStore.get(sharedAgentId);
-    if (!sharedAgent || String(sharedAgent.status || '').toLowerCase() === 'deleted') {
-      res.status(404).json({ error: 'shared agent not found' });
-      return;
-    }
-    const profile = employeeProfileOverrides.get(employeeId) || {};
-    const childAgents = Array.isArray(profile.childAgents) ? profile.childAgents.slice() : [];
-    const existed = childAgents.find((x) => String((x && x.id) || '') === sharedAgentId);
-    if (!existed) {
-      childAgents.push({
-        id: sharedAgent.id,
-        name: sharedAgent.name,
-        status: sharedAgent.status || 'active',
-        shared: true,
-        capabilitySignature: sharedAgent.capabilitySignature,
-        usageCount: sharedAgent.usageCount || 0,
-        tags: Array.isArray(sharedAgent.tags) ? sharedAgent.tags : []
-      });
-    }
-    employeeProfileOverrides.set(employeeId, { ...profile, childAgents, updatedAt: nowIso() });
-
-    sharedAgent.usageCount = Math.max(0, Number(sharedAgent.usageCount || 0)) + 1;
-    sharedAgent.updatedAt = nowIso();
-    sharedAgentStore.set(sharedAgent.id, sharedAgent);
-    await persistSharedAgents(actor);
-    await context.auditService.log('admin.shared_agent.auto_bound', {
-      actor,
-      employeeId,
-      sharedAgentId
+  router.post('/api/admin/agents/shared/auto-bind/:employeeId', async (_req, res) => {
+    res.status(410).json({
+      error: 'manual_bind_disabled',
+      message: '共享Agent改为运行时自动绑定模式，不支持后台手工绑定。'
     });
-
-    const row = await getEmployeeById(employeeId);
-    res.json({ success: true, employeeId, sharedAgentId, employee: row });
   });
 
   router.get('/api/admin/skills', async (req, res) => {
@@ -2015,56 +2062,6 @@ function buildAdminCompatRouter(context) {
     res.json({ ok: true, users: userStore.size, roles: roleStore.size, updatedAt: nowIso() });
   });
 
-  router.get('/api/admin/auth/identity-mappings', async (_req, res) => {
-    if (!context.repo || typeof context.repo.getPlatformConfig !== 'function') {
-      res.json({ rows: [], summary: { total: 0 } });
-      return;
-    }
-    const directory = await context.repo.getPlatformConfig('identityDirectory');
-    const records = directory && typeof directory.records === 'object' ? directory.records : {};
-    const rows = Object.keys(records).map((key) => ({
-      matrixUserId: key,
-      ...(records[key] || {})
-    })).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
-    res.json({
-      rows,
-      summary: { total: rows.length, updatedAt: directory && directory.updatedAt ? directory.updatedAt : null }
-    });
-  });
-
-  router.post('/api/admin/auth/identity-mappings/:matrixUserId', async (req, res) => {
-    if (!context.repo || typeof context.repo.getPlatformConfig !== 'function' || typeof context.repo.setPlatformConfig !== 'function') {
-      res.status(501).json({ error: 'identity mapping persistence unavailable' });
-      return;
-    }
-    const matrixUserId = normalizeMatrixUserId(req.params.matrixUserId);
-    if (!matrixUserId) {
-      res.status(400).json({ error: 'matrixUserId is required' });
-      return;
-    }
-    const patch = req.body && typeof req.body === 'object' ? req.body : {};
-    const directory = await context.repo.getPlatformConfig('identityDirectory');
-    const records = directory && typeof directory.records === 'object' ? { ...directory.records } : {};
-    const prev = records[matrixUserId] && typeof records[matrixUserId] === 'object' ? records[matrixUserId] : {};
-    const next = {
-      ...prev,
-      ...patch,
-      matrixUserId,
-      updatedAt: nowIso()
-    };
-    records[matrixUserId] = next;
-    await context.repo.setPlatformConfig('identityDirectory', {
-      records,
-      updatedAt: nowIso(),
-      updatedBy: actorOf(req)
-    });
-    await context.auditService.log('admin.auth.identity_mapping.updated', {
-      actor: actorOf(req),
-      matrixUserId
-    });
-    res.json(next);
-  });
-
   router.get('/api/admin/auth/users', (_req, res) => {
     res.json(Array.from(userStore.values()).map(userPayload));
   });
@@ -2154,6 +2151,14 @@ function buildAdminCompatRouter(context) {
   });
 
   router.use('/api/admin', (req, res) => {
+    const compatPath = String(req.path || '').trim();
+    if (compatPath === '/auth/identity-mappings' || compatPath.startsWith('/auth/identity-mappings/')) {
+      res.status(410).json({
+        error: 'manual identity mapping maintenance is disabled',
+        reason: 'sso_managed_identity_only'
+      });
+      return;
+    }
     res.json(Array.isArray(req.body) ? [] : { success: true, path: req.path, method: req.method, note: 'compat noop' });
   });
 

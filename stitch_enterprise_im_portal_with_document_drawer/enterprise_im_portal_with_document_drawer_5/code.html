@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>外部行业信息订阅管理 - Market Intelligence Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "ai-purple": "#7b00ff",
+                        "mac-gray": "#F5F5F7",
+                        "mac-border": "rgba(0, 0, 0, 0.08)",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "Noto Sans SC", "-apple-system", "BlinkMacSystemFont", "SF Pro Display", "sans-serif"],
+                    },
+                    fontSize: {
+                        'xs': ['11px', '14px'],
+                        'base': ['13px', '18px'],
+                        'sm': ['12px', '16px'],
+                        'lg': ['14px', '20px'],
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { 
+                font-family: 'Inter', 'Noto Sans SC', sans-serif; 
+                -webkit-font-smoothing: antialiased;
+            }
+        }
+        .frosted-glass { 
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(20px) saturate(180%); 
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        .sidebar-glass {
+            background: rgba(246, 246, 246, 0.85);
+            backdrop-filter: blur(20px);
+        }
+        .chat-bubble-received { 
+            background: white; 
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 16px 16px 16px 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .chat-bubble-sent { 
+            background: #007AFF; 
+            color: white; 
+            border-radius: 16px 16px 4px 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .mac-card {
+            background: rgba(255, 255, 255, 1);
+            border: 0.5px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mac-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .toggle-switch {
+            width: 30px;
+            height: 16px;
+            background: #E9E9EA;
+            border-radius: 100px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle-switch.active {
+            background: #34C759;
+        }
+        .toggle-knob {
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .toggle-switch.active .toggle-knob {
+            transform: translateX(14px);
+        }
+        .subscription-chip {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #F2F2F7;
+            color: #48484A;
+            border: 0.5px solid rgba(0,0,0,0.05);
+        }
+        .subscription-chip.active {
+            background: #E5F1FF;
+            color: #007AFF;
+            border-color: rgba(0,122,255,0.2);
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-[#ECECEC] text-slate-900 overflow-hidden h-screen flex justify-center items-center">
+<div class="w-full h-full flex bg-white overflow-hidden shadow-2xl">
+<aside class="w-[68px] sidebar-glass flex flex-col items-center py-5 border-r border-mac-border z-30 shrink-0">
+<div class="w-10 h-10 rounded-xl bg-ai-purple flex items-center justify-center text-white shadow-md mb-6">
+<span class="material-symbols-outlined text-2xl">hub</span>
+</div>
+<nav class="flex flex-col gap-5 flex-1">
+<button class="w-10 h-10 rounded-lg bg-white shadow-sm text-primary flex items-center justify-center transition-all">
+<span class="material-symbols-outlined fill-1">chat_bubble</span>
+</button>
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined">grid_view</span>
+</button>
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined">newspaper</span>
+</button>
+<div class="h-px w-6 bg-slate-200/60 mx-auto my-1"></div>
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<div class="mt-auto">
+<div class="w-9 h-9 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white">
+<img alt="User" class="object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8gidja6zNFp5d2j_xE8Y2dvNgiVh6eqQujbqA3S1gYSUnM6RPcCM7sBZU8e-RwVj9bFBuxKgUl55MtY5Un8tRI82HA8dRr7Xded9TYgNiysLj-2eKxENPh7SFr-T_0LQ2rv32qeWLYjA3Ne91gZ05WGwSyMhoAyNiILrL3baFWiMDhyMN6guBLCVWRK6QwRen6y24Fivq-Rt8zhLvu7dRYOFMBSdVIqu5WOxMDL8qCiTzTY4hEQDEN96hMigdZQ4WLMB8-rcAoFw"/>
+</div>
+</div>
+</aside>
+<aside class="w-72 bg-white border-r border-mac-border flex flex-col z-20 shrink-0">
+<div class="p-4">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-lg font-bold">消息</h1>
+<button class="text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-xl">edit_square</span>
+</button>
+</div>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+<input class="w-full bg-slate-100 border-none rounded-lg pl-9 py-1.5 text-sm focus:ring-1 focus:ring-primary placeholder:text-slate-400" placeholder="搜索对话..." type="text"/>
+</div>
+</div>
+<div class="px-4 mb-2">
+<div class="flex gap-4 border-b border-mac-border">
+<button class="pb-2 text-sm font-semibold border-b-2 border-primary text-primary">全部</button>
+<button class="pb-2 text-sm font-medium text-slate-500">群组</button>
+<button class="pb-2 text-sm font-medium text-slate-500 flex items-center gap-1 relative">
+                    订阅号
+                    <span class="absolute -right-2 top-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-2 space-y-0.5">
+<div class="flex items-center gap-3 p-3 bg-primary/5 rounded-xl cursor-pointer ring-1 ring-primary/10">
+<div class="relative">
+<div class="w-11 h-11 rounded-xl bg-gradient-to-br from-ai-purple to-primary flex items-center justify-center text-white shadow-inner">
+<span class="material-symbols-outlined text-xl">auto_awesome</span>
+</div>
+<div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-sm truncate">AI 行业助手</h3>
+<span class="text-[10px] text-primary font-medium">10:45</span>
+</div>
+<p class="text-[12px] text-primary/80 font-medium truncate">订阅成功！“低空经济”等动态已开启...</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer group transition-colors">
+<div class="w-11 h-11 rounded-xl bg-slate-100 overflow-hidden shrink-0">
+<img alt="Sarah" class="object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7nQlFgCd7wh3FTdCZG0_geSGQZx0Zl1nm27l9jCrDKdbm_fk6eJeCQIvybXYXAL_rxtHa6XjIvhUI7mfB-0h-h3E7qioOfc815QqQMno4oqEznzWNzi7Gf30jlBakEi6IAu59NkU5JhTNt7yohG4V0Ikro1bFrpIQx20lFR1eiRQ3oKE1jXD9VO4qUV5wvkbFMwCuAQ3KIXrbu9YQVEFbAgwILLKOmEmJpj12Z_yEe9xNQEEksErSIg8LPHYwrBQzDDHdZZBCWh8"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-semibold text-sm truncate text-slate-800">陈萨拉</h3>
+<span class="text-[10px] text-slate-400 uppercase">昨天</span>
+</div>
+<p class="text-[12px] text-slate-500 truncate">行业调研报告已经上传，请查收...</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col bg-white min-w-0 border-r border-mac-border">
+<header class="h-14 border-b border-mac-border flex items-center justify-between px-6 shrink-0 bg-white/80 backdrop-blur-md">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-9 h-9 rounded-lg bg-ai-purple/10 flex items-center justify-center text-ai-purple shrink-0">
+<span class="material-symbols-outlined text-lg">auto_awesome</span>
+</div>
+<div class="truncate">
+<h2 class="font-bold text-sm leading-tight truncate">AI 行业助手</h2>
+<p class="text-[10px] text-green-500 font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                        在线
+                    </p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">search</span></button>
+<button class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">history</span></button>
+<button class="p-1.5 text-primary bg-primary/10 rounded-lg transition-colors ml-1"><span class="material-symbols-outlined text-[20px]">info</span></button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-[#FAFAFA]">
+<div class="flex justify-center">
+<span class="px-2.5 py-0.5 bg-slate-200/50 text-slate-500 text-[10px] font-semibold rounded-full uppercase tracking-wider">上午 10:45</span>
+</div>
+<div class="flex items-end gap-3 flex-row-reverse max-w-[85%] ml-auto">
+<div class="w-8 h-8 rounded-lg bg-slate-200 shrink-0 overflow-hidden">
+<img alt="User" class="object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8gidja6zNFp5d2j_xE8Y2dvNgiVh6eqQujbqA3S1gYSUnM6RPcCM7sBZU8e-RwVj9bFBuxKgUl55MtY5Un8tRI82HA8dRr7Xded9TYgNiysLj-2eKxENPh7SFr-T_0LQ2rv32qeWLYjA3Ne91gZ05WGwSyMhoAyNiILrL3baFWiMDhyMN6guBLCVWRK6QwRen6y24Fivq-Rt8zhLvu7dRYOFMBSdVIqu5WOxMDL8qCiTzTY4hEQDEN96hMigdZQ4WLMB8-rcAoFw"/>
+</div>
+<div class="chat-bubble-sent px-4 py-2.5 text-[13px] leading-relaxed">
+                    帮我订阅关于“低空经济”和“AI手机市场”的行业动态，每天下午6点给我发送一份深度汇总。
+                </div>
+</div>
+<div class="flex items-start gap-3 max-w-[85%]">
+<div class="w-8 h-8 rounded-lg bg-ai-purple/10 flex items-center justify-center text-ai-purple shrink-0">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+</div>
+<div class="chat-bubble-received px-4 py-2.5 text-[13px] leading-relaxed text-slate-800">
+                    已为您开启外部行业信息追踪。我将持续监控全网动态，并在每日 18:00 为您推送深度摘要。
+                </div>
+</div>
+<div class="flex items-start gap-3 max-w-[85%]">
+<div class="w-8 h-8 opacity-0 shrink-0"></div>
+<div class="w-full max-w-sm mac-card rounded-xl p-4 flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-ai-purple flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[14px]">public</span>
+</div>
+<span class="text-[12px] font-bold text-slate-800">外部信息订阅</span>
+<span class="text-[11px] text-slate-400 mx-1">•</span>
+<span class="text-[12px] text-slate-500">AI 聚合资讯</span>
+</div>
+<div class="space-y-3">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="px-1.5 py-0.5 bg-blue-50 text-primary text-[10px] font-bold rounded">已生效</span>
+<h4 class="text-[13px] font-semibold text-slate-900">外部行业动态监控</h4>
+</div>
+<div class="flex flex-wrap gap-1.5 mt-1">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] rounded-md"># 低空经济</span>
+<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] rounded-md"># AI手机市场</span>
+</div>
+</div>
+<div class="bg-slate-50 rounded-lg p-2.5 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-[16px]">schedule</span>
+<span class="text-[12px] text-slate-600">每日 18:00 定时摘要</span>
+</div>
+<span class="text-[11px] text-primary font-medium">配置中</span>
+</div>
+</div>
+<div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+<a class="text-[12px] text-primary font-medium hover:underline flex items-center gap-0.5" href="#">
+                            查看详细配置 <span class="material-symbols-outlined text-[14px]">settings</span>
+</a>
+<span class="text-[10px] text-slate-400">刚刚</span>
+</div>
+</div>
+</div>
+</div>
+<footer class="p-4 bg-white border-t border-mac-border shrink-0">
+<div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-1.5 ring-1 ring-inset ring-slate-200">
+<button class="p-1.5 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">add_circle</span></button>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-1.5 placeholder:text-slate-400" placeholder="咨询行业助手或修改订阅..." type="text"/>
+<button class="p-1.5 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">sentiment_satisfied</span></button>
+<button class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shrink-0 shadow-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</footer>
+</main>
+<div class="w-[380px] bg-mac-gray/40 flex flex-col shrink-0 border-l border-mac-border relative z-10 frosted-glass">
+<header class="h-14 border-b border-mac-border flex items-center justify-between px-5 shrink-0 bg-white/50">
+<div class="flex items-center gap-2.5">
+<h2 class="font-bold text-[15px] text-slate-900">管理外部订阅</h2>
+</div>
+<div class="flex items-center gap-1 shrink-0">
+<button class="px-3 py-1 bg-primary text-white font-semibold text-[11px] rounded-md hover:opacity-90 transition-colors shadow-sm">
+                    保存设置
+                </button>
+<button class="p-1 text-slate-500 hover:bg-slate-200/50 rounded-md transition-colors"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto">
+<div class="p-5 border-b border-mac-border/50">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">订阅数据源</h3>
+<button class="text-[11px] text-primary font-medium">配置源</button>
+</div>
+<div class="bg-white rounded-xl p-3 border border-mac-border flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-ai-purple">
+<span class="material-symbols-outlined text-[24px]">auto_awesome</span>
+</div>
+<div>
+<p class="text-[13px] font-bold text-slate-800">AI 聚合资讯</p>
+<p class="text-[11px] text-slate-400">行业趋势与市场信息</p>
+</div>
+<span class="material-symbols-outlined text-green-500 ml-auto text-[18px]">verified</span>
+</div>
+</div>
+<div class="p-5 border-b border-mac-border/50">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">跟踪主题 (Tracked Topics)</h3>
+</div>
+<div class="flex flex-wrap gap-2">
+<div class="subscription-chip active">
+<span class="material-symbols-outlined text-[14px]">analytics</span>
+                        低空经济
+                        <span class="material-symbols-outlined text-[14px] ml-1 opacity-40 cursor-pointer">close</span>
+</div>
+<div class="subscription-chip active">
+<span class="material-symbols-outlined text-[14px]">smartphone</span>
+                        AI手机市场
+                        <span class="material-symbols-outlined text-[14px] ml-1 opacity-40 cursor-pointer">close</span>
+</div>
+<div class="subscription-chip">
+<span class="material-symbols-outlined text-[14px]">add</span>
+                        添加关键词
+                    </div>
+</div>
+<p class="text-[11px] text-slate-400 mt-3 italic">已通过自然语言识别为您自动提取核心监控主题</p>
+</div>
+<div class="p-5">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">发送设置</h3>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-white rounded-xl border border-primary/20 shadow-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]">schedule</span>
+<div class="flex flex-col">
+<span class="text-[13px] font-medium text-slate-700">定时摘要 (Scheduled Summary)</span>
+<span class="text-[11px] text-slate-400">深度整合分析，每日定时发送</span>
+</div>
+</div>
+<div class="toggle-switch active">
+<div class="toggle-knob"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-white/50 rounded-xl border border-mac-border">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">bolt</span>
+<div class="flex flex-col">
+<span class="text-[13px] font-medium text-slate-400">实时发送</span>
+<span class="text-[11px] text-slate-400">单条动态触发即刻提醒</span>
+</div>
+</div>
+<div class="toggle-switch">
+<div class="toggle-knob"></div>
+</div>
+</div>
+<div class="mt-4 px-1">
+<label class="text-[11px] font-bold text-slate-400 block mb-2">发送时间</label>
+<div class="flex items-center gap-2">
+<div class="bg-white px-3 py-1.5 rounded-lg text-[13px] font-mono font-medium text-slate-700 flex items-center gap-2 border border-mac-border hover:border-primary/20 cursor-pointer shadow-sm">
+                                18:00
+                                <span class="material-symbols-outlined text-[14px]">expand_more</span>
+</div>
+<span class="text-[12px] text-slate-400">每日下午</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer class="p-4 border-t border-mac-border/50 bg-white/30">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 bg-green-500 rounded-full"></span>
+<span class="text-[11px] text-slate-500 font-medium">外部源监控运行中</span>
+</div>
+<span class="text-[10px] text-slate-400">上次检查: 刚刚</span>
+</div>
+</footer>
+</div>
+</div>
+
+</body></html>

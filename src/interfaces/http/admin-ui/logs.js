@@ -10,6 +10,10 @@ const viewState = {
   module: 'all',
   page: 'all',
   operation: 'all',
+  status: 'all',
+  timeRange: '1h',
+  trace: '',
+  keyword: '',
   expandedRowKeys: new Set()
 };
 
@@ -118,14 +122,33 @@ function isAdminLogType(type) {
   return t.startsWith('auth.') || t.startsWith('admin.') || t.startsWith('audit.');
 }
 
+function isServiceLogType(type) {
+  const t = String(type || '');
+  return t.startsWith('matrix.')
+    || t.startsWith('instance.')
+    || t.startsWith('bootstrap.')
+    || t.startsWith('integration.')
+    || t.startsWith('runtime.')
+    || t.startsWith('employee.');
+}
+
+function isAgentLogType(type) {
+  const t = String(type || '');
+  return t.startsWith('task.')
+    || t.startsWith('skill.')
+    || t.startsWith('runtime.task.')
+    || t.startsWith('integration.compensation.');
+}
+
 function resolveLogScope() {
   const body = document.body;
   const scope = body ? String(body.getAttribute('data-log-scope') || '').trim().toLowerCase() : '';
-  if (scope === 'admin' || scope === 'agent') return scope;
+  if (scope === 'admin' || scope === 'agent' || scope === 'service') return scope;
   const pathname = String(window.location.pathname || '');
   if (pathname.endsWith('/logs-admin.html')) return 'admin';
+  if (pathname.endsWith('/logs-service.html')) return 'service';
   if (pathname.endsWith('/logs-agent.html')) return 'agent';
-  return 'agent';
+  return 'service';
 }
 
 function normalizeFilter(input) {
@@ -170,9 +193,39 @@ function resolveOperationFilter(scope = 'agent') {
   return normalizeFilter(readStorage(storageKey('operation', scope)));
 }
 
+function resolveStatusFilter(scope = 'agent') {
+  const params = new URLSearchParams(window.location.search || '');
+  if (params.has('status')) return normalizeFilter(params.get('status'));
+  return normalizeFilter(readStorage(storageKey('status', scope)));
+}
+
+function resolveTimeRangeFilter(scope = 'agent') {
+  const params = new URLSearchParams(window.location.search || '');
+  if (params.has('timeRange')) return normalizeFilter(params.get('timeRange'));
+  return normalizeFilter(readStorage(storageKey('timeRange', scope)) || '1h');
+}
+
+function resolveTraceFilter(scope = 'agent') {
+  const params = new URLSearchParams(window.location.search || '');
+  if (params.has('trace')) return String(params.get('trace') || '').trim();
+  return String(readStorage(storageKey('trace', scope)) || '').trim();
+}
+
+function resolveKeywordFilter(scope = 'agent') {
+  const params = new URLSearchParams(window.location.search || '');
+  if (params.has('keyword')) return String(params.get('keyword') || '').trim();
+  return String(readStorage(storageKey('keyword', scope)) || '').trim();
+}
+
 function filterLogsByScope(rows = [], scope = 'agent') {
   if (scope === 'admin') return rows.filter((event) => isAdminLogType(event && event.type));
-  return rows.filter((event) => !isAdminLogType(event && event.type));
+  if (scope === 'service') {
+    return rows.filter((event) => {
+      const type = event && event.type;
+      return !isAdminLogType(type) && isServiceLogType(type);
+    });
+  }
+  return rows.filter((event) => isAgentLogType(event && event.type));
 }
 
 function filterLogsByModule(rows = [], module = 'all') {
@@ -188,6 +241,77 @@ function filterLogsByPage(rows = [], page = 'all') {
 function filterLogsByOperation(rows = [], operation = 'all') {
   if (operation === 'all') return rows;
   return rows.filter((event) => eventOperationKey(event) === operation);
+}
+
+function classifyServiceStatus(event) {
+  const type = String(event && event.type || '').toLowerCase();
+  const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
+  const phase = String(payload.phase || payload.status || '').toLowerCase();
+  if (type.includes('failed') || type.includes('error') || phase === 'failed' || phase === 'error' || phase === 'forbidden') return 'failed';
+  if (type.includes('ignored') || phase === 'ignored' || phase === 'delegated') return 'ignored';
+  if (type.includes('succeeded') || type.includes('success') || type.includes('ready') || phase === 'succeeded' || phase === 'ready') return 'succeeded';
+  return 'unknown';
+}
+
+function resolveTimeRangeMs(value) {
+  const key = String(value || '').trim().toLowerCase();
+  if (key === '15m') return 15 * 60 * 1000;
+  if (key === '1h') return 60 * 60 * 1000;
+  if (key === '24h') return 24 * 60 * 60 * 1000;
+  if (key === '7d') return 7 * 24 * 60 * 60 * 1000;
+  return 0;
+}
+
+function filterLogsByTimeRange(rows = [], timeRange = '1h') {
+  const windowMs = resolveTimeRangeMs(timeRange);
+  if (!windowMs) return rows;
+  const now = Date.now();
+  return rows.filter((event) => {
+    const at = Date.parse(String(event && event.at || ''));
+    if (!Number.isFinite(at)) return false;
+    return (now - at) <= windowMs;
+  });
+}
+
+function filterLogsByStatus(rows = [], status = 'all') {
+  if (status === 'all') return rows;
+  return rows.filter((event) => classifyServiceStatus(event) === status);
+}
+
+function filterLogsByTrace(rows = [], trace = '') {
+  const q = String(trace || '').trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter((event) => {
+    const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
+    const tokens = [
+      event && event.id,
+      payload.traceId,
+      payload.requestId,
+      payload.eventId,
+      payload.roomId,
+      payload.instanceId,
+      payload.employeeId,
+      payload.taskId
+    ].map((x) => String(x || '').toLowerCase()).filter(Boolean);
+    return tokens.some((x) => x.includes(q));
+  });
+}
+
+function filterLogsByKeyword(rows = [], keyword = '') {
+  const q = String(keyword || '').trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter((event) => {
+    const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
+    const haystack = [
+      String(event && event.type || ''),
+      String(payload.message || ''),
+      String(payload.reason || ''),
+      String(payload.command || ''),
+      String(payload.sender || ''),
+      String(payload.body || '')
+    ].join(' ').toLowerCase();
+    return haystack.includes(q);
+  });
 }
 
 function summarizeAction(event) {
@@ -263,10 +387,16 @@ function summarizeAction(event) {
     'matrix.relay.started': 'Matrix Relay 启动',
     'matrix.relay.stopped': 'Matrix Relay 停止',
     'matrix.relay.inbound': `收到渠道消息 ${firstNonEmpty([payload.eventId, '-'])}`,
+    'matrix.relay.inbound.encrypted_ignored': `加密消息未解密 ${firstNonEmpty([payload.eventId, '-'])}`,
     'matrix.relay.delivery.succeeded': `渠道消息投递成功 ${firstNonEmpty([payload.traceId, payload.eventId, '-'])}`,
     'matrix.relay.delivery.failed': `渠道消息投递失败 ${firstNonEmpty([payload.traceId, payload.eventId, '-'])}`,
+    'matrix.relay.crypto.ready': 'Matrix 加密能力就绪',
+    'matrix.relay.crypto.failed': 'Matrix 加密能力初始化失败',
     'matrix.command.received': `收到命令 ${firstNonEmpty([payload.command, '-'])}`,
     'matrix.command.handled': `命令处理${firstNonEmpty([payload.phase, '-'])} ${firstNonEmpty([payload.command, '-'])}`,
+    'runtime.openclaw.shared_agent.discovered': `运行时发现共享Agent ${firstNonEmpty([payload.capabilitySignature, payload.name, '-'])}`,
+    'runtime.openclaw.shared_agent.synced': `共享Agent大厅自动同步（总数 ${Number(payload.total || 0)}）`,
+    'runtime.openclaw.shared_agent.upserted': `共享Agent运行时上报入库（数量 ${Number(payload.upserted || 0)}）`,
     'audit.anchor.created': `创建审计锚点 ${firstNonEmpty([payload.anchorId, '-'])}`
   };
 
@@ -333,10 +463,20 @@ function updateUrlQuery() {
   params.delete('module');
   params.delete('page');
   params.delete('operation');
-  if (viewState.scope === 'admin') {
+  params.delete('status');
+  params.delete('timeRange');
+  params.delete('trace');
+  params.delete('keyword');
+  if (viewState.scope === 'admin' || viewState.scope === 'service') {
     if (viewState.module !== 'all') params.set('module', viewState.module);
-    if (viewState.page !== 'all') params.set('page', viewState.page);
+    if (viewState.scope === 'admin' && viewState.page !== 'all') params.set('page', viewState.page);
     if (viewState.operation !== 'all') params.set('operation', viewState.operation);
+    if (viewState.scope === 'service') {
+      if (viewState.status !== 'all') params.set('status', viewState.status);
+      if (viewState.timeRange !== '1h') params.set('timeRange', viewState.timeRange);
+      if (viewState.trace) params.set('trace', viewState.trace);
+      if (viewState.keyword) params.set('keyword', viewState.keyword);
+    }
   } else {
     if (viewState.operation !== 'all') params.set('operation', viewState.operation);
   }
@@ -348,6 +488,10 @@ function persistViewState() {
   writeStorage(storageKey('module', viewState.scope), viewState.module);
   writeStorage(storageKey('page', viewState.scope), viewState.page);
   writeStorage(storageKey('operation', viewState.scope), viewState.operation);
+  writeStorage(storageKey('status', viewState.scope), viewState.status);
+  writeStorage(storageKey('timeRange', viewState.scope), viewState.timeRange);
+  writeStorage(storageKey('trace', viewState.scope), viewState.trace);
+  writeStorage(storageKey('keyword', viewState.scope), viewState.keyword);
   updateUrlQuery();
 }
 
@@ -355,6 +499,10 @@ function bindControls() {
   const moduleSelect = document.getElementById('logModuleFilter');
   const pageSelect = document.getElementById('logPageFilter');
   const operationSelect = document.getElementById('logOperationFilter');
+  const statusSelect = document.getElementById('logStatusFilter');
+  const timeRangeSelect = document.getElementById('logTimeRangeFilter');
+  const traceInput = document.getElementById('logTraceFilter');
+  const keywordInput = document.getElementById('logKeywordFilter');
 
   if (moduleSelect) {
     moduleSelect.addEventListener('change', async () => {
@@ -368,6 +516,7 @@ function bindControls() {
 
   if (pageSelect) {
     pageSelect.addEventListener('change', async () => {
+      if (viewState.scope !== 'admin') return;
       viewState.page = normalizeFilter(pageSelect.value);
       viewState.operation = 'all';
       persistViewState();
@@ -378,6 +527,52 @@ function bindControls() {
   if (operationSelect) {
     operationSelect.addEventListener('change', async () => {
       viewState.operation = normalizeFilter(operationSelect.value);
+      persistViewState();
+      await load();
+    });
+  }
+
+  if (statusSelect) {
+    statusSelect.addEventListener('change', async () => {
+      viewState.status = normalizeFilter(statusSelect.value);
+      persistViewState();
+      await load();
+    });
+  }
+
+  if (timeRangeSelect) {
+    timeRangeSelect.addEventListener('change', async () => {
+      viewState.timeRange = normalizeFilter(timeRangeSelect.value);
+      persistViewState();
+      await load();
+    });
+  }
+
+  if (traceInput) {
+    traceInput.addEventListener('change', async () => {
+      viewState.trace = String(traceInput.value || '').trim();
+      persistViewState();
+      await load();
+    });
+    traceInput.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      viewState.trace = String(traceInput.value || '').trim();
+      persistViewState();
+      await load();
+    });
+  }
+
+  if (keywordInput) {
+    keywordInput.addEventListener('change', async () => {
+      viewState.keyword = String(keywordInput.value || '').trim();
+      persistViewState();
+      await load();
+    });
+    keywordInput.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      viewState.keyword = String(keywordInput.value || '').trim();
       persistViewState();
       await load();
     });
@@ -438,6 +633,52 @@ function syncAdminFilterOptions(scopedRows = []) {
   operationSelect.value = viewState.operation;
 }
 
+function syncServiceFilterOptions(scopedRows = []) {
+  const moduleSelect = document.getElementById('logModuleFilter');
+  const operationSelect = document.getElementById('logOperationFilter');
+  const statusSelect = document.getElementById('logStatusFilter');
+  const timeRangeSelect = document.getElementById('logTimeRangeFilter');
+  const traceInput = document.getElementById('logTraceFilter');
+  const keywordInput = document.getElementById('logKeywordFilter');
+  if (!moduleSelect || !operationSelect) return;
+
+  const moduleCount = new Map();
+  scopedRows.forEach((event) => {
+    const key = eventModuleKey(event);
+    moduleCount.set(key, (moduleCount.get(key) || 0) + 1);
+  });
+  const moduleOptions = [...moduleCount.entries()].sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return moduleLabelByKey(a[0]).localeCompare(moduleLabelByKey(b[0]), 'zh-CN');
+  });
+  if (viewState.module !== 'all' && !moduleOptions.some(([key]) => key === viewState.module)) viewState.module = 'all';
+  moduleSelect.innerHTML = ['<option value="all">全部</option>', ...moduleOptions.map(([key, count]) => (
+    `<option value="${escapeHtml(key)}">${escapeHtml(moduleLabelByKey(key))}（${count}）</option>`
+  ))].join('');
+  moduleSelect.value = viewState.module;
+
+  const moduleFiltered = filterLogsByModule(scopedRows, viewState.module);
+  const operationCount = new Map();
+  moduleFiltered.forEach((event) => {
+    const key = eventOperationKey(event);
+    operationCount.set(key, (operationCount.get(key) || 0) + 1);
+  });
+  const operationOptions = [...operationCount.entries()].sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return a[0].localeCompare(b[0], 'zh-CN');
+  });
+  if (viewState.operation !== 'all' && !operationOptions.some(([key]) => key === viewState.operation)) viewState.operation = 'all';
+  operationSelect.innerHTML = ['<option value="all">全部</option>', ...operationOptions.map(([key, count]) => (
+    `<option value="${escapeHtml(key)}">${escapeHtml(key)}（${count}）</option>`
+  ))].join('');
+  operationSelect.value = viewState.operation;
+
+  if (statusSelect) statusSelect.value = viewState.status || 'all';
+  if (timeRangeSelect) timeRangeSelect.value = viewState.timeRange || '1h';
+  if (traceInput) traceInput.value = viewState.trace || '';
+  if (keywordInput) keywordInput.value = viewState.keyword || '';
+}
+
 function syncAgentFilterOptions(scopedRows = []) {
   const operationSelect = document.getElementById('logOperationFilter');
   if (!operationSelect) return;
@@ -488,9 +729,11 @@ window.addEventListener('unhandledrejection', (event) => {
 
 function emptyMessageForScope() {
   if (viewState.operation !== 'all') return `暂无操作为 ${viewState.operation} 的日志`;
-  if (viewState.scope === 'admin' && viewState.page !== 'all') return `暂无页面为 ${viewState.page} 的日志`;
-  if (viewState.scope === 'admin' && viewState.module !== 'all') return `暂无模块为 ${viewState.module} 的日志`;
-  return viewState.scope === 'admin' ? '暂无后台操作日志' : '暂无 Agent 行为日志';
+  if ((viewState.scope === 'admin' || viewState.scope === 'service') && viewState.page !== 'all') return `暂无页面为 ${viewState.page} 的日志`;
+  if ((viewState.scope === 'admin' || viewState.scope === 'service') && viewState.module !== 'all') return `暂无模块为 ${viewState.module} 的日志`;
+  if (viewState.scope === 'admin') return '暂无后台操作日志';
+  if (viewState.scope === 'service') return '暂无平台服务日志';
+  return '暂无 Agent 行为日志';
 }
 
 async function load() {
@@ -499,6 +742,7 @@ async function load() {
     const scoped = Array.isArray(all) ? filterLogsByScope(all, viewState.scope) : [];
 
     if (viewState.scope === 'admin') syncAdminFilterOptions(scoped);
+    else if (viewState.scope === 'service') syncServiceFilterOptions(scoped);
     else syncAgentFilterOptions(scoped);
 
     const filtered = viewState.scope === 'admin'
@@ -509,7 +753,24 @@ async function load() {
         ),
         viewState.operation
       )
-      : filterLogsByOperation(scoped, viewState.operation);
+      : viewState.scope === 'service'
+        ? filterLogsByKeyword(
+          filterLogsByTrace(
+            filterLogsByStatus(
+              filterLogsByOperation(
+                filterLogsByModule(
+                  filterLogsByTimeRange(scoped, viewState.timeRange),
+                  viewState.module
+                ),
+                viewState.operation
+              ),
+              viewState.status
+            ),
+            viewState.trace
+          ),
+          viewState.keyword
+        )
+        : filterLogsByOperation(scoped, viewState.operation);
 
     const rows = filtered;
     const rowKeySet = new Set(rows.map((event) => logRowKey(event)));
@@ -542,9 +803,23 @@ async function load() {
   viewState.module = resolveModuleFilter(viewState.scope);
   viewState.page = resolvePageFilter(viewState.scope);
   viewState.operation = resolveOperationFilter(viewState.scope);
+  viewState.status = resolveStatusFilter(viewState.scope);
+  viewState.timeRange = resolveTimeRangeFilter(viewState.scope) || '1h';
+  viewState.trace = resolveTraceFilter(viewState.scope);
+  viewState.keyword = resolveKeywordFilter(viewState.scope);
   if (viewState.scope === 'agent') {
     viewState.module = 'all';
     viewState.page = 'all';
+    viewState.status = 'all';
+    viewState.timeRange = '1h';
+    viewState.trace = '';
+    viewState.keyword = '';
+  }
+  if (viewState.scope === 'admin') {
+    viewState.status = 'all';
+    viewState.timeRange = '1h';
+    viewState.trace = '';
+    viewState.keyword = '';
   }
   bindControls();
   persistViewState();

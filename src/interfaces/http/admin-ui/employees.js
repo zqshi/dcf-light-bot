@@ -68,7 +68,7 @@ function escapeHtml(input) {
 }
 
 function renderEmpty(message) {
-  document.getElementById('rows').innerHTML = `<tr><td colspan="8" class="empty">${message}</td></tr>`;
+  document.getElementById('rows').innerHTML = `<tr><td colspan="9" class="empty">${message}</td></tr>`;
 }
 
 function getNode(id) {
@@ -866,9 +866,20 @@ async function load() {
           <tr>
             <td><span class="mono">${escapeHtml(e.id || '-')}</span></td>
             <td>${escapeHtml(e.name || '-')}</td>
+            <td>
+              <div class="overview-list">
+                <div class="overview-item">工号：${escapeHtml(e.employeeNo || '-')}</div>
+                <div class="overview-item">${escapeHtml(e.email || '-')}</div>
+              </div>
+            </td>
             <td>${escapeHtml(e.tenantId || '-')}</td>
             <td><span class="mono">${escapeHtml(matrixRoom || '-')}</span></td>
-            <td>${escapeHtml(formatDeptRoleText(e.department, e.role) || '-')}</td>
+            <td>
+              <div class="overview-list">
+                <div class="overview-item">${escapeHtml(formatDeptRoleText(e.department, e.role) || '-')}</div>
+                <div class="overview-item">岗位名：${escapeHtml(e.jobTitle || '-')}</div>
+              </div>
+            </td>
             <td>
               <div class="overview-list">
                 <div class="overview-item">Allow ${contract.allowCount} / Deny ${contract.denyCount}</div>
@@ -949,6 +960,7 @@ async function load() {
         }
       };
     });
+
     applyActionAcl(getNode('rows'));
 
     const hasCurrentEmployee = Boolean(currentEmployeeId && employeeCache.some((employee) => employee.id === currentEmployeeId));

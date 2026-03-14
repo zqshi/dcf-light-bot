@@ -29,6 +29,34 @@ class ControlPlaneRepository {
     return instance;
   }
 
+  async getProvisioningJobByRequestId(requestId) {
+    const key = String(requestId || '').trim();
+    if (!key) return null;
+    const doc = await this.store.read();
+    const rows = Array.isArray(doc.provisioningJobs) ? doc.provisioningJobs : [];
+    return rows.find((x) => String(x && x.requestId || '') === key) || null;
+  }
+
+  async saveProvisioningJob(job) {
+    const key = String(job && job.requestId || '').trim();
+    if (!key) return null;
+    await this.store.update((doc) => {
+      const rows = Array.isArray(doc.provisioningJobs) ? [...doc.provisioningJobs] : [];
+      const idx = rows.findIndex((x) => String(x && x.requestId || '') === key);
+      if (idx >= 0) rows[idx] = job;
+      else rows.unshift(job);
+      return { ...doc, provisioningJobs: rows.slice(0, 5000) };
+    });
+    return job;
+  }
+
+  async listProvisioningJobs(limit = 100) {
+    const n = Math.max(1, Number(limit || 100));
+    const doc = await this.store.read();
+    const rows = Array.isArray(doc.provisioningJobs) ? doc.provisioningJobs : [];
+    return rows.slice(0, n);
+  }
+
   async deleteInstance(instanceId) {
     const key = String(instanceId || '').trim();
     if (!key) return false;
@@ -230,6 +258,70 @@ class ControlPlaneRepository {
 
   async listSkillBindings() {
     return this.listAssetBindings('skill');
+  }
+
+  // ─── Documents ────────────────────────────────────────────────────
+
+  async listDocuments(roomId) {
+    const doc = await this.store.read();
+    const rows = Array.isArray(doc.documents) ? doc.documents : [];
+    if (!roomId) return rows;
+    return rows.filter((x) => String(x.roomId || '') === String(roomId));
+  }
+
+  async getDocument(id) {
+    const rows = await this.listDocuments();
+    return rows.find((x) => x.id === id) || null;
+  }
+
+  async saveDocument(document) {
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.documents) ? doc.documents : [];
+      const idx = list.findIndex((x) => x.id === document.id);
+      if (idx >= 0) list[idx] = document;
+      else list.push(document);
+      return { ...doc, documents: list };
+    });
+    return document;
+  }
+
+  async deleteDocument(id) {
+    const key = String(id || '').trim();
+    if (!key) return false;
+    let deleted = false;
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.documents) ? doc.documents : [];
+      const next = list.filter((x) => {
+        const keep = String((x && x.id) || '') !== key;
+        if (!keep) deleted = true;
+        return keep;
+      });
+      return { ...doc, documents: next };
+    });
+    return deleted;
+  }
+
+  async getPlatformConfig(key) {
+    const name = String(key || '').trim();
+    if (!name) return null;
+    const doc = await this.store.read();
+    const configs = doc && typeof doc.platformConfigs === 'object' && doc.platformConfigs
+      ? doc.platformConfigs
+      : {};
+    return configs[name] || null;
+  }
+
+  async setPlatformConfig(key, value) {
+    const name = String(key || '').trim();
+    if (!name) return null;
+    await this.store.update((doc) => {
+      const configs = doc && typeof doc.platformConfigs === 'object' && doc.platformConfigs
+        ? { ...doc.platformConfigs }
+        : {};
+      configs[name] = value;
+      return { ...doc, platformConfigs: configs };
+    });
+    return value;
   }
 }
 

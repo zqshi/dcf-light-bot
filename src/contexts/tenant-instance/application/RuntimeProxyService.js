@@ -68,6 +68,114 @@ class RuntimeProxyService {
     await this.auditService.log(type, payload);
   }
 
+  normalizeTagList(input, limit = 30) {
+    if (!Array.isArray(input)) return [];
+    return Array.from(new Set(
+      input
+        .map((x) => String(x || '').trim())
+        .filter(Boolean)
+        .slice(0, Math.max(1, Number(limit || 30)))
+    ));
+  }
+
+  parseSharedAgentCandidate(candidate = {}, fallback = {}) {
+    if (!candidate || typeof candidate !== 'object') return null;
+    const name = String(candidate.name || candidate.label || '').trim();
+    const signature = String(candidate.capabilitySignature || candidate.signature || '').trim();
+    if (!name && !signature) return null;
+    const capabilitySignature = signature || `${name || 'runtime-agent'}:${String(fallback.jobCode || 'general').trim() || 'general'}`;
+    const tags = this.normalizeTagList([
+      ...(Array.isArray(candidate.tags) ? candidate.tags : []),
+      ...(Array.isArray(fallback.tags) ? fallback.tags : [])
+    ]);
+    const jobCodes = this.normalizeTagList([
+      ...(Array.isArray(candidate.jobCodes) ? candidate.jobCodes : []),
+      ...(Array.isArray(fallback.jobCodes) ? fallback.jobCodes : []),
+      String(candidate.jobCode || '').trim() || null,
+      String(fallback.jobCode || '').trim() || null
+    ]);
+    return {
+      name: name || String(candidate.capability || capabilitySignature).trim(),
+      capabilitySignature,
+      ownerEmployeeId: String(candidate.ownerEmployeeId || fallback.ownerEmployeeId || '').trim() || null,
+      spawnedBy: String(candidate.spawnedBy || fallback.spawnedBy || '').trim() || null,
+      source: 'runtime/openclaw',
+      tags,
+      jobCodes,
+      description: String(candidate.description || '').trim()
+    };
+  }
+
+  collectSharedAgentEvents(response = {}, request = {}, instance = {}) {
+    const payload = response && typeof response === 'object' ? response : {};
+    const requestBody = request && typeof request === 'object' ? request : {};
+    const ownerEmployeeId = String(instance.id || '').trim() || null;
+    const spawnedBy = String(requestBody.sender || requestBody.actor || requestBody.userId || '').trim() || null;
+    const baseFallback = {
+      ownerEmployeeId,
+      spawnedBy,
+      jobCode: String(requestBody.jobCode || '').trim() || 'general',
+      jobCodes: Array.isArray(requestBody.jobCodes) ? requestBody.jobCodes : [],
+      tags: Array.isArray(requestBody.tags) ? requestBody.tags : []
+    };
+
+    const candidates = [];
+    const append = (value) => {
+      if (!value) return;
+      if (Array.isArray(value)) {
+        value.forEach((item) => append(item));
+        return;
+      }
+      if (typeof value === 'object') candidates.push(value);
+    };
+
+    append(payload.sharedAgent);
+    append(payload.agent);
+    append(payload.createdAgent);
+    append(payload.sharedAgents);
+    append(payload.createdAgents);
+    append(payload.agentsCreated);
+    append(payload.newAgents);
+    append(payload.runtime && payload.runtime.sharedAgents);
+    append(payload.response && payload.response.sharedAgents);
+    append(payload.response && payload.response.createdAgents);
+
+    const runtimeEvents = Array.isArray(payload.events) ? payload.events : [];
+    runtimeEvents.forEach((evt) => {
+      if (!evt || typeof evt !== 'object') return;
+      const type = String(evt.type || evt.event || '').trim().toLowerCase();
+      if (type === 'shared_agent_discovered' || type === 'shared.agent.discovered' || type === 'openclaw.shared_agent.discovered') {
+        append(evt.payload || evt.data || evt.agent || evt.sharedAgent || evt);
+      }
+    });
+
+    const out = [];
+    const seen = new Set();
+    candidates.forEach((candidate) => {
+      const parsed = this.parseSharedAgentCandidate(candidate, baseFallback);
+      if (!parsed) return;
+      const key = String(parsed.capabilitySignature || '').toLowerCase();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      out.push(parsed);
+    });
+    return out;
+  }
+
+  async emitSharedAgentDiscoveredEvents(instance, request, response) {
+    const rows = this.collectSharedAgentEvents(response, request, instance);
+    if (!rows.length) return;
+    for (const row of rows) {
+      await this.tryAudit('runtime.openclaw.shared_agent.discovered', {
+        ...row,
+        instanceId: String(instance.id || ''),
+        tenantId: String(instance.tenantId || ''),
+        channel: String((request && request.channel) || 'runtime').trim(),
+        roomId: String((request && request.roomId) || '').trim() || null
+      });
+    }
+  }
+
   buildInvokeUrl(endpoint) {
     const base = String(endpoint || '').trim();
     const path = this.runtimePath();
@@ -165,6 +273,7 @@ class RuntimeProxyService {
         statusCode: out.statusCode,
         attempts: out.attempts
       });
+      await this.emitSharedAgentDiscoveredEvents(instance, request, out.data);
       return {
         mode: 'kubernetes',
         instanceId,

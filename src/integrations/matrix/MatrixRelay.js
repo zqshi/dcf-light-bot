@@ -38,8 +38,10 @@ class MatrixRelay {
     this.client = this.createClient({
       baseUrl: this.config.matrixHomeserver,
       accessToken: this.config.matrixAccessToken,
-      userId: this.config.matrixUserId
+      userId: this.config.matrixUserId,
+      deviceId: String(this.config.matrixDeviceId || '').trim() || undefined
     });
+    await this.tryInitCrypto();
     this.client.on('Room.timeline', this.timelineHandler);
     this.client.on('RoomMember.membership', this.memberHandler);
     this.client.startClient({
@@ -55,6 +57,52 @@ class MatrixRelay {
       homeserver: this.config.matrixHomeserver,
       userId: this.config.matrixUserId
     });
+  }
+
+  async tryInitCrypto() {
+    if (this.config.matrixE2eeEnabled !== true) {
+      this.logger.info('matrix relay crypto disabled by config', {
+        userId: this.config.matrixUserId
+      });
+      await this.audit('matrix.relay.crypto.disabled', {
+        userId: this.config.matrixUserId,
+        reason: 'matrix_e2ee_disabled'
+      });
+      return;
+    }
+    if (!this.client || typeof this.client.initCrypto !== 'function') return;
+    try {
+      if (!global.Olm) {
+        // matrix-js-sdk (node) requires global.Olm before initCrypto().
+        // Prefer @matrix-org/olm; fallback to legacy olm package.
+        try {
+          // eslint-disable-next-line global-require
+          global.Olm = require('@matrix-org/olm');
+        } catch (_error) {
+          // eslint-disable-next-line global-require
+          global.Olm = require('olm');
+        }
+      }
+      if (global.Olm && typeof global.Olm.init === 'function') {
+        await global.Olm.init();
+      }
+      await this.client.initCrypto();
+      this.logger.info('matrix relay crypto initialized', {
+        userId: this.config.matrixUserId
+      });
+      await this.audit('matrix.relay.crypto.ready', {
+        userId: this.config.matrixUserId
+      });
+    } catch (error) {
+      const reason = String(error && error.message || error);
+      this.logger.warn('matrix relay crypto init failed, encrypted rooms may be unreadable', {
+        reason
+      });
+      await this.audit('matrix.relay.crypto.failed', {
+        userId: this.config.matrixUserId,
+        reason
+      });
+    }
   }
 
   async stop() {
@@ -93,9 +141,14 @@ class MatrixRelay {
     const sender = typeof event.getSender === 'function' ? event.getSender() : '';
     if (!sender || sender === this.config.matrixUserId) return null;
     const type = typeof event.getType === 'function' ? event.getType() : '';
-    if (type !== 'm.room.message') return null;
+    if (type !== 'm.room.message' && type !== 'm.room.encrypted') return null;
     const content = typeof event.getContent === 'function' ? event.getContent() : {};
-    const body = String(content && content.body || '').trim();
+    const clearContent = typeof event.getClearContent === 'function' ? event.getClearContent() : {};
+    const body = String(
+      (content && content.body)
+      || (clearContent && clearContent.body)
+      || ''
+    ).trim();
     if (!body) return null;
     const eventId = typeof event.getId === 'function' ? event.getId() : '';
     return { eventId, sender, roomId, body };
@@ -104,7 +157,22 @@ class MatrixRelay {
   async onTimeline(event, room, toStartOfTimeline) {
     try {
       const parsed = this.extractTextEvent(event, room, toStartOfTimeline);
-      if (!parsed) return;
+      if (!parsed) {
+        const type = typeof event.getType === 'function' ? event.getType() : '';
+        const sender = typeof event.getSender === 'function' ? event.getSender() : '';
+        const eventId = typeof event.getId === 'function' ? event.getId() : '';
+        const roomId = room && room.roomId ? room.roomId : '';
+        if (type === 'm.room.encrypted' && sender && sender !== this.config.matrixUserId && roomId) {
+          if (this.rememberEvent(eventId)) return;
+          await this.audit('matrix.relay.inbound.encrypted_ignored', {
+            eventId,
+            sender,
+            roomId,
+            reason: 'encrypted_event_not_decrypted'
+          });
+        }
+        return;
+      }
       if (this.rememberEvent(parsed.eventId)) return;
       await this.audit('matrix.relay.inbound', {
         eventId: parsed.eventId,
@@ -112,11 +180,21 @@ class MatrixRelay {
         roomId: parsed.roomId,
         body: parsed.body
       });
-      const out = await this.matrixBot.processTextMessage(parsed.sender, parsed.roomId, parsed.body);
+      const out = await this.matrixBot.processTextMessage(parsed.sender, parsed.roomId, parsed.body, {
+        eventId: parsed.eventId
+      });
       if (!out || out.ignored) return;
-      if (out.reply && this.client && typeof this.client.sendText === 'function') {
+      if (out.reply && this.client) {
         try {
-          await this.client.sendText(parsed.roomId, String(out.reply));
+          if (out.drawerContent && typeof this.client.sendEvent === 'function') {
+            await this.client.sendEvent(parsed.roomId, 'm.room.message', {
+              msgtype: 'm.text',
+              body: String(out.reply),
+              'dcf.drawer_content': out.drawerContent
+            });
+          } else if (typeof this.client.sendText === 'function') {
+            await this.client.sendText(parsed.roomId, String(out.reply));
+          }
           await this.audit('matrix.relay.delivery.succeeded', {
             eventId: parsed.eventId,
             roomId: parsed.roomId,

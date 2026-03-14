@@ -12,16 +12,38 @@
   "login_for_welcome": true,
   "sso_immediate_redirect": false,
   "setting_defaults": {
-    "language": "zh-hans"
+    "language": "zh-hans",
+    "feature_group_calls": true
   },
   "disable_custom_urls": true,
   "disable_guests": true,
   "disable_login_language_selector": true,
+  "features": {
+    "feature_group_calls": true,
+    "feature_video_rooms": true
+  },
+  "element_call": {
+    "url": "https://call.element.io",
+    "use_exclusively": false,
+    "participant_limit": 8,
+    "brand": "Element Call"
+  },
+  "jitsi": {
+    "preferred_domain": "meet.element.io",
+    "use_jwt": false
+  },
+  "voip": {
+    "obey_asserted_identity": false
+  },
   "dcf_login": {
     "sms_enabled": false,
     "sms_send_url": "",
     "sms_verify_login_url": "",
     "sso_url": ""
+  },
+  "dcf": {
+    "e2ee_enabled": false,
+    "factory_room_alias": "#dcf-factory:localhost"
   },
   "show_labs_settings": true,
   "branding": {

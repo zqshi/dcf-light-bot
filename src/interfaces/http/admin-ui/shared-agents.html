@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>共享Agent中心</title>
+    <link rel="stylesheet" href="/admin/layout.css" />
+  </head>
+  <body data-required-permission="admin.employees.page.overview.read">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <h2>管理后台</h2>
+        <a href="/admin/index.html">总览</a>
+        <a href="/admin/employees.html">员工管理</a>
+        <a class="active" href="/admin/shared-agents.html">共享Agent</a>
+        <a href="/admin/openclaw-config.html">OpenClaw 配置</a>
+        <a href="/admin/skills.html">技能管理</a>
+        <a href="/admin/tools.html">工具管理</a>
+        <a href="/admin/notifications.html">通知中心</a>
+        <a href="/admin/logs.html">行为日志</a>
+        <a href="/admin/auth-members.html">成员管理</a>
+      </aside>
+
+      <main class="content">
+        <section class="page-head">
+          <div class="page-head-layout">
+            <div>
+              <h1 class="page-title">共享Agent大厅</h1>
+              <p class="page-subtitle">只读运营视图：由 OpenClaw 运行事件自动沉淀共享Agent，按能力签名去重。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="overview-kpis">
+            <div><span>总数</span><strong id="agentTotal">0</strong></div>
+            <div><span>活跃</span><strong id="agentActive">0</strong></div>
+            <div><span>暂停</span><strong id="agentPaused">0</strong></div>
+            <div><span>无归属共享</span><strong id="agentShared">0</strong></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <h3>自动沉淀说明</h3>
+          </div>
+          <p class="toolbar-note">
+            共享Agent来源于数字员工运行时事件（source=runtime/openclaw）。
+            平台会自动 upsert 到共享中心，按 capabilitySignature 去重并累加 usageCount。
+          </p>
+          <p id="sharedAgentStatus" class="toolbar-note"></p>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <h3>共享Agent列表</h3>
+          </div>
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <label for="sharedAgentKeyword">关键词</label>
+              <input id="sharedAgentKeyword" class="admin-input" placeholder="名称/签名/标签" />
+            </div>
+            <div class="toolbar-group">
+              <label for="sharedAgentStatusFilter">状态</label>
+              <select id="sharedAgentStatusFilter" class="admin-select">
+                <option value="">全部</option>
+                <option value="active">active</option>
+                <option value="paused">paused</option>
+                <option value="deleted">deleted</option>
+              </select>
+            </div>
+            <button id="reloadSharedAgentsBtn">刷新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>名称</th>
+                  <th>能力签名</th>
+                  <th>归属</th>
+                  <th>触发者</th>
+                  <th>来源</th>
+                  <th>标签</th>
+                  <th>使用次数</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="sharedAgentRows">
+                <tr><td colspan="9" class="empty">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/admin/auth.js"></script>
+    <script src="/admin/shared-agents.js"></script>
+  </body>
+  </html>

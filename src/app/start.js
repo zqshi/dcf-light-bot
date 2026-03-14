@@ -14,6 +14,8 @@ const { MatrixRelay } = require('../integrations/matrix/MatrixRelay');
 const { AuthService } = require('../contexts/identity-access/application/AuthService');
 const { InstanceReconciler } = require('../contexts/tenant-instance/application/InstanceReconciler');
 const { ReleasePreflightService } = require('../contexts/release-management/application/ReleasePreflightService');
+const { DocumentService } = require('../contexts/document/application/DocumentService');
+const { WeKnoraService } = require('../integrations/weknora/WeKnoraService');
 const { createServer } = require('./createServer');
 
 function createLogger() {
@@ -73,6 +75,54 @@ function evaluateHealthLevel(input, thresholds) {
   return 'healthy';
 }
 
+function normalizeMatrixUserId(input) {
+  return String(input || '').trim().toLowerCase();
+}
+
+async function resolveIdentityProfileFromRepo(repo, matrixUserId) {
+  if (!repo || typeof repo.getPlatformConfig !== 'function') return null;
+  const key = normalizeMatrixUserId(matrixUserId);
+  if (!key) return null;
+  const directory = await repo.getPlatformConfig('identityDirectory');
+  const records = directory && typeof directory.records === 'object' ? directory.records : {};
+  const profile = records[key] || null;
+  if (!profile || typeof profile !== 'object') return null;
+  return profile;
+}
+
+function applyOpenclawConfigToRuntimeConfig(config, persisted = {}) {
+  if (!persisted || typeof persisted !== 'object') return;
+  const runtime = persisted.runtime && typeof persisted.runtime === 'object' ? persisted.runtime : {};
+  const providers = persisted.providers && typeof persisted.providers === 'object' ? persisted.providers : {};
+  const deepseek = providers.deepseek && typeof providers.deepseek === 'object' ? providers.deepseek : {};
+  const minimax = providers.minimax && typeof providers.minimax === 'object' ? providers.minimax : {};
+  const permissionTemplate = persisted.permissionTemplate && typeof persisted.permissionTemplate === 'object'
+    ? persisted.permissionTemplate
+    : null;
+
+  config.openclawImage = String(runtime.openclawImage || config.openclawImage || '');
+  config.openclawRuntimeVersion = String(runtime.openclawRuntimeVersion || config.openclawRuntimeVersion || '');
+  config.openclawSourcePath = String(runtime.openclawSourcePath || config.openclawSourcePath || '');
+  config.deepseekApiBase = String(deepseek.apiBase || config.deepseekApiBase || '');
+  config.deepseekModel = String(deepseek.model || config.deepseekModel || '');
+  config.minimaxApiBase = String(minimax.apiBase || config.minimaxApiBase || '');
+  config.minimaxModel = String(minimax.model || config.minimaxModel || '');
+  if (permissionTemplate) {
+    config.openclawPermissionTemplate = permissionTemplate;
+  }
+
+  const providerRows = [];
+  if (deepseek.enabled && String(deepseek.apiKey || '').trim()) {
+    providerRows.push({ name: 'deepseek', key: String(deepseek.apiKey || '').trim() });
+  }
+  if (minimax.enabled && String(minimax.apiKey || '').trim()) {
+    providerRows.push({ name: 'minimax', key: String(minimax.apiKey || '').trim() });
+  }
+  if (providerRows.length) {
+    config.providers = providerRows;
+  }
+}
+
 async function startApp() {
   const config = loadConfig();
   const logger = createLogger();
@@ -80,6 +130,10 @@ async function startApp() {
   const store = createStore(config);
   await store.init();
   const repo = new ControlPlaneRepository(store);
+  if (typeof repo.getPlatformConfig === 'function') {
+    const persistedOpenclaw = await repo.getPlatformConfig('openclawConfig');
+    applyOpenclawConfigToRuntimeConfig(config, persistedOpenclaw);
+  }
   const auditService = new AuditService(repo, {
     retentionTtlDays: config.auditRetentionTtlDays,
     retentionMaxRows: config.auditRetentionMaxRows,
@@ -98,7 +152,15 @@ async function startApp() {
   const runtimeProxyService = new RuntimeProxyService(instanceService, config, { auditService });
   const skillService = new SkillService(repo, auditService);
   const assetService = skillService;
-  const matrixBot = new MatrixBot(config, logger, instanceService, { auditService });
+  const documentService = new DocumentService(repo, auditService);
+  const weKnoraService = config.weKnoraEnabled ? new WeKnoraService(config) : null;
+  const matrixBot = new MatrixBot(config, logger, instanceService, {
+    auditService,
+    runtimeProxyService,
+    documentService,
+    weKnoraService,
+    resolveIdentityProfile: (matrixUserId) => resolveIdentityProfileFromRepo(repo, matrixUserId)
+  });
   const matrixRelay = new MatrixRelay(config, logger, matrixBot, { auditService });
   const authService = new AuthService(config);
   const releasePreflightService = new ReleasePreflightService({ rootDir: process.cwd() });
@@ -110,6 +172,7 @@ async function startApp() {
 
   const app = createServer({
     config,
+    repo,
     instanceService,
     runtimeProxyService,
     skillService,
@@ -118,7 +181,9 @@ async function startApp() {
     metricsService,
     matrixBot,
     authService,
-    releasePreflightService
+    releasePreflightService,
+    documentService,
+    weKnoraService
   });
   const server = app.listen(config.port, config.host, () => {
     logger.info('server started', { host: config.host, port: config.port });

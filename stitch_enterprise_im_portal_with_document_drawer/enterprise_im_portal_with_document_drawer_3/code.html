@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>任务详情与进展轴 - 个人待办中心</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "background-light": "#F5F5F7",
+                        "background-dark": "#1C1C1E",
+                        "apple-gray": "#8E8E93"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.25rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { font-family: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; -webkit-font-smoothing: antialiased; }
+        }
+        .glass-sidebar { 
+            background: rgba(249, 249, 249, 0.8); 
+            backdrop-filter: blur(20px); 
+            border-right: 1px solid rgba(0, 0, 0, 0.08); 
+        }
+        .full-screen-overlay {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(30px);
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        .modal-container {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            width: 100%;
+            max-width: 1100px;
+            height: 100%;
+            max-height: 800px;
+            border-radius: 24px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 40px;
+            bottom: 0;
+            width: 2px;
+            background: #E5E7EB;
+        }
+        .apple-checkbox {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 1.5px solid #C7C7CC;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .apple-checkbox:checked {
+            background-color: #007AFF;
+            border-color: #007AFF;
+        }
+        .apple-checkbox:checked::after {
+            content: "check";
+            font-family: 'Material Symbols Outlined';
+            font-size: 14px;
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .task-node-active {
+            background: rgba(0, 122, 255, 0.05);
+            border-left: 3px solid #007AFF;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden h-screen">
+<div class="flex h-screen w-screen overflow-hidden opacity-50 blur-sm pointer-events-none">
+<aside class="w-16 glass-sidebar flex flex-col items-center py-6 gap-6 z-30 shrink-0">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md mb-2">
+<span class="material-symbols-outlined text-2xl">check_circle</span>
+</div>
+<nav class="flex flex-col gap-4 flex-1">
+<button class="w-10 h-10 rounded-lg text-slate-400 flex items-center justify-center"><span class="material-symbols-outlined">chat_bubble</span></button>
+<button class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><span class="material-symbols-outlined fill-1">task_alt</span></button>
+</nav>
+</aside>
+<aside class="w-64 bg-white/50 border-r border-slate-200 p-5 shrink-0">
+<h1 class="text-xl font-bold mb-6">个人待办</h1>
+</aside>
+<main class="flex-1 bg-slate-50 p-8">
+<div class="max-w-3xl mx-auto space-y-4">
+<div class="h-12 bg-white rounded-xl shadow-sm"></div>
+<div class="h-32 bg-white rounded-xl shadow-sm"></div>
+<div class="h-32 bg-white rounded-xl shadow-sm"></div>
+</div>
+</main>
+</div>
+<div class="full-screen-overlay">
+<div class="modal-container">
+<header class="h-16 px-8 flex items-center justify-between border-b border-slate-200/60 shrink-0">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-slate-600 transition-colors">arrow_back</span>
+<div class="flex flex-col">
+<h2 class="text-lg font-bold text-slate-900">审核桌面客户端重构 PR</h2>
+<span class="text-xs text-slate-400">项目：前端架构重构 2024</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-primary/90 transition-all">
+<span class="material-symbols-outlined text-lg">check</span>
+<span>完成任务</span>
+</button>
+<button class="p-2 text-slate-400 hover:bg-black/5 rounded-full"><span class="material-symbols-outlined">more_horiz</span></button>
+<button class="p-2 text-slate-400 hover:bg-black/5 rounded-full"><span class="material-symbols-outlined">close</span></button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-[380px] border-r border-slate-200/60 flex flex-col bg-slate-50/40">
+<div class="p-6 overflow-y-auto flex-1 space-y-8">
+<section>
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">子任务列表 (4)</h3>
+<div class="space-y-1">
+<div class="flex items-center gap-3 p-3 rounded-xl task-node-active">
+<input checked="" class="apple-checkbox shrink-0" type="checkbox"/>
+<span class="text-sm font-medium text-slate-800">完成基础组件树审计</span>
+<span class="ml-auto material-symbols-outlined text-green-500 text-lg">check_circle</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-black/5 transition-colors">
+<input checked="" class="apple-checkbox shrink-0" type="checkbox"/>
+<span class="text-sm font-medium text-slate-800">合并依赖冲突解决方案</span>
+<span class="ml-auto material-symbols-outlined text-green-500 text-lg">check_circle</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-black/5 transition-colors">
+<input class="apple-checkbox shrink-0" type="checkbox"/>
+<span class="text-sm font-medium text-slate-800">响应式布局边界测试</span>
+<span class="ml-auto text-[10px] font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">进行中</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-black/5 transition-colors">
+<input class="apple-checkbox shrink-0" type="checkbox"/>
+<span class="text-sm font-medium text-slate-400">暗黑模式色彩变量校验</span>
+<span class="ml-auto text-[10px] font-bold text-slate-400 px-1.5 py-0.5 bg-slate-200/50 rounded">待办</span>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">任务属性</h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined text-lg">event</span>
+<span class="text-sm">截止时间</span>
+</div>
+<span class="text-sm font-semibold">10月24日 18:00</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined text-lg">priority_high</span>
+<span class="text-sm">优先级</span>
+</div>
+<span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded">最高</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined text-lg">group</span>
+<span class="text-sm">负责人</span>
+</div>
+<div class="flex items-center gap-1.5">
+<img alt="负责人" class="w-6 h-6 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8gidja6zNFp5d2j_xE8Y2dvNgiVh6eqQujbqA3S1gYSUnM6RPcCM7sBZU8e-RwVj9bFBuxKgUl55MtY5Un8tRI82HA8dRr7Xded9TYgNiysLj-2eKxENPh7SFr-T_0LQ2rv32qeWLYjA3Ne91gZ05WGwSyMhoAyNiILrL3baFWiMDhyMN6guBLCVWRK6QwRen6y24Fivq-Rt8zhLvu7dRYOFMBSdVIqu5WOxMDL8qCiTzTY4hEQDEN96hMigdZQ4WLMB8-rcAoFw"/>
+<span class="text-sm font-medium">李明 (我)</span>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">协作成员</h3>
+<div class="flex items-center gap-2">
+<img alt="Sarah" class="w-8 h-8 rounded-full border border-white shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7nQlFgCd7wh3FTdCZG0_geSGQZx0Zl1nm27l9jCrDKdbm_fk6eJeCQIvybXYXAL_rxtHa6XjIvhUI7mfB-0h-h3E7qioOfc815QqQMno4oqEznzWNzi7Gf30jlBakEi6IAu59NkU5JhTNt7yohG4V0Ikro1bFrpIQx20lFR1eiRQ3oKE1jXD9VO4qUV5wvkbFMwCuAQ3KIXrbu9YQVEFbAgwILLKOmEmJpj12Z_yEe9xNQEEksErSIg8LPHYwrBQzDDHdZZBCWh8"/>
+<img alt="Alex" class="w-8 h-8 rounded-full border border-white shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHeEPh3w9knn7jsaYyrPTJrnwodbViWEkqoeKyZAPr35ebMX8yJRqOZtEGbOX8PeIWD-GklhJtgLKohtcXvIdnn_W7qZttb_CkVNwmT2-o6P0SS20cpRTS4tNNNOhJ-B6q40StI9-2U6uIEw1rBEdNUAuZXLHaQHJTwNxGQ5N3pe0VJd381hahHn5849oLXAZ1Ev8r-8Ensi1nbjWdXiJ-krW0MJEBFfc469pWGGW9-Ckfb5kCHqV-Yi08lUFbKrrt-_Gh96-GY2U"/>
+<button class="w-8 h-8 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+</div>
+</section>
+</div>
+</aside>
+<main class="flex-1 flex flex-col bg-white">
+<div class="p-6 border-b border-slate-100">
+<div class="bg-slate-50 rounded-2xl border border-slate-200/80 focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/5 transition-all p-3">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-sm resize-none placeholder:text-slate-400" placeholder="同步任务进度，@提及他人..." rows="3"></textarea>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/50">
+<div class="flex items-center gap-1">
+<button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-xl">image</span></button>
+<button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-xl">attach_file</span></button>
+<button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-xl">sentiment_satisfied</span></button>
+</div>
+<button class="bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-shadow">更新进展</button>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-8 relative">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">活动记录</h3>
+<div class="space-y-10 relative timeline-line">
+<div class="relative flex gap-4">
+<img alt="Avatar" class="w-10 h-10 rounded-full z-10 bg-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8gidja6zNFp5d2j_xE8Y2dvNgiVh6eqQujbqA3S1gYSUnM6RPcCM7sBZU8e-RwVj9bFBuxKgUl55MtY5Un8tRI82HA8dRr7Xded9TYgNiysLj-2eKxENPh7SFr-T_0LQ2rv32qeWLYjA3Ne91gZ05WGwSyMhoAyNiILrL3baFWiMDhyMN6guBLCVWRK6QwRen6y24Fivq-Rt8zhLvu7dRYOFMBSdVIqu5WOxMDL8qCiTzTY4hEQDEN96hMigdZQ4WLMB8-rcAoFw"/>
+<div class="flex-1 pt-1">
+<div class="flex items-baseline gap-2 mb-1">
+<span class="font-bold text-slate-900">李明</span>
+<span class="text-[11px] text-slate-400">10分钟前</span>
+</div>
+<p class="text-sm text-slate-700 leading-relaxed">
+                                    已完成 <span class="text-primary font-medium">#依赖冲突解决方案</span> 的合并，目前正在进行最后一轮的单元测试。一切看起来都很顺利。
+                                </p>
+<div class="mt-3 flex gap-2">
+<div class="px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2 max-w-xs group cursor-pointer hover:bg-slate-100 transition-colors">
+<span class="material-symbols-outlined text-slate-400 text-lg">description</span>
+<span class="text-xs font-medium truncate">Test_Report_v2.pdf</span>
+<span class="material-symbols-outlined text-slate-300 text-sm ml-auto opacity-0 group-hover:opacity-100">download</span>
+</div>
+</div>
+</div>
+</div>
+<div class="relative flex gap-4">
+<img alt="Avatar" class="w-10 h-10 rounded-full z-10 bg-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7nQlFgCd7wh3FTdCZG0_geSGQZx0Zl1nm27l9jCrDKdbm_fk6eJeCQIvybXYXAL_rxtHa6XjIvhUI7mfB-0h-h3E7qioOfc815QqQMno4oqEznzWNzi7Gf30jlBakEi6IAu59NkU5JhTNt7yohG4V0Ikro1bFrpIQx20lFR1eiRQ3oKE1jXD9VO4qUV5wvkbFMwCuAQ3KIXrbu9YQVEFbAgwILLKOmEmJpj12Z_yEe9xNQEEksErSIg8LPHYwrBQzDDHdZZBCWh8"/>
+<div class="flex-1 pt-1">
+<div class="flex items-baseline gap-2 mb-1">
+<span class="font-bold text-slate-900">Sarah Chen</span>
+<span class="text-[11px] text-slate-400">1小时前</span>
+</div>
+<p class="text-sm text-slate-700 leading-relaxed">
+                                    我也同步完成了 UI 部分的样式抽离，新生成的变量已经推送到 <code class="bg-slate-100 px-1 rounded text-primary">feat/theme-engine</code> 分支。请合并时留意冲突。
+                                </p>
+<div class="mt-3 grid grid-cols-2 gap-2 max-w-sm">
+<img alt="UI Screenshot" class="rounded-lg w-full h-24 object-cover border border-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHeEPh3w9knn7jsaYyrPTJrnwodbViWEkqoeKyZAPr35ebMX8yJRqOZtEGbOX8PeIWD-GklhJtgLKohtcXvIdnn_W7qZttb_CkVNwmT2-o6P0SS20cpRTS4tNNNOhJ-B6q40StI9-2U6uIEw1rBEdNUAuZXLHaQHJTwNxGQ5N3pe0VJd381hahHn5849oLXAZ1Ev8r-8Ensi1nbjWdXiJ-krW0MJEBFfc469pWGGW9-Ckfb5kCHqV-Yi08lUFbKrrt-_Gh96-GY2U"/>
+<div class="rounded-lg w-full h-24 bg-slate-100 border border-slate-200 flex items-center justify-center">
+<span class="text-[10px] text-slate-400 font-medium">+2 图片</span>
+</div>
+</div>
+</div>
+</div>
+<div class="relative flex gap-4">
+<div class="w-10 flex justify-center z-10">
+<div class="w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-white mt-4"></div>
+</div>
+<div class="flex-1 pt-2.5">
+<p class="text-xs text-slate-400 italic">
+                                    系统：任务由 <span class="font-medium text-slate-600">Alex Rivera</span> 标记为 <span class="text-blue-500 font-bold uppercase tracking-tighter">进行中</span> · 2小时前
+                                </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</div>
+
+</body></html>

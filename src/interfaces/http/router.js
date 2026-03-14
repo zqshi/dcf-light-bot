@@ -8,6 +8,9 @@ const { buildAuthRouter } = require('./routes/auth');
 const { buildRuntimeRouter } = require('./routes/runtime');
 const { buildAssetRouter } = require('./routes/assets');
 const { buildReleaseRouter } = require('./routes/release');
+const { buildDocumentRouter } = require('./routes/documents');
+const { buildUploadRouter } = require('./routes/uploads');
+const { buildWeKnoraProxyRouter } = require('./routes/weknora');
 const { buildAdminCompatRouter } = require('./routes/adminCompat');
 const { buildControlAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
 const { buildRequestContextMiddleware } = require('./middleware/requestContext');
@@ -31,6 +34,13 @@ function buildApiRouter(context) {
   router.use('/api/control/assets', buildAssetRouter(assetService, requirePermission, context.metricsService));
   router.use('/api/control/skills', buildSkillRouter(context.skillService, requirePermission));
   router.use('/api/control/runtime', buildRuntimeRouter(context.runtimeProxyService, requirePermission));
+  if (context.documentService) {
+    router.use('/api/control/documents', buildDocumentRouter(context.documentService, requirePermission));
+  }
+  router.use('/api/control/uploads', buildUploadRouter(context.config, requirePermission));
+  if (context.weKnoraService || context.config.weKnoraEnabled) {
+    router.use('/api/control/weknora', buildWeKnoraProxyRouter(context.weKnoraService, requirePermission));
+  }
   if (context.releasePreflightService) {
     router.use('/api/control/release', buildReleaseRouter(context.releasePreflightService, requirePermission));
   }

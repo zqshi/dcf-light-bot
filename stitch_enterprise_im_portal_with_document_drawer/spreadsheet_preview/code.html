@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>表格预览模式 - 2024年度预算表</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "PingFang SC", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            background-color: rgba(255, 255, 255, 0.75);
+        }
+        .excel-grid {
+            border-collapse: collapse;
+        }
+        .excel-grid th, .excel-grid td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        .frozen-row {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #f8fafc;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-slate-900 antialiased overflow-hidden">
+<div class="flex flex-col h-screen">
+<!-- Top Navigation Bar -->
+<header class="glass-effect border-b border-slate-200/60 px-6 py-3 flex items-center justify-between z-30">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">grid_on</span>
+<h1 class="text-lg font-semibold tracking-tight">2024年度预算表</h1>
+</div>
+<div class="h-4 w-[1px] bg-slate-300 mx-2"></div>
+<nav class="flex items-center gap-4">
+<button class="text-slate-500 hover:text-primary transition-colors text-sm font-medium">查看</button>
+<button class="text-slate-500 hover:text-primary transition-colors text-sm font-medium">插入</button>
+<button class="text-slate-500 hover:text-primary transition-colors text-sm font-medium">数据</button>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<!-- Presence Indicator -->
+<div class="flex items-center -space-x-2 mr-4">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-200 overflow-hidden" data-alt="User avatar 1">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcAOnLcbQQ7jvBPlKV9vpS7tDHje8gs6kizv2k5lrcsM96u3-CEeeakB5K3zBThHRbjdlJosP_DtqrxZR1Xk1D7q0flffHFKEBqRGBg5oov5D60GlEkR5yNRr3w5MKMgg6609GNPNM-4GUIzolLo2rirIU0iPBF2MnGWZF66FRhjydA9LcEwkCdxwL4pn_OiU1CLR-WYMt0YUDw9EMZFPawsuapNjj5srm1rAU8sSxM9R8UziKWWpoIZUS4VCBOwMqhhcIacyUjm0"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-200 overflow-hidden" data-alt="User avatar 2">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3dH_pt8sP_KXZ_Ru93SWL-vPfWpFIzyDqhCCyJ8ylmW6-pgiRfMKE7YfKQlMZJGNtC3kJ2RUtGZXZJyorWnC1PKIxdKGhvZBwFUs5Y8qyfy9_JAB-PJwq0zMeIaaOJEWByssb67LxJYZ9FBZe3Q1Grn3-I7kP0CAH03O9EnaTurQq-uIcPzQ_Zzo87lfbmyJfcoToZUS2Zg7bmkiKA3d4Fvu4nHYhqMMtr2Vc1IuMzvtTFfvvA4enM5dZoDRB8kzSqkgBENGd65E"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-200 overflow-hidden" data-alt="User avatar 3">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzAxb1OgSzd3Plll-lNlZfn11tZlmR_hdeW1eO6H_ZhD82d7tzUwhE99ASDLQQE5chWx5igASqmVd5a-xgNIIqHHWYYofSeKcmgZ06Mr_wDcb_TjPTzjEA0DerJdmdhqxxgSbuer9ld93nAnX-CKf_VqXmSLug3TIWvAZF3znAQoU7wdDdKcQi-mhO_dh2G2UGljBVYgUa6thIRWqzg9E3NvSnqUZUnGf83QmjkapzZN0qKpXlkwIAUBJKLiktFRlWAImhnCaZ9ME"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-[10px] font-bold">
+                        +4
+                    </div>
+<span class="ml-4 text-xs text-slate-400 font-medium pl-4">8人正在预览</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-all">
+<span class="material-symbols-outlined text-base">share</span>
+                        分享
+                    </button>
+<button class="flex items-center gap-1 px-5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-semibold shadow-sm transition-all">
+<span class="material-symbols-outlined text-base">edit_note</span>
+                        编辑
+                    </button>
+</div>
+</div>
+</header>
+<!-- Sub-Toolbar (Spreadsheet specific) -->
+<div class="bg-white border-b border-slate-200 px-6 py-2 flex items-center gap-6 shadow-sm z-20">
+<div class="flex items-center gap-3">
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">undo</span></button>
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">redo</span></button>
+</div>
+<div class="h-5 w-[1px] bg-slate-200"></div>
+<div class="flex items-center gap-1">
+<button class="px-2 py-1 hover:bg-slate-100 rounded text-sm text-slate-700 font-medium flex items-center gap-1">
+                    100% <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+<div class="h-5 w-[1px] bg-slate-200"></div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">format_bold</span></button>
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">format_italic</span></button>
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">format_color_text</span></button>
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">format_color_fill</span></button>
+</div>
+<div class="h-5 w-[1px] bg-slate-200"></div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">filter_alt</span></button>
+<button class="p-1.5 hover:bg-slate-100 rounded text-slate-600"><span class="material-symbols-outlined text-xl">functions</span></button>
+</div>
+</div>
+<!-- Spreadsheet Area -->
+<main class="flex-1 overflow-auto bg-slate-100 relative">
+<div class="inline-block min-w-full p-8">
+<div class="bg-white shadow-xl rounded-lg overflow-hidden border border-slate-200">
+<table class="excel-grid w-full bg-white">
+<thead>
+<tr class="frozen-row">
+<th class="bg-slate-50 w-12 text-center text-slate-400 font-normal">#</th>
+<th class="bg-slate-50 text-left font-semibold text-slate-700">预算科目</th>
+<th class="bg-slate-50 text-right font-semibold text-slate-700">第一季度 (Q1)</th>
+<th class="bg-slate-50 text-right font-semibold text-slate-700">第二季度 (Q2)</th>
+<th class="bg-slate-50 text-right font-semibold text-slate-700">第三季度 (Q3)</th>
+<th class="bg-slate-50 text-right font-semibold text-slate-700">第四季度 (Q4)</th>
+<th class="bg-slate-50 text-right font-semibold text-slate-700">年度合计</th>
+<th class="bg-slate-50 text-left font-semibold text-slate-700">备注</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="bg-slate-50 text-center text-slate-400">1</td>
+<td class="font-medium text-slate-900">人力成本</td>
+<td class="text-right text-slate-600">¥ 1,200,000</td>
+<td class="text-right text-slate-600">¥ 1,250,000</td>
+<td class="text-right text-slate-600">¥ 1,300,000</td>
+<td class="text-right text-slate-600">¥ 1,400,000</td>
+<td class="text-right font-bold text-slate-900 bg-slate-50/50">¥ 5,150,000</td>
+<td class="text-slate-500">包含年终奖金预提</td>
+</tr>
+<tr class="bg-slate-50/30 hover:bg-primary/5 transition-colors">
+<td class="bg-slate-50 text-center text-slate-400">2</td>
+<td class="font-medium text-slate-900">行政办公</td>
+<td class="text-right text-slate-600">¥ 45,000</td>
+<td class="text-right text-slate-600">¥ 48,000</td>
+<td class="text-right text-slate-600">¥ 50,000</td>
+<td class="text-right text-slate-600">¥ 55,000</td>
+<td class="text-right font-bold text-slate-900 bg-slate-50/50">¥ 198,000</td>
+<td class="text-slate-500">租金及日常支出</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="bg-slate-50 text-center text-slate-400">3</td>
+<td class="font-medium text-slate-900">市场推广</td>
+<td class="text-right text-slate-600">¥ 300,000</td>
+<td class="text-right text-slate-600">¥ 500,000</td>
+<td class="text-right text-slate-600">¥ 450,000</td>
+<td class="text-right text-slate-600">¥ 600,000</td>
+<td class="text-right font-bold text-slate-900 bg-slate-50/50">¥ 1,850,000</td>
+<td class="text-slate-500">Q4双11大促专项</td>
+</tr>
+<tr class="bg-slate-50/30 hover:bg-primary/5 transition-colors">
+<td class="bg-slate-50 text-center text-slate-400">4</td>
+<td class="font-medium text-slate-900">研发投入</td>
+<td class="text-right text-slate-600">¥ 850,000</td>
+<td class="text-right text-slate-600">¥ 900,000</td>
+<td class="text-right text-slate-600">¥ 950,000</td>
+<td class="text-right text-slate-600">¥ 1,000,000</td>
+<td class="text-right font-bold text-slate-900 bg-slate-50/50">¥ 3,700,000</td>
+<td class="text-slate-500">云计算资源及新硬件</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="bg-slate-50 text-center text-slate-400">5</td>
+<td class="font-medium text-slate-900">培训与福利</td>
+<td class="text-right text-slate-600">¥ 20,000</td>
+<td class="text-right text-slate-600">¥ 15,000</td>
+<td class="text-right text-slate-600">¥ 80,000</td>
+<td class="text-right text-slate-600">¥ 30,000</td>
+<td class="text-right font-bold text-slate-900 bg-slate-50/50">¥ 145,000</td>
+<td class="text-slate-500">Q3团建活动</td>
+</tr>
+<tr class="bg-slate-50/30 hover:bg-primary/5 transition-colors">
+<td class="bg-slate-50 text-center text-slate-400">6</td>
+<td class="font-medium text-slate-900">备用金</td>
+<td class="text-right text-slate-600">¥ 100,000</td>
+<td class="text-right text-slate-600">¥ 100,000</td>
+<td class="text-right text-slate-600">¥ 100,000</td>
+<td class="text-right text-slate-600">¥ 100,000</td>
+<td class="text-right font-bold text-slate-900 bg-slate-50/50">¥ 400,000</td>
+<td class="text-slate-500">不可预见支出</td>
+</tr>
+<tr class="bg-primary/5 font-bold">
+<td class="bg-slate-50 text-center text-slate-400">7</td>
+<td class="text-slate-900">总计</td>
+<td class="text-right text-primary">¥ 2,515,000</td>
+<td class="text-right text-primary">¥ 2,813,000</td>
+<td class="text-right text-primary">¥ 2,930,000</td>
+<td class="text-right text-primary">¥ 3,185,000</td>
+<td class="text-right text-primary bg-primary/10">¥ 11,443,000</td>
+<td class="text-slate-500">-</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Collaborative Info Bubble -->
+<div class="mt-6 flex justify-center">
+<div class="bg-white/80 backdrop-blur px-6 py-2 rounded-full border border-slate-200 shadow-sm flex items-center gap-3">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+</span>
+<p class="text-sm text-slate-500">正在实时更新：王小明 刚刚修改了 "人力成本" 单元格</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer / Tabs -->
+<footer class="bg-white border-t border-slate-200 px-6 py-1 flex items-center justify-between">
+<div class="flex items-center">
+<button class="px-4 py-2 bg-primary/10 text-primary border-b-2 border-primary text-sm font-semibold">预算概览</button>
+<button class="px-4 py-2 text-slate-500 hover:bg-slate-50 text-sm font-medium">部门细分</button>
+<button class="px-4 py-2 text-slate-500 hover:bg-slate-50 text-sm font-medium">历史趋势</button>
+<button class="px-3 py-2 text-slate-400 hover:text-slate-600"><span class="material-symbols-outlined text-lg">add</span></button>
+</div>
+<div class="flex items-center gap-4 text-xs text-slate-400">
+<span>最近保存：14:32</span>
+<span class="material-symbols-outlined text-sm">cloud_done</span>
+</div>
+</footer>
+</div>
+</body></html>

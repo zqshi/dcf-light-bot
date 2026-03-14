@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>企业协作门户 - 权限申请驳回 (左对齐版)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#1C1C1E",
+                        "success": "#34C759",
+                        "warning": "#FF9500",
+                        "error": "#FF3B30",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "Noto Sans SC", "sans-serif"],
+                        "display": ["Inter", "Noto Sans SC"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.25rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { 
+                font-family: 'Inter', 'Noto Sans SC', sans-serif; 
+                -webkit-font-smoothing: antialiased; 
+            }
+        }
+        .glass { 
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(20px); 
+            border-right: 1px solid rgba(0, 0, 0, 0.05); 
+        }
+        .rejection-card {
+            background: white;
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+            border-radius: 4px 16px 16px 16px;
+        }
+        .layout-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden h-screen text-[13px]">
+<div class="layout-container">
+<aside class="w-16 glass flex flex-col items-center py-6 gap-6 z-30 shrink-0">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm mb-4">
+<span class="material-symbols-outlined text-2xl">grid_view</span>
+</div>
+<nav class="flex flex-col gap-5 flex-1">
+<button class="w-10 h-10 rounded-xl bg-black/5 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined fill-1">chat_bubble</span>
+</button>
+<button class="w-10 h-10 rounded-xl text-slate-400 flex items-center justify-center hover:bg-black/5">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-xl text-slate-400 flex items-center justify-center hover:bg-black/5">
+<span class="material-symbols-outlined">folder</span>
+</button>
+<div class="h-px w-6 bg-slate-200 mx-auto my-1"></div>
+<button class="w-10 h-10 rounded-xl text-slate-400 flex items-center justify-center hover:bg-black/5">
+<span class="material-symbols-outlined">verified_user</span>
+</button>
+</nav>
+<div class="mt-auto">
+<div class="w-9 h-9 rounded-full bg-slate-200 overflow-hidden border border-black/5">
+<img alt="用户" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8gidja6zNFp5d2j_xE8Y2dvNgiVh6eqQujbqA3S1gYSUnM6RPcCM7sBZU8e-RwVj9bFBuxKgUl55MtY5Un8tRI82HA8dRr7Xded9TYgNiysLj-2eKxENPh7SFr-T_0LQ2rv32qeWLYjA3Ne91gZ05WGwSyMhoAyNiILrL3baFWiMDhyMN6guBLCVWRK6QwRen6y24Fivq-Rt8zhLvu7dRYOFMBSdVIqu5WOxMDL8qCiTzTY4hEQDEN96hMigdZQ4WLMB8-rcAoFw"/>
+</div>
+</div>
+</aside>
+<aside class="w-72 bg-white/60 backdrop-blur-md border-r border-slate-200 flex flex-col z-20 shrink-0">
+<div class="p-4">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-lg font-bold">消息</h1>
+<button class="text-primary p-1.5 rounded-full hover:bg-primary/5">
+<span class="material-symbols-outlined text-xl">edit_square</span>
+</button>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-black/5 border-none rounded-lg pl-9 py-1.5 text-xs focus:ring-1 focus:ring-primary" placeholder="搜索" type="text"/>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto space-y-0.5 px-2">
+<div class="flex items-center gap-3 p-3 bg-white shadow-sm rounded-xl cursor-pointer border border-black/[0.03]">
+<div class="w-11 h-11 rounded-lg bg-red-500 flex items-center justify-center text-white shrink-0">
+<span class="material-symbols-outlined">notifications_active</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-semibold text-[13px] truncate">系统通知</h3>
+<span class="text-[10px] text-slate-400">14:20</span>
+</div>
+<p class="text-[11px] text-error truncate font-medium">权限申请已被驳回</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 hover:bg-black/5 rounded-xl cursor-pointer transition-colors">
+<div class="w-11 h-11 rounded-lg overflow-hidden shrink-0">
+<img alt="张三" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7nQlFgCd7wh3FTdCZG0_geSGQZx0Zl1nm27l9jCrDKdbm_fk6eJeCQIvybXYXAL_rxtHa6XjIvhUI7mfB-0h-h3E7qioOfc815QqQMno4oqEznzWNzi7Gf30jlBakEi6IAu59NkU5JhTNt7yohG4V0Ikro1bFrpIQx20lFR1eiRQ3oKE1jXD9VO4qUV5wvkbFMwCuAQ3KIXrbu9YQVEFbAgwILLKOmEmJpj12Z_yEe9xNQEEksErSIg8LPHYwrBQzDDHdZZBCWh8"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-semibold text-[13px] truncate">张三</h3>
+<span class="text-[10px] text-slate-400">14:18</span>
+</div>
+<p class="text-[11px] text-slate-500 truncate">目前报表在汇总期，暂时不能修改。</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col bg-[#F8F9FA] min-w-0 relative">
+<header class="h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-white shrink-0">
+<span class="material-symbols-outlined text-xl">notifications_active</span>
+</div>
+<div class="truncate">
+<h2 class="font-bold text-[14px] leading-tight truncate">系统通知</h2>
+<p class="text-[10px] text-slate-400 font-medium tracking-wide">SYSTEM NOTIFICATION</p>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0">
+<button class="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><span class="material-symbols-outlined text-xl">tune</span></button>
+<button class="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><span class="material-symbols-outlined text-xl">info</span></button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 flex flex-col items-start w-full">
+<div class="flex justify-center mb-8 w-full">
+<span class="px-3 py-1 bg-black/5 text-slate-400 text-[10px] font-bold rounded-full tracking-wider uppercase">今天 14:20</span>
+</div>
+<div class="flex items-start gap-3 w-full max-w-[560px]">
+<div class="w-9 h-9 rounded-lg bg-red-500 flex items-center justify-center shrink-0 text-white shadow-sm mt-1">
+<span class="material-symbols-outlined text-xl">security</span>
+</div>
+<div class="flex flex-col gap-1 w-full">
+<span class="text-[11px] text-slate-400 font-medium ml-1">系统管理员</span>
+<div class="rejection-card w-full overflow-hidden">
+<div class="p-5">
+<div class="flex items-start gap-4 mb-5">
+<div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center shrink-0 border border-orange-100">
+<span class="material-symbols-outlined text-warning text-2xl font-bold">report</span>
+</div>
+<div class="flex-1 pt-0.5">
+<h4 class="font-bold text-[15px] text-slate-900 mb-0.5">权限申请已被驳回</h4>
+<p class="text-[12px] text-slate-500 leading-normal">你的编辑权限申请已被拒绝，请核实原因后重新操作。</p>
+</div>
+</div>
+<div class="bg-slate-50/80 rounded-xl p-4 border border-slate-200/50 space-y-4 mb-5">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-slate-400 text-xl">description</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-0">申请项目</p>
+<h5 class="font-bold text-[13px] text-slate-800 truncate">2024Q1_财务报表汇总.xlsx</h5>
+</div>
+</div>
+<div class="pt-3 border-t border-slate-200/60">
+<div class="flex items-center gap-1.5 mb-1.5">
+<span class="material-symbols-outlined text-xs text-warning">feedback</span>
+<span class="text-[10px] text-slate-400 font-bold uppercase tracking-tight">驳回理由</span>
+</div>
+<p class="text-[12px] text-slate-700 bg-orange-50/40 p-2.5 rounded-lg border border-orange-100/40 leading-relaxed font-medium">
+                                        当前文档正在封版中，暂不支持编辑。请在 4月15日 归档后再行申请。
+                                    </p>
+</div>
+<div class="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                            审批人：<span class="font-semibold text-slate-700">张三</span>
+</div>
+</div>
+<span class="text-[10px] bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded font-bold">流程已闭环</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="flex-1 h-9 bg-primary text-white text-[12px] font-semibold rounded-lg shadow-sm shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">replay</span>
+                                    再次申请
+                                </button>
+<button class="flex-1 h-9 bg-white border border-slate-200 text-slate-700 text-[12px] font-semibold rounded-lg hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+                                    联系管理员
+                                </button>
+</div>
+</div>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 ml-1">14:20 · 系统自动推送</span>
+</div>
+</div>
+</div>
+<footer class="p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 shrink-0">
+<div class="max-w-[800px] mx-auto flex items-center gap-3 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">add_circle</span>
+</button>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-[14px] px-1 py-1 placeholder:text-slate-400" placeholder="回复系统消息..." type="text"/>
+<div class="flex items-center gap-1 pr-1">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">sentiment_satisfied</span>
+</button>
+<button class="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center shrink-0 hover:bg-primary/90 shadow-sm active:scale-95 transition-all">
+<span class="material-symbols-outlined text-xl">send</span>
+</button>
+</div>
+</div>
+</footer>
+</main>
+</div>
+
+</body></html>

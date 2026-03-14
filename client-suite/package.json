@@ -1,0 +1,14 @@
+{
+  "name": "dcf-client-suite",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run -ws build",
+    "dev:web": "npm run -w @dcf/web dev",
+    "typecheck": "npm run -ws typecheck"
+  }
+}

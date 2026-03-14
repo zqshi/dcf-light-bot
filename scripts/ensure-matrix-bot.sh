@@ -8,6 +8,10 @@ MATRIX_HS="${MATRIX_HS:-http://127.0.0.1:8008}"
 BOT_LOCALPART="${MATRIX_BOT_LOCALPART:-dcfbot}"
 BOT_PASSWORD="${MATRIX_BOT_PASSWORD:-dcfbot123}"
 BOT_DISPLAY_NAME="${MATRIX_BOT_DISPLAY_NAME:-数字工厂bot}"
+FACTORY_ROOM_ALIAS_LOCALPART="${FACTORY_ROOM_ALIAS_LOCALPART:-dcf-factory}"
+FACTORY_ROOM_NAME="${FACTORY_ROOM_NAME:-数字工厂服务台}"
+FACTORY_ROOM_TOPIC="${FACTORY_ROOM_TOPIC:-数字员工创建与协作入口（非加密房间）}"
+MATRIX_E2EE_ENABLED="${MATRIX_E2EE_ENABLED:-false}"
 
 wait_matrix() {
   for _ in $(seq 1 80); do
@@ -17,6 +21,22 @@ wait_matrix() {
     sleep 1
   done
   return 1
+}
+
+json_field() {
+  local key="$1"
+  node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(String(d['$key']||''));"
+}
+
+urlenc() {
+  local value="$1"
+  node -e "process.stdout.write(encodeURIComponent(process.argv[1]||''))" "$value"
+}
+
+is_true() {
+  local v
+  v="$(echo "${1:-}" | tr '[:upper:]' '[:lower:]')"
+  [ "$v" = "1" ] || [ "$v" = "true" ] || [ "$v" = "yes" ] || [ "$v" = "on" ]
 }
 
 if ! wait_matrix; then
@@ -56,5 +76,73 @@ curl -sS -X PUT "${MATRIX_HS}/_matrix/client/v3/profile/${ENC_USER_ID}/displayna
   -H "Authorization: Bearer ${BOT_TOKEN}" \
   -H 'content-type: application/json' \
   -d "{\"displayname\":\"${BOT_DISPLAY_NAME}\"}" >/dev/null || true
+
+FACTORY_CREATE_PAYLOAD="$(cat <<JSON
+{
+  "name":"${FACTORY_ROOM_NAME}",
+  "topic":"${FACTORY_ROOM_TOPIC}",
+  "preset":"public_chat",
+  "visibility":"public",
+  "room_alias_name":"${FACTORY_ROOM_ALIAS_LOCALPART}"
+}
+JSON
+)"
+FACTORY_ROOM_ID="$(curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/createRoom" \
+  -H "Authorization: Bearer ${BOT_TOKEN}" \
+  -H 'content-type: application/json' \
+  -d "${FACTORY_CREATE_PAYLOAD}" | json_field room_id 2>/dev/null || true)"
+
+if [ -z "${FACTORY_ROOM_ID:-}" ]; then
+  FACTORY_ALIAS="#${FACTORY_ROOM_ALIAS_LOCALPART}:localhost"
+  FACTORY_ROOM_ID="$(curl -sS "${MATRIX_HS}/_matrix/client/v3/directory/room/$(urlenc "$FACTORY_ALIAS")" \
+    -H "Authorization: Bearer ${BOT_TOKEN}" | json_field room_id 2>/dev/null || true)"
+fi
+
+if [ -n "${FACTORY_ROOM_ID:-}" ]; then
+  if ! is_true "$MATRIX_E2EE_ENABLED"; then
+    ENCRYPTION_ALGO="$(curl -sS "${MATRIX_HS}/_matrix/client/v3/rooms/$(urlenc "$FACTORY_ROOM_ID")/state/m.room.encryption" \
+      -H "Authorization: Bearer ${BOT_TOKEN}" | node -e "const fs=require('fs');try{const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(String(d.algorithm||''));}catch{process.stdout.write('')}" 2>/dev/null || true)"
+    if [ -n "$ENCRYPTION_ALGO" ]; then
+      FACTORY_ALIAS="#${FACTORY_ROOM_ALIAS_LOCALPART}:localhost"
+      echo "[warn] factory room is encrypted while MATRIX_E2EE_ENABLED=false, rotating alias: ${FACTORY_ALIAS} (${FACTORY_ROOM_ID})"
+      curl -sS -X DELETE "${MATRIX_HS}/_matrix/client/v3/directory/room/$(urlenc "$FACTORY_ALIAS")" \
+        -H "Authorization: Bearer ${BOT_TOKEN}" >/dev/null || true
+
+      ROTATE_CREATE_PAYLOAD="$(cat <<JSON
+{
+  "name":"${FACTORY_ROOM_NAME}",
+  "topic":"${FACTORY_ROOM_TOPIC}",
+  "preset":"public_chat",
+  "visibility":"public",
+  "initial_state":[
+    {"type":"m.room.history_visibility","state_key":"","content":{"history_visibility":"shared"}},
+    {"type":"m.room.guest_access","state_key":"","content":{"guest_access":"forbidden"}}
+  ]
+}
+JSON
+)"
+      NEW_FACTORY_ROOM_ID="$(curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/createRoom" \
+        -H "Authorization: Bearer ${BOT_TOKEN}" \
+        -H 'content-type: application/json' \
+        -d "${ROTATE_CREATE_PAYLOAD}" | json_field room_id 2>/dev/null || true)"
+      if [ -n "$NEW_FACTORY_ROOM_ID" ]; then
+        curl -sS -X PUT "${MATRIX_HS}/_matrix/client/v3/directory/room/$(urlenc "$FACTORY_ALIAS")" \
+          -H "Authorization: Bearer ${BOT_TOKEN}" \
+          -H 'content-type: application/json' \
+          -d "{\"room_id\":\"${NEW_FACTORY_ROOM_ID}\"}" >/dev/null || true
+        FACTORY_ROOM_ID="$NEW_FACTORY_ROOM_ID"
+        echo "[ok] rotated to non-encrypted factory room: ${FACTORY_ALIAS} (${FACTORY_ROOM_ID})"
+      else
+        echo "[warn] failed to rotate factory room alias, keep existing room: ${FACTORY_ROOM_ID}"
+      fi
+    fi
+  fi
+
+  curl -sS -X POST "${MATRIX_HS}/_matrix/client/v3/rooms/$(urlenc "$FACTORY_ROOM_ID")/join" \
+    -H "Authorization: Bearer ${BOT_TOKEN}" \
+    -H 'content-type: application/json' \
+    -d '{}' >/dev/null || true
+  echo "[ok] matrix factory room ready: #${FACTORY_ROOM_ALIAS_LOCALPART}:localhost (${FACTORY_ROOM_ID})"
+fi
 
 echo "[ok] matrix bot ready: ${BOT_DISPLAY_NAME} (${BOT_USER_ID})"

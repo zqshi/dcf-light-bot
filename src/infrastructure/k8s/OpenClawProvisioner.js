@@ -1,6 +1,12 @@
 const yaml = require('yaml');
 const { AppError } = require('../../shared/errors');
 
+function sleep(ms) {
+  const delay = Math.max(0, Number(ms || 0));
+  if (!delay) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, delay));
+}
+
 class OpenClawProvisioner {
   constructor(config, options = {}) {
     this.config = config;
@@ -20,6 +26,34 @@ class OpenClawProvisioner {
     };
   }
 
+  buildMatrixChannelCheck(instance, readiness) {
+    const roomId = String(instance && instance.matrixRoomId || '').trim();
+    const hasRoomBinding = Boolean(roomId);
+    const hasUserId = Boolean(String(this.config.matrixUserId || '').trim());
+    const hasHomeserver = Boolean(String(this.config.matrixHomeserver || '').trim());
+    const hasToken = Boolean(String(this.config.matrixAccessToken || '').trim());
+    const hasPassword = Boolean(String(this.config.matrixPassword || '').trim());
+    const authConfigured = hasUserId && hasHomeserver && (hasToken || hasPassword);
+    const runtimeReady = String(readiness && readiness.status || '').toLowerCase() === 'ready';
+    const status = authConfigured && hasRoomBinding && runtimeReady ? 'ready' : 'degraded';
+    const issues = [];
+    if (!hasRoomBinding) issues.push('room_not_bound');
+    if (!hasUserId) issues.push('matrix_user_missing');
+    if (!hasHomeserver) issues.push('matrix_homeserver_missing');
+    if (!hasToken && !hasPassword) issues.push('matrix_auth_missing');
+    if (!runtimeReady) issues.push('runtime_not_ready');
+    return {
+      status,
+      roomId: roomId || null,
+      roomBound: hasRoomBinding,
+      authConfigured,
+      runtimeReady,
+      readinessStatus: String(readiness && readiness.status || ''),
+      issues,
+      checkedAt: new Date().toISOString()
+    };
+  }
+
   getProviderSecretData() {
     const data = {};
     for (const p of this.config.providers || []) {
@@ -27,6 +61,22 @@ class OpenClawProvisioner {
       const name = String(p && p.name || '').trim().toUpperCase();
       if (!key || !name) continue;
       data[`${name}_API_KEY`] = key;
+    }
+    const matrixAccessToken = String(this.config.matrixAccessToken || '').trim();
+    if (matrixAccessToken) {
+      data.MATRIX_ACCESS_TOKEN = matrixAccessToken;
+    }
+    const matrixPassword = String(this.config.matrixPassword || '').trim();
+    if (matrixPassword) {
+      data.MATRIX_PASSWORD = matrixPassword;
+    }
+    const matrixHomeserver = String(this.config.matrixHomeserver || '').trim();
+    if (matrixHomeserver) {
+      data.MATRIX_HOMESERVER = matrixHomeserver;
+    }
+    const matrixUserId = String(this.config.matrixUserId || '').trim();
+    if (matrixUserId) {
+      data.MATRIX_USER_ID = matrixUserId;
     }
     return data;
   }
@@ -65,6 +115,16 @@ class OpenClawProvisioner {
   buildOpenClawConfig(instance, names, mountedAssets) {
     const runtimeModel = this.getRuntimeModelRef();
     const providersConfig = this.buildProviderModelsConfig();
+    const roomId = String(instance && instance.matrixRoomId || '').trim();
+    const matrixGroups = roomId
+      ? {
+          [roomId]: {
+            enabled: true,
+            requireMention: false,
+            autoReply: true
+          }
+        }
+      : {};
     return yaml.stringify({
       runtime: {
         agent: 'main',
@@ -97,9 +157,23 @@ class OpenClawProvisioner {
         assetReportEndpoint: `${this.config.platformBaseUrl}/api/control/assets/reports`
       },
       sharedAssets: mountedAssets || { all: [], byType: { skill: [], tool: [], knowledge: [] } },
-      matrix: {
-        homeserver: this.config.matrixHomeserver,
-        userId: this.config.matrixUserId
+      channels: {
+        defaults: {
+          groupPolicy: 'allowlist'
+        },
+        matrix: {
+          enabled: true,
+          homeserver: this.config.matrixHomeserver,
+          userId: this.config.matrixUserId,
+          accessToken: '${MATRIX_ACCESS_TOKEN}',
+          dm: {
+            enabled: false,
+            policy: 'disabled',
+            allowFrom: []
+          },
+          groupPolicy: 'allowlist',
+          groups: matrixGroups
+        }
       },
       runtimeRouting: {
         namespace: names.namespace,
@@ -417,17 +491,34 @@ class OpenClawProvisioner {
   async provision(instance) {
     const names = this.buildRuntimeNames(instance);
     if (this.simulation) {
-      return { ...names, mode: 'simulation', providerKeysInjected: true, mountIssues: [] };
+      const readiness = {
+        status: 'ready',
+        mode: 'simulation',
+        checkedAt: new Date().toISOString()
+      };
+      const matrixChannelCheck = this.buildMatrixChannelCheck(instance, readiness);
+      return {
+        ...names,
+        mode: 'simulation',
+        providerKeysInjected: true,
+        mountIssues: [],
+        readiness,
+        matrixChannelCheck
+      };
     }
 
     try {
       const out = await this.applyDesiredResources(instance);
+      const readiness = await this.waitForRuntimeReady(instance, names);
+      const matrixChannelCheck = this.buildMatrixChannelCheck(instance, readiness);
       return {
         ...names,
         mode: 'kubernetes',
         providerKeysInjected: true,
         mountedAssetCount: Array.isArray(out.mountedAssets && out.mountedAssets.all) ? out.mountedAssets.all.length : 0,
-        mountIssues: Array.isArray(out.mountIssues) ? out.mountIssues : []
+        mountIssues: Array.isArray(out.mountIssues) ? out.mountIssues : [],
+        readiness,
+        matrixChannelCheck
       };
     } catch (error) {
       if (this.config.kubernetesRollbackOnProvisionFailure !== false) {
@@ -487,6 +578,70 @@ class OpenClawProvisioner {
       if (this.isNotFound(error)) return { ok: true, mode: 'kubernetes', alreadyStopped: true };
       throw new AppError(`kubernetes stop failed: ${error.message}`, 500, 'K8S_STOP_FAILED');
     }
+  }
+
+  isPodReady(pod) {
+    const body = pod && pod.body && typeof pod.body === 'object' ? pod.body : {};
+    const status = body.status && typeof body.status === 'object' ? body.status : {};
+    const phase = String(status.phase || '').toLowerCase();
+    if (phase !== 'running') return false;
+    const conditions = Array.isArray(status.conditions) ? status.conditions : [];
+    return conditions.some((x) => String(x && x.type || '').toLowerCase() === 'ready' && String(x && x.status || '').toLowerCase() === 'true');
+  }
+
+  async waitForRuntimeReady(instance, names) {
+    const enabled = this.config.kubernetesWaitForReady !== false;
+    if (!enabled) {
+      return {
+        status: 'skipped',
+        reason: 'disabled',
+        checkedAt: new Date().toISOString()
+      };
+    }
+    const clients = this.ensureK8sClients();
+    if (!clients || !clients.core || typeof clients.core.readNamespacedPod !== 'function') {
+      return {
+        status: 'skipped',
+        reason: 'missing_core_client',
+        checkedAt: new Date().toISOString()
+      };
+    }
+    const timeoutMs = Math.max(500, Number(this.config.kubernetesReadyTimeoutMs || 120_000));
+    const intervalMs = Math.max(100, Number(this.config.kubernetesReadyPollIntervalMs || 3_000));
+    const startedAt = Date.now();
+    let lastPhase = 'unknown';
+    let lastReason = 'pending';
+
+    while ((Date.now() - startedAt) <= timeoutMs) {
+      try {
+        const pod = await clients.core.readNamespacedPod(names.podName, names.namespace);
+        const status = pod && pod.body && pod.body.status && typeof pod.body.status === 'object'
+          ? pod.body.status
+          : {};
+        lastPhase = String(status.phase || 'unknown').toLowerCase();
+        const conditions = Array.isArray(status.conditions) ? status.conditions : [];
+        const ready = conditions.find((x) => String(x && x.type || '').toLowerCase() === 'ready');
+        lastReason = String((ready && (ready.reason || ready.message)) || status.reason || 'pending');
+        if (this.isPodReady(pod)) {
+          return {
+            status: 'ready',
+            phase: lastPhase,
+            reason: lastReason,
+            readyAt: new Date().toISOString(),
+            waitedMs: Date.now() - startedAt
+          };
+        }
+      } catch (error) {
+        lastReason = String(error && error.message || 'read pod failed');
+      }
+      await sleep(intervalMs);
+    }
+
+    throw new AppError(
+      `openclaw pod not ready within timeout: phase=${lastPhase}, reason=${lastReason}`,
+      504,
+      'K8S_RUNTIME_NOT_READY'
+    );
   }
 }
 

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7b00ff",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#190f23",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "SF Pro SC", "SF Pro Display", "PingFang SC", "system-ui", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        body {
+            font-family: 'Inter', "SF Pro SC", "SF Pro Display", "PingFang SC", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 overflow-hidden h-screen">
+<div class="flex h-full w-full overflow-hidden">
+<!-- Sidebar Navigation (Squeezed/Collapsed style) -->
+<aside class="w-20 flex flex-col items-center py-6 border-r border-slate-200/60 bg-white/50 z-10">
+<div class="mb-8 text-primary">
+<span class="material-symbols-outlined text-4xl">auto_awesome</span>
+</div>
+<nav class="flex flex-col gap-6">
+<div class="p-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 cursor-pointer">
+<span class="material-symbols-outlined">chat_bubble</span>
+</div>
+<div class="p-3 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+<span class="material-symbols-outlined">folder</span>
+</div>
+<div class="p-3 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<div class="p-3 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+</div>
+</nav>
+<div class="mt-auto">
+<div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm">
+<img class="w-full h-full object-cover" data-alt="User profile avatar of a tech professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzZjZioEvFsLq6XLf-ul150vrlJp0e9fUY-8Ncs3GOOHk2UgVNYV50o7vQ0_Ez8yx1fZKEsqNQ4-9lTK8337RWJMfbv8bmn12JE6HoZbYiSn0FcIGbFDufkGXvJmB3poXf9c2NWr-NQcTkElAiyDyfl0GM8_XNDi6ljpxAXMyBLtxe29ODV37icnfzBCtcYLID6Jqqv6f-WST6xirNQU4nYnZmNO0CXTRJGwxliNkgOkEoK4q8xt8uyWqVqRLr5Gsv2hfw8JL3KK0"/>
+</div>
+</div>
+</aside>
+<!-- Main Chat Area (Squeezed to the left) -->
+<main class="flex-1 flex flex-col bg-slate-50 relative min-w-[320px]">
+<header class="h-16 flex items-center justify-between px-8 border-b border-slate-200/60 bg-white/30 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<h1 class="text-lg font-bold text-slate-800">Marketing Homepage Project</h1>
+<span class="px-2 py-0.5 rounded-full bg-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">Active</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-400 cursor-pointer">search</span>
+<span class="material-symbols-outlined text-slate-400 cursor-pointer">more_horiz</span>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+<!-- Chat Bubbles -->
+<div class="flex gap-4 max-w-md">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+</div>
+<div class="p-4 rounded-2xl bg-white shadow-sm border border-slate-100 text-sm leading-relaxed text-slate-700">
+                        我已经分析了当前的 CTA 按钮。它目前的点击率低于预期。建议将其颜色改为品牌紫色，增加圆角半径，并将文字改为更有行动感的“立即开始”。
+                    </div>
+</div>
+<div class="flex flex-row-reverse gap-4 max-w-md ml-auto">
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="User profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnfdMA0ojJEeUFsb7asbmdG54FP3xjO37Gwhk7AtzVjw45CS9KQWJkTfkJCjhrM0UfeeAnAjha-VM71KY2zYzr0taT798Wfp5vVlKov2vHzaAq0Hgn8twyrJsHa1Y6HSy2O9rI1MBp9-r882p3McW0vn7fjJ-rZ1G7KVzXUzw4hL5EVGv3CqVqeVYlppr6lxlVO73ujkbbYhzD0cN3ChrpUZ0t-P4WHqbSBISYgkH4aliCuBr2ASfoRTfTIHvOgCQddck-d3I3Ayk"/>
+</div>
+<div class="p-4 rounded-2xl bg-primary text-white shadow-md text-sm leading-relaxed">
+                        好的，请生成修改建议并展示对比。
+                    </div>
+</div>
+<div class="flex gap-4 max-w-md">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+</div>
+<div class="p-4 rounded-2xl bg-white shadow-sm border border-slate-100 text-sm leading-relaxed text-slate-700">
+                        修改已就绪。您可以在右侧的对比面板中查看视觉差异。
+                    </div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="p-6">
+<div class="flex items-center gap-2 bg-white rounded-2xl p-2 shadow-xl shadow-slate-200/50 border border-slate-100">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-sm" placeholder="输入指令..." type="text"/>
+<button class="bg-primary text-white p-2 rounded-xl shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Comparison Drawer (Large Right Panel) -->
+<section class="w-[60%] h-full bg-white shadow-2xl z-20 flex flex-col border-l border-slate-200">
+<!-- Drawer Header -->
+<div class="h-16 px-6 flex items-center justify-between border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+<div class="flex flex-col">
+<h2 class="text-base font-bold text-slate-900">视觉差异对比</h2>
+<span class="text-[11px] text-slate-500 font-medium">正在比较: .hero-cta-button</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">
+<span class="material-symbols-outlined text-sm">code</span>
+                        查看代码
+                    </button>
+<button class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+<!-- Diff Viewport -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Before Panel -->
+<div class="flex-1 border-r border-slate-100 bg-slate-50 flex flex-col">
+<div class="py-2 px-4 bg-slate-100/50 border-b border-slate-100 flex justify-between items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">修改前 (Before)</span>
+<span class="text-[10px] text-slate-400">v1.2.4</span>
+</div>
+<div class="flex-1 flex items-center justify-center p-8 relative overflow-hidden">
+<!-- Simulated Website Background -->
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="w-full h-full bg-gradient-to-br from-slate-200 to-transparent p-10 flex flex-col gap-4">
+<div class="h-8 w-1/2 bg-slate-300 rounded-full"></div>
+<div class="h-4 w-3/4 bg-slate-300 rounded-full"></div>
+<div class="h-4 w-2/3 bg-slate-300 rounded-full"></div>
+</div>
+</div>
+<!-- Target Element Before -->
+<div class="relative z-10 group">
+<div class="absolute -inset-4 border-2 border-dashed border-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<button class="px-8 py-3 bg-slate-800 text-white rounded font-medium text-sm shadow-sm">
+                                Submit Request
+                            </button>
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                width: 160px; radius: 4px;
+                            </div>
+</div>
+</div>
+</div>
+<!-- After Panel -->
+<div class="flex-1 bg-slate-50 flex flex-col">
+<div class="py-2 px-4 bg-primary/5 border-b border-primary/10 flex justify-between items-center">
+<span class="text-[10px] font-bold text-primary uppercase tracking-widest">修改后 (After)</span>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="text-[10px] text-primary">AI 优化</span>
+</div>
+</div>
+<div class="flex-1 flex items-center justify-center p-8 relative overflow-hidden">
+<!-- Simulated Website Background -->
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="w-full h-full bg-gradient-to-br from-primary/10 to-transparent p-10 flex flex-col gap-4">
+<div class="h-8 w-1/2 bg-slate-300 rounded-full"></div>
+<div class="h-4 w-3/4 bg-slate-300 rounded-full"></div>
+<div class="h-4 w-2/3 bg-slate-300 rounded-full"></div>
+</div>
+</div>
+<!-- Target Element After -->
+<div class="relative z-10 group">
+<div class="absolute -inset-4 border-2 border-solid border-primary rounded-xl opacity-100 transition-opacity"></div>
+<button class="px-10 py-3.5 bg-primary text-white rounded-xl font-semibold text-sm shadow-xl shadow-primary/30 flex items-center gap-2">
+                                立即开始
+                                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap">
+                                radius: 12px; gradient applied
+                            </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Comparison Metadata -->
+<div class="px-6 py-4 bg-white border-t border-slate-100">
+<div class="grid grid-cols-3 gap-6">
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-slate-400 font-bold uppercase">结构变化</span>
+<div class="flex items-center gap-2 text-slate-700">
+<span class="material-symbols-outlined text-emerald-500 text-sm">add_circle</span>
+<span class="text-xs font-medium">新增图标元素</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-slate-400 font-bold uppercase">样式优化</span>
+<div class="flex items-center gap-2 text-slate-700">
+<span class="material-symbols-outlined text-amber-500 text-sm">palette</span>
+<span class="text-xs font-medium">圆角 4px → 12px</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-slate-400 font-bold uppercase">文本改进</span>
+<div class="flex items-center gap-2 text-slate-700">
+<span class="material-symbols-outlined text-blue-500 text-sm">edit_note</span>
+<span class="text-xs font-medium">转化率优化用词</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Action Bar (Bottom Center) -->
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-[420px] z-30">
+<div class="glass-panel rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex items-center justify-between border border-white/50">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">auto_fix_high</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-bold text-slate-900">应用此更改吗？</p>
+<p class="text-[11px] text-slate-500 leading-none">此操作将更新所有相关页面</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                            取消
+                        </button>
+<button class="px-5 py-2 text-sm font-semibold bg-primary text-white rounded-xl shadow-lg shadow-primary/25 hover:brightness-110 active:scale-95 transition-all">
+                            确认应用
+                        </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</body></html>

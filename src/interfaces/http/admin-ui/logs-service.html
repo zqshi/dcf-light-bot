@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>平台服务日志</title>
+    <link rel="stylesheet" href="/admin/layout.css" />
+  </head>
+  <body data-required-permission="admin.logs.page.behavior.read">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <h2>管理后台</h2>
+        <a href="/admin/index.html">总览</a>
+        <a href="/admin/employees.html">员工管理</a>
+        <a href="/admin/skills.html">技能管理</a>
+        <a href="/admin/tools.html">工具管理</a>
+        <a class="active" href="/admin/logs-service.html">平台服务日志</a>
+        <a href="/admin/auth-members.html">成员管理</a>
+      </aside>
+      <main class="content">
+        <section class="page-head">
+          <h1 class="page-title">平台服务日志</h1>
+          <p class="page-subtitle">记录 Matrix 接入、实例编排、平台组件事件，用于排查“消息无响应”等服务问题。</p>
+          <div class="stat-strip">
+            <div class="stat-item">
+              <div class="stat-label">当前页展示条数</div>
+              <div id="logCount" class="stat-value">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">最新时间</div>
+              <div id="latestLogTime" class="stat-value">-</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="toolbar filter-toolbar">
+            <div class="toolbar-group">
+              <label for="logTimeRangeFilter">时间范围</label>
+              <select class="admin-select" id="logTimeRangeFilter">
+                <option value="15m">最近 15 分钟</option>
+                <option value="1h" selected>最近 1 小时</option>
+                <option value="24h">最近 24 小时</option>
+                <option value="7d">最近 7 天</option>
+                <option value="all">全部</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <label for="logStatusFilter">结果状态</label>
+              <select class="admin-select" id="logStatusFilter">
+                <option value="all">全部</option>
+                <option value="failed">失败</option>
+                <option value="ignored">忽略</option>
+                <option value="succeeded">成功</option>
+                <option value="unknown">未知</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <label for="logModuleFilter">模块</label>
+              <select class="admin-select" id="logModuleFilter">
+                <option value="all">全部</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <label for="logOperationFilter">操作</label>
+              <select class="admin-select" id="logOperationFilter">
+                <option value="all">全部</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <label for="logTraceFilter">链路/对象ID</label>
+              <input class="admin-input" id="logTraceFilter" placeholder="traceId/requestId/eventId/roomId/instanceId" />
+            </div>
+            <div class="toolbar-group">
+              <label for="logKeywordFilter">关键词</label>
+              <input class="admin-input" id="logKeywordFilter" placeholder="message/reason/文本内容" />
+            </div>
+          </div>
+          <p class="toolbar-note">默认展示最近 1 小时；建议优先筛选“失败/忽略”定位问题，再按事件类型精确排查。</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>业务模块</th>
+                  <th>行为摘要</th>
+                  <th>关联对象</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody id="rows">
+                <tr><td colspan="5" class="empty">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/admin/auth.js"></script>
+    <script>
+      document.body.setAttribute('data-log-scope', 'service');
+    </script>
+    <script src="/admin/logs.js"></script>
+  </body>
+</html>

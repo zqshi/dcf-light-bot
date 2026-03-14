@@ -54,6 +54,8 @@ class PostgresStore {
   defaultDoc() {
     return {
       instances: [],
+      provisioningJobs: [],
+      identityMappings: [],
       assetReports: [],
       assets: [],
       assetBindings: [],

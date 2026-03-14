@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>部门成员权限管理 - 企业知识库</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "background-light": "#F5F5F7",
+                        "background-dark": "#1C1C1E",
+                        "folder-blue": "#007AFF"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1.25rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        .dark .glass-effect {
+            background: rgba(28, 28, 30, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+        .sidebar-item-active {
+            background-color: rgba(0, 122, 255, 0.1);
+            color: #007AFF;
+        }
+        .folder-card {
+            transition: all 0.2s cubic-bezier(0, 0, 0.5, 1);
+        }
+        .folder-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(0,0,0,0.1);
+        }
+        body { font-size: 0.8125rem; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        .apple-modal-overlay {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-700 dark:text-slate-300 antialiased h-screen overflow-hidden">
+<div class="flex h-full">
+<aside class="w-16 flex flex-col items-center py-6 border-r border-slate-200/60 dark:border-slate-800/60 glass-effect z-30">
+<div class="mb-8">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-2xl">hub</span>
+</div>
+</div>
+<nav class="flex flex-col gap-6 flex-1">
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">chat</span>
+</button>
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">group</span>
+</button>
+<button class="p-2 rounded-xl text-primary bg-primary/10 transition-all">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">auto_stories</span>
+</button>
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">calendar_month</span>
+</button>
+</nav>
+<div class="mt-auto flex flex-col gap-6">
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+<div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-white dark:ring-slate-800">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhOGhvZMtXt8_Ap1tjow0CGFmMXguPN0cQSbyCr-bK8gKBHtP41DNb8EwyP3p1XlC6R_TF8VM9USzxsjii9dUgOJ-nw8VdPpvahRuCcpeUuwJWz-K62VoVGcR3DpMvpEfurDDUnDSyBFIclLQxrMTvMqQDKeNvmRGGGvLN6LPMoRHWlf6obIsGQUqPE-rgaAemj-SlN4X28vNplvf7P3C_4P5X72JTXbgI-BMiaQSz4ZI5iE1h9Y295hWVqzhggixmtL_wZFW8tww"/>
+</div>
+</div>
+</aside>
+<div class="w-60 border-r border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-slate-900/40 flex flex-col backdrop-blur-md">
+<div class="p-5">
+<div class="flex items-center justify-between mb-8 px-1">
+<h2 class="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">知识库管理</h2>
+</div>
+<div class="mb-7">
+<h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">企业级</h3>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined text-[18px]">account_tree</span>
+<span>标准流程</span>
+</a>
+<a class="sidebar-item-active flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold" href="#">
+<span class="material-symbols-outlined text-[18px]">corporate_fare</span>
+<span>部门资产</span>
+</a>
+</div>
+</div>
+<div class="mb-7">
+<h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">协作空间</h3>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+<span>我的草稿</span>
+</a>
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined text-[18px]">star</span>
+<span>收藏夹</span>
+</a>
+</div>
+</div>
+<div class="mt-auto pt-6 border-t border-slate-200/40 dark:border-slate-800/40">
+<h3 class="text-[10px] font-bold text-primary/80 uppercase tracking-widest mb-3 px-2 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">admin_panel_settings</span>
+                    系统管理 (管理员)
+                </h3>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined text-[18px]">database</span>
+<span>容量监控</span>
+</a>
+<a class="sidebar-item-active flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold" href="#">
+<span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+<span>成员权限</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<main class="flex-1 flex flex-col bg-white dark:bg-black/20 overflow-hidden relative">
+<header class="h-16 flex items-center justify-between px-8 border-b border-slate-200/60 dark:border-slate-800/60 glass-effect relative z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-[10px] border border-slate-200/20">
+<button class="px-4 py-1.5 text-[12px] font-semibold rounded-[7px] text-slate-500 hover:text-slate-700 transition-all">企业知识</button>
+<button class="px-4 py-1.5 text-[12px] font-semibold rounded-[7px] bg-white dark:bg-slate-700 shadow-sm text-primary">组织资产</button>
+</div>
+<div class="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-full border border-primary/10">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span class="text-[11px] font-bold text-primary tracking-wide uppercase">Admin Mode</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+<input class="pl-9 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800/50 border-transparent rounded-xl text-[13px] focus:ring-2 focus:ring-primary/30 focus:bg-white dark:focus:bg-slate-800 w-64 transition-all" placeholder="在部门资产中搜索..." type="text"/>
+</div>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
+<button class="bg-primary text-white px-5 py-1.5 rounded-xl text-[13px] font-semibold flex items-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all">
+<span class="material-symbols-outlined text-[20px]">create_new_folder</span>
+                    新建文件夹
+                </button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+<div class="max-w-6xl mx-auto">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h1 class="text-[22px] font-bold text-slate-900 dark:text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[28px]">folder_managed</span>
+                            部门资产管理
+                        </h1>
+<p class="text-[13px] text-slate-400 mt-1">设置部门资产访问权限与知识维护人员</p>
+</div>
+<div class="flex gap-2">
+<button class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-xl bg-transparent text-slate-400 hover:text-slate-600 transition-all">
+<span class="material-symbols-outlined text-[20px]">view_list</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<div class="folder-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 group relative">
+<div class="flex items-start justify-between mb-4">
+<div class="w-14 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-500 text-[36px]" style="font-variation-settings: 'FILL' 1">folder</span>
+</div>
+<div class="flex gap-1">
+<button class="p-1.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-primary/10 hover:text-primary rounded-lg transition-colors text-slate-400" title="成员管理">
+<span class="material-symbols-outlined text-[20px]">manage_accounts</span>
+</button>
+<button class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<h3 class="font-bold text-[15px] text-slate-900 dark:text-white mb-1">财务部 (Finance)</h3>
+<div class="flex items-center gap-3 text-slate-400 text-[12px]">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">groups</span> 12 位成员</span>
+<span>•</span>
+<span>3小时前更新</span>
+</div>
+</div>
+<div class="folder-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 group relative">
+<div class="flex items-start justify-between mb-4">
+<div class="w-14 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-orange-500 text-[36px]" style="font-variation-settings: 'FILL' 1">folder</span>
+</div>
+<div class="flex gap-1">
+<button class="p-1.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-primary/10 hover:text-primary rounded-lg transition-colors text-slate-400" title="成员管理">
+<span class="material-symbols-outlined text-[20px]">manage_accounts</span>
+</button>
+<button class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<h3 class="font-bold text-[15px] text-slate-900 dark:text-white mb-1">人力资源 (HR)</h3>
+<div class="flex items-center gap-3 text-slate-400 text-[12px]">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">groups</span> 8 位成员</span>
+<span>•</span>
+<span>昨天 14:20</span>
+</div>
+</div>
+<div class="folder-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 group relative">
+<div class="flex items-start justify-between mb-4">
+<div class="w-14 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-purple-500 text-[36px]" style="font-variation-settings: 'FILL' 1">folder</span>
+</div>
+<div class="flex gap-1">
+<button class="p-1.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-primary/10 hover:text-primary rounded-lg transition-colors text-slate-400" title="成员管理">
+<span class="material-symbols-outlined text-[20px]">manage_accounts</span>
+</button>
+<button class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<h3 class="font-bold text-[15px] text-slate-900 dark:text-white mb-1">产品中心 (Product)</h3>
+<div class="flex items-center gap-3 text-slate-400 text-[12px]">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">groups</span> 45 位成员</span>
+<span>•</span>
+<span>15分钟前更新</span>
+</div>
+</div>
+<div class="folder-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 group relative">
+<div class="flex items-start justify-between mb-4">
+<div class="w-14 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-green-500 text-[36px]" style="font-variation-settings: 'FILL' 1">folder</span>
+</div>
+<div class="flex gap-1">
+<button class="p-1.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-primary/10 hover:text-primary rounded-lg transition-colors text-slate-400" title="成员管理">
+<span class="material-symbols-outlined text-[20px]">manage_accounts</span>
+</button>
+<button class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<h3 class="font-bold text-[15px] text-slate-900 dark:text-white mb-1">研发部 (R&amp;D)</h3>
+<div class="flex items-center gap-3 text-slate-400 text-[12px]">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">groups</span> 120 位成员</span>
+<span>•</span>
+<span>1小时前更新</span>
+</div>
+</div>
+</div>
+<section class="mt-12 pt-10 border-t border-slate-200/60 dark:border-slate-800/60">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-[15px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">security</span>
+                            权限配置指南
+                        </h2>
+</div>
+<div class="bg-primary/[0.03] dark:bg-primary/5 rounded-2xl border border-primary/10 p-5">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]">verified_user</span>
+<div>
+<h4 class="font-bold text-[13px] text-slate-900 dark:text-white mb-1">部门管理员</h4>
+<p class="text-[11px] text-slate-500 leading-relaxed">拥有对该部门文件夹的编辑、上传、删除以及成员管理权限。</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]">visibility</span>
+<div>
+<h4 class="font-bold text-[13px] text-slate-900 dark:text-white mb-1">普通成员</h4>
+<p class="text-[11px] text-slate-500 leading-relaxed">默认拥有只读权限，可根据需要调整为协作或管理权限。</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]">history</span>
+<div>
+<h4 class="font-bold text-[13px] text-slate-900 dark:text-white mb-1">权限审计</h4>
+<p class="text-[11px] text-slate-500 leading-relaxed">所有的权限变更操作均会被记录，可供系统管理员随时追溯审计。</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<div class="absolute inset-0 z-50 flex items-center justify-center p-6 apple-modal-overlay">
+<div class="w-full max-w-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[24px] shadow-2xl border border-white/20 dark:border-slate-800/50 overflow-hidden flex flex-col max-h-[90vh]">
+<div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-500 text-[24px]" style="font-variation-settings: 'FILL' 1">folder</span>
+</div>
+<div>
+<h2 class="text-[16px] font-bold text-slate-900 dark:text-white">财务部成员权限设置</h2>
+<p class="text-[12px] text-slate-400">管理部门资产的访问与维护人员</p>
+</div>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+<div class="mb-8">
+<div class="flex items-center gap-3">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+<input class="w-full pl-9 pr-4 py-2 bg-slate-100/50 dark:bg-slate-800/50 border-transparent rounded-xl text-[13px] focus:ring-2 focus:ring-primary/30 focus:bg-white dark:focus:bg-slate-800 transition-all" placeholder="输入姓名或邮箱搜索成员..." type="text"/>
+</div>
+<button class="bg-primary text-white px-4 py-2 rounded-xl text-[13px] font-semibold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[18px]">person_add</span>
+                                添加维护者
+                            </button>
+</div>
+</div>
+<div class="mb-8">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                部门管理员 (Admins)
+                                <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded text-[10px] lowercase font-normal">2 人</span>
+</h3>
+</div>
+<div class="space-y-1">
+<div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+<div class="flex items-center gap-3">
+<img alt="Admin" class="w-9 h-9 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhOGhvZMtXt8_Ap1tjow0CGFmMXguPN0cQSbyCr-bK8gKBHtP41DNb8EwyP3p1XlC6R_TF8VM9USzxsjii9dUgOJ-nw8VdPpvahRuCcpeUuwJWz-K62VoVGcR3DpMvpEfurDDUnDSyBFIclLQxrMTvMqQDKeNvmRGGGvLN6LPMoRHWlf6obIsGQUqPE-rgaAemj-SlN4X28vNplvf7P3C_4P5X72JTXbgI-BMiaQSz4ZI5iE1h9Y295hWVqzhggixmtL_wZFW8tww"/>
+<div>
+<p class="text-[13px] font-semibold text-slate-900 dark:text-white">张明 (Zhang Ming)</p>
+<p class="text-[11px] text-slate-400">财务总监 • zhang.m@enterprise.com</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-[12px] font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">可管理</span>
+<button class="text-slate-300 hover:text-slate-500"><span class="material-symbols-outlined text-[18px]">settings</span></button>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-[13px]">LR</div>
+<div>
+<p class="text-[13px] font-semibold text-slate-900 dark:text-white">李容 (Li Rong)</p>
+<p class="text-[11px] text-slate-400">知识专家 • li.r@enterprise.com</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<select class="text-[12px] border-none bg-slate-100 dark:bg-slate-800 rounded-lg py-1 pl-3 pr-8 focus:ring-2 focus:ring-primary/30">
+<option value="manage">可管理</option>
+<option value="view">可查看</option>
+</select>
+<button class="text-slate-300 hover:text-red-500"><span class="material-symbols-outlined text-[18px]">person_remove</span></button>
+</div>
+</div>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                普通成员 (Members)
+                                <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded text-[10px] lowercase font-normal">10 人</span>
+</h3>
+</div>
+<div class="space-y-1">
+<div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 font-bold text-[13px]">WJ</div>
+<div>
+<p class="text-[13px] font-semibold text-slate-900 dark:text-white">王静 (Wang Jing)</p>
+<p class="text-[11px] text-slate-400">会计师 • wang.j@enterprise.com</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<select class="text-[12px] border-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg py-1 pl-3 pr-8 focus:ring-2 focus:ring-primary/30">
+<option value="view">可查看</option>
+<option value="manage">可管理</option>
+</select>
+<button class="text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-[18px]">more_horiz</span></button>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 font-bold text-[13px]">ZL</div>
+<div>
+<p class="text-[13px] font-semibold text-slate-900 dark:text-white">赵磊 (Zhao Lei)</p>
+<p class="text-[11px] text-slate-400">审计师 • zhao.l@enterprise.com</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<select class="text-[12px] border-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg py-1 pl-3 pr-8 focus:ring-2 focus:ring-primary/30">
+<option value="view">可查看</option>
+<option value="manage">可管理</option>
+</select>
+<button class="text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-[18px]">more_horiz</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="px-6 py-4 bg-slate-50/80 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+<button class="px-5 py-2 rounded-xl text-[13px] font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all">取消</button>
+<button class="px-5 py-2 rounded-xl text-[13px] font-semibold bg-primary text-white hover:bg-primary/90 transition-all">保存更改</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

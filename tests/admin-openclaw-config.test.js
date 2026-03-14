@@ -76,6 +76,19 @@ function makeContext(authService) {
   };
 }
 
+function makeMemoryRepo(seed = {}) {
+  const data = { ...seed };
+  return {
+    async getPlatformConfig(key) {
+      return data[String(key)] || null;
+    },
+    async setPlatformConfig(key, value) {
+      data[String(key)] = value;
+      return value;
+    }
+  };
+}
+
 async function login(agent) {
   const res = await agent.post('/api/auth/login').send({ username: 'admin', password: 'admin123' });
   expect(res.status).toBe(200);
@@ -130,5 +143,56 @@ describe('admin openclaw config routes', () => {
     expect(afterRes.status).toBe(200);
     expect(afterRes.body.runtime.openclawImage).toBe('openclaw/openclaw:2026.3.1');
     expect(afterRes.body.permissionTemplate.commandAllowlist).toEqual(['/help', '/status']);
+  });
+
+  test('hydrates openclaw config from repository and persists updates', async () => {
+    const repo = makeMemoryRepo({
+      openclawConfig: {
+        runtime: {
+          openclawImage: 'openclaw/openclaw:2026.4.0',
+          openclawRuntimeVersion: '2026.4.0',
+          openclawSourcePath: '/persisted/openclaw'
+        },
+        providers: {
+          deepseek: { enabled: false, apiBase: 'https://api.deepseek.com', model: 'deepseek-chat', apiKey: '' },
+          minimax: { enabled: true, apiBase: 'https://api.minimaxi.com/anthropic', model: 'MiniMax-M2.5', apiKey: 'sk-persisted' }
+        },
+        permissionTemplate: {
+          commandAllowlist: ['/help', '/status', '/report'],
+          approvalByRisk: {
+            L2: { requiredApprovals: 1, requiredAnyRoles: ['ops_admin'], distinctRoles: false }
+          }
+        },
+        updatedAt: '2026-03-04T00:00:00.000Z',
+        updatedBy: 'persisted-admin'
+      }
+    });
+    const ctx = makeContext(makeAuth());
+    ctx.repo = repo;
+    const app = createServer(ctx);
+    const agent = request.agent(app);
+    await login(agent);
+
+    const getRes = await agent.get('/api/admin/runtime/openclaw-config');
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.runtime.openclawRuntimeVersion).toBe('2026.4.0');
+    expect(getRes.body.providers.minimax.hasKey).toBe(true);
+    expect(getRes.body.updatedBy).toBe('persisted-admin');
+
+    const postRes = await agent.post('/api/admin/runtime/openclaw-config').send({
+      runtime: { openclawRuntimeVersion: '2026.4.1' },
+      providers: {
+        deepseek: { enabled: false, apiBase: 'https://api.deepseek.com', model: 'deepseek-chat' },
+        minimax: { enabled: true, apiBase: 'https://api.minimaxi.com/anthropic', model: 'MiniMax-M2.5' }
+      },
+      permissionTemplate: {
+        commandAllowlist: ['/help'],
+        approvalByRisk: { L1: { requiredApprovals: 0, requiredAnyRoles: [], distinctRoles: false } }
+      }
+    });
+    expect(postRes.status).toBe(200);
+    const persisted = await repo.getPlatformConfig('openclawConfig');
+    expect(persisted.runtime.openclawRuntimeVersion).toBe('2026.4.1');
+    expect(persisted.permissionTemplate.commandAllowlist).toEqual(['/help']);
   });
 });

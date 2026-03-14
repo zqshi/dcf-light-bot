@@ -1,0 +1,11 @@
+{
+  "name": "@dcf/api-sdk",
+  "private": true,
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "echo 'api-sdk placeholder'",
+    "typecheck": "echo 'api-sdk placeholder'"
+  }
+}

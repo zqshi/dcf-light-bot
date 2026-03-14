@@ -24,6 +24,15 @@ function buildInstanceRouter(instanceService, requirePermission) {
     }
   });
 
+  router.get('/jobs/:requestId', requirePermission('control:instance:read'), async (req, res, next) => {
+    try {
+      const job = await instanceService.getProvisioningJob(req.params.requestId);
+      res.json({ success: true, data: job });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get('/:instanceId', requirePermission('control:instance:read'), async (req, res, next) => {
     try {
       res.json({ success: true, data: await instanceService.get(req.params.instanceId) });

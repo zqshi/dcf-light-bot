@@ -120,7 +120,9 @@ npm start
   - `MATRIX_HOMESERVER` (example: `http://127.0.0.1:8008`)
   - `MATRIX_USER_ID` (example: `@dcfbot:localhost`)
   - `MATRIX_ACCESS_TOKEN`
+  - `MATRIX_PASSWORD` (optional fallback when no access token is provided)
   - `MATRIX_RELAY_ENABLED=true`
+  - `MATRIX_CONVERSATION_MODE=openclaw_channel` (default, DCF bot does not proxy employee-room chats)
 - Optional provider defaults for OpenClaw tenant config:
   - `MINIMAX_API_KEY`, `MINIMAX_API_BASE`, `MINIMAX_MODEL`
   - `DEEPSEEK_API_BASE`, `DEEPSEEK_MODEL`
@@ -132,12 +134,17 @@ npm start
   - shell export example:
     - `export MINIMAX_API_BASE=https://api.minimaxi.com/anthropic`
     - `export MINIMAX_API_KEY=<your_key>`
-- Start app and relay will auto-bridge room text message to control-plane command handler.
+- Start app and relay will bridge factory commands to control-plane handler.
 - Matrix message patterns:
-  - create employee: `!create_agent <name>` or natural language (example: `请创建一个采购数字员工，名字叫采购小助手`)
-  - assign task: `@<employee_name_or_id> 执行 <task>`
+  - create employee (factory command): `!create_agent <name>`
+  - natural language create in factory DM is also supported (example: `请创建一个采购数字员工，名字叫采购小助手`)
+  - query provisioning job: `!job_status <requestId>`
+  - in a bound employee room:
+    - `openclaw_channel` mode (default): DCF bot delegates conversation to OpenClaw Matrix channel
+    - `runtime_proxy` mode: legacy fallback, DCF bot forwards text to runtime proxy
 - Run E2E bootstrap/validation:
   - `npm run matrix:e2e`
+  - `npm run e2e:full` (full chain: stack health + matrix create + admin API acceptance)
   - `npm run e2e:user` (Matrix real room + browser-use admin UI assertion)
 
 ## Matrix Test Users (Local)
@@ -163,6 +170,9 @@ npm start
 - `POST /api/admin/agents/shared/register`
 - `POST /api/admin/agents/shared/{id}`
 - `POST /api/admin/agents/shared/{id}/delete`
+- `GET /api/admin/agents/shared/recommend`
+- `POST /api/admin/agents/shared/auto-bind/{employeeId}`
+- `POST /api/admin/employees/{id}/sync-identity`
 - `GET /api/control/audits`
 - `GET /api/control/audits/export?format=ndjson`
 - `GET /api/control/audits?cursor=0&limit=200&sinceId=<lastSeenId>`

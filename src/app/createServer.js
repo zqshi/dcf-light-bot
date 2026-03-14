@@ -13,6 +13,8 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'login.js',
   'employees.html',
   'employees.js',
+  'shared-agents.html',
+  'shared-agents.js',
   'openclaw-config.html',
   'openclaw-config.js',
   'notifications.html',
@@ -26,6 +28,7 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'logs.html',
   'logs.js',
   'logs-agent.html',
+  'logs-service.html',
   'logs-admin.html',
   'auth-members.html',
   'auth-members.js',
@@ -40,6 +43,7 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'layout-drawer-b.css',
   'layout-extra.css'
 ]);
+
 
 function isLoopbackAddress(ip) {
   const raw = String(ip || '').trim();

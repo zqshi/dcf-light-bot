@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="flex h-screen overflow-hidden">
+<!-- Floating Left Dock -->
+<aside class="w-20 flex flex-col items-center py-6 gap-8 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+<div class="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-3xl">hub</span>
+</div>
+<nav class="flex flex-col gap-6">
+<button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary">
+<span class="material-symbols-outlined">home</span>
+</button>
+<button class="p-3 rounded-xl bg-primary/10 text-primary">
+<span class="material-symbols-outlined">folder_open</span>
+</button>
+<button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary">
+<span class="material-symbols-outlined">group</span>
+</button>
+<button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary">
+<span class="material-symbols-outlined">analytics</span>
+</button>
+<button class="p-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-primary">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<div class="mt-auto flex flex-col gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyUJXrD15T02k3RZ_ar5hKMwqfoTSWSeL4BHlmACZbQzkqIU5s19cZj9FJp80mb2Y08ClFZCujKywylYmYP2CCCDLsUfI2oCLSwjCpJNHCNhUvC4hdd0uzRqVtQMrioQD0hHtgPaUyaDNeBbtDKlSfI4yJDGbhkIjTJmD3irQB1PJn36klVwBYgklxMM84LeUw-5VUvszxHapZk-4imsR3YFiEWqK6ufysKuHCAtTY8P8MKAF4kQrKyUcAyLAs9FGLTttKIbYs9jU"/>
+</div>
+</div>
+</aside>
+<!-- Middle Sidebar (Light Blue Theme) -->
+<aside class="w-72 bg-blue-50/50 dark:bg-slate-800/40 border-r border-slate-200 dark:border-slate-800 flex flex-col">
+<div class="p-6">
+<h1 class="text-xl font-bold text-slate-900 dark:text-slate-100">知识管理系统</h1>
+<p class="text-xs text-slate-500 mt-1 uppercase tracking-wider">Enterprise Edition</p>
+</div>
+<div class="px-4 mb-6">
+<button class="w-full bg-primary text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-sm">add</span>
+<span>新建文档</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto px-4 space-y-1">
+<div class="text-[11px] font-bold text-slate-400 px-3 py-2 uppercase tracking-widest">组织目录</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-medium">
+<span class="material-symbols-outlined">folder</span>
+<span class="text-sm">组织资产</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">share</span>
+<span class="text-sm">共享中心</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">archive</span>
+<span class="text-sm">归档文件</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">delete</span>
+<span class="text-sm">回收站</span>
+</div>
+<div class="text-[11px] font-bold text-slate-400 px-3 py-2 mt-6 uppercase tracking-widest">标签</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-primary cursor-pointer">
+<div class="w-2 h-2 rounded-full bg-red-400"></div>
+<span class="text-sm">核心机密</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-primary cursor-pointer">
+<div class="w-2 h-2 rounded-full bg-green-400"></div>
+<span class="text-sm">内部公开</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 bg-white dark:bg-background-dark overflow-y-auto">
+<!-- Header with Search and Segment Control -->
+<header class="flex items-center justify-between px-8 py-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md z-10">
+<div class="flex items-center gap-4">
+<h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">组织资产</h2>
+</div>
+<div class="flex items-center gap-6">
+<!-- Segment Control -->
+<div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+<button class="px-6 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-slate-700 shadow-sm">所有文件</button>
+<button class="px-6 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">文件夹</button>
+<button class="px-6 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">收藏</button>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary w-64" placeholder="搜索文档..." type="text"/>
+</div>
+</div>
+</header>
+<div class="p-8">
+<!-- Recently Viewed -->
+<section class="mb-10">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-bold">最近浏览</h3>
+<button class="text-primary text-sm font-medium flex items-center gap-1 hover:underline">
+                            查看全部 <span class="material-symbols-outlined text-xs">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="group bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-transparent hover:border-primary/20 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer">
+<div class="aspect-[16/9] rounded-xl mb-4 overflow-hidden bg-slate-200">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Data visualization charts and project roadmap" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVlvNIsblKFppWBtuXIQu6FrE5n6wGoufx5YaBfIXNK1MZMG_uf8tT4i6k8CXcq8WVTXnmzCALis2WX3tqnwI5tgEdEA_0rwTm9KElCI_t0ymt3EIxvPtxAN4sW7MwN4riSkYVD2EGuaLLnxZqsWvGuoMxZisYUoYLP2tZJI-h2EDp4Z6Yq6ha5x6hWUNIL5xNY3r2xSntCQ66ugUEAj-mYoN_pjGr7Gji99tbeCBl09kGifligA9VxIZpSMt1OtKEd0Rclupy5Vk"/>
+</div>
+<div class="flex items-start justify-between">
+<div>
+<h4 class="font-semibold text-slate-900 dark:text-slate-100">2024项目路线图</h4>
+<p class="text-xs text-slate-500 mt-1">由 产品部 修改于 2小时前</p>
+</div>
+<div class="flex -space-x-2">
+<img class="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800" data-alt="User avatar small" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1fFrvyO2Nx_luy87IycjiMhYBf0FOac1DV87r-ybkXXleo0Ma85ebQSayWGD0zBt54h540O9f7HPWWc8b-gHuIR2pzc5bCwerNa9XSj6iyXA844Zhc1OXhS8T8ByhFOxG9t89miwCzGF2p_CVNIP-wBhS1NCYBrjlkThQS1Cb9lf4fE0fOeGPXv06TOQl9c4kVOJbQOEd1IWeUYZi4h5XEJsFqTwhzVHUIU8GIwX1DKSsxkScZIODl5CTFmEaEG9s-ZTA5HJRZtM"/>
+<img class="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800" data-alt="User avatar small" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlgiDU4kWakcshdq7uuTe_jfdFg-OU0NJ9b8S4TL72ZNSG7ci4lTS-YzY_YpWogeiYrdqtUztdlACB0hPSq_lkOdvqD4XH8uONrGSGDfHnabIg3E515Y8C5yHncvafolReQCbN4cQ4PeWomGmWPfxICPJJ0-1gGnjLmPbFZmkJM7F1ffDMWClx58zoUPSRVKOHw0qerAGkwhmf1APyThrfYjaXJH7Rx2dUeosdGzCWkChqcLJqAfrL457xZxwfTCe9TcM6M2IlIW8"/>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-transparent hover:border-primary/20 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer">
+<div class="aspect-[16/9] rounded-xl mb-4 overflow-hidden bg-slate-200">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Technical architectural design diagram concept" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtGZRGdKYPx3jPPzBRi3IBPv7ePKJxoCVcQj62oY5RRjcJGZhc9r4jkPR0wOjx6fKs-lxKaOHuAdpf7fZxJOl-XUE9f7uSOWt2LDloHWktl3McmAJTtIWWlzyTcXpSbTSWcj0kPIfkVnI865lb-SvXKy_W1W3M99ZMrKlr0xgoKpPbfDXpHYCktp96B8mzJJIpbyZywsqLruCwsbZfMfSyJaqy80vs6cze64ptzCbaED68tkCVaAYQirTjTacX4TRjtoBiXDKa74g"/>
+</div>
+<div class="flex items-start justify-between">
+<div>
+<h4 class="font-semibold text-slate-900 dark:text-slate-100">核心架构设计</h4>
+<p class="text-xs text-slate-500 mt-1">由 技术部 修改于 昨天</p>
+</div>
+<div class="flex -space-x-2">
+<img class="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800" data-alt="User avatar small" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIEH1XChi9QhZ9pXw6AfnGiNQKMMG9bJ3rLgmuGHupcvYijsGH46kW1USIjD-VjeHsbOHp5F0ev4fvfsmrzea8rn4hUDgVp8XJeAquxT6SAMLcTzuIERwas4MLKlRKH1HjcR607Hbwyj4-gfEeOzJ-I72sslWNWcljFh2vj7u0tANiM7IirTqrwUb4iWw6o3LQl1zDGvv97sHWq5AuBQCo5Z4bxoOC4CJhB3JTZpGZ2MAo2SROqllLxwne0_MrdLi7RD91UYOfgZ4"/>
+<div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] text-white border-2 border-white dark:border-slate-800">+4</div>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-transparent hover:border-primary/20 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer">
+<div class="aspect-[16/9] rounded-xl mb-4 overflow-hidden bg-slate-200">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Marketing analysis report with colorful graphics" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKJWcwL1rMvzE7aHSs0zajLvzMAPOQo4ORwQhEptsulT2OHaujJw--Kl6bhN-iLW7UjWHHCziNX0hw_eWd10LIQAdb6BFVFWaHlU9sznDi51GVs89dFMTdHn5oI4tTQ89PlaQUFa-lZ-y2CxyMqgJpcQx16X4Vi9AsTMYxgFiWCJ-znQXbUo_gKmZg6yYGOPRKIF4mWSlCFi8q-nsP5a5ZJ3gs_8TXN8lT9rdM0pwbpKvhkSVBcDxqxlDbbEN6UFex-r7lmj-vwEE"/>
+</div>
+<div class="flex items-start justify-between">
+<div>
+<h4 class="font-semibold text-slate-900 dark:text-slate-100">Q3市场分析报告</h4>
+<p class="text-xs text-slate-500 mt-1">由 市场部 修改于 3天前</p>
+</div>
+<div class="flex -space-x-2">
+<img class="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800" data-alt="User avatar small" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF1P114_bLUVpUEauIh6vzBic3uzinlq7uCCVYl94-pErRcUnBlm6rXLoeFQIsXtgPapLjvFZ0Ar5A_pgZENoEcisZq18M9EUbqwkjf65YojUYJbACb8HhzrZQGFazRT46cNIpCkyKeS5vp7K8kznrK2IWKet2AXvcqygty_65K8s84DxvDqhiS6Xe8kU8Dqo8TvlSMd--gkcWXE7EeR7YNmZ6JGDyBbUv-9IepEBQbOp2UGvlCTDzpgjZvLq4iMwMUJ9R9_ZCKMU"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- All Documents Table -->
+<section>
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">全部文件</h3>
+<div class="flex gap-2">
+<button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined">sort</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+<th class="pb-4 font-semibold px-4">文件名</th>
+<th class="pb-4 font-semibold">所有者</th>
+<th class="pb-4 font-semibold">最后修改</th>
+<th class="pb-4 font-semibold">权限</th>
+<th class="pb-4 font-semibold text-right"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-50 dark:divide-slate-800">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<span class="font-medium">2024年年度经营预算.pdf</span>
+</div>
+</td>
+<td class="py-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full" data-alt="Owner avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsgoZBekIC202Wt9r-hwNJUoQyGwk97a7t8RiHKkXNP2AdvGPlNpUR6177RSM8BTK17yGRg6pe9qTG_KESvl-LGYBvpS001Tr88dx2tgMJqC69LlpEmz2kOmVWN08pcbq0TN9FLVur8MzkAck761dCFl4y6troutINDL7JzzZvbaJYdPbarNNRHyQPkyeEWe8v3qxxJnzVgPIE6y9OCA2liWyC6QOdX75Zh3QeuCX2JlS7GGTAZfJeexQygL7Fk7hKMHEj1DfIhwc"/>
+<span class="text-sm">张明伟</span>
+</div>
+</td>
+<td class="py-4 text-sm text-slate-500">2023-11-20 14:30</td>
+<td class="py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 uppercase">公开阅读</span>
+</td>
+<td class="py-4 text-right">
+<button class="text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined">table_view</span>
+</div>
+<span class="font-medium">产品功能需求矩阵.xlsx</span>
+</div>
+</td>
+<td class="py-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full" data-alt="Owner avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmDZ-0nIkSKdiGwLX_5g0NXrk2AOWg8q1mIkb4hh80V2Lnxerv1tGEu9IXD1l3l6lBmZqfzQE5v2M1q3jgWhwPLs_yYfRs_feTZNwr_zvAJKhwI1sjhP1_8FqzZaiglWwXDttVMWaX-UfrWHK05mCwtrqwER9cKnt4_kJGd2AdOgXrEK2Wy8JLXfK0siVc1916cybbFMJSV7yvYnXufWQcU7rgANOs4HVAdfLtRQ2fcGICkpWrBhItmfqs3WU05CAwT1TojXk5WoU"/>
+<span class="text-sm">李思思</span>
+</div>
+</td>
+<td class="py-4 text-sm text-slate-500">2小时前</td>
+<td class="py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-primary dark:bg-primary/20 dark:text-primary uppercase">团队编辑</span>
+</td>
+<td class="py-4 text-right">
+<button class="text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
+<span class="material-symbols-outlined">slideshow</span>
+</div>
+<span class="font-medium">Q4 投资者关系简报.pptx</span>
+</div>
+</td>
+<td class="py-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full" data-alt="Owner avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCECeRzEw06qVuN_BjTuU-WUWMMWKcsYNILpfJg-8AW0gUu8LMndBieTRDy3lv0bzSiMQJR5GDOfikpAMWMYve3hDo5kkvWBEp1HeeDcW-wLLzkSNpmuXxYOUpgiOWuSGQjqDioLEnGQDldVymdSsmzY17rfUKsz8PiLQSc2na9bywd8-0vxt4aqq9QHxqz7ABxPMvuYu9OkiPo6IHrUg6m4sS_82z_7XAeQKwV8pXDVnlmsnV0eIJLa8-_jTkxGGT9KSvKFDhbxwo"/>
+<span class="text-sm">王志远</span>
+</div>
+</td>
+<td class="py-4 text-sm text-slate-500">3天前</td>
+<td class="py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 uppercase">内部私密</span>
+</td>
+<td class="py-4 text-right">
+<button class="text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">image</span>
+</div>
+<span class="font-medium">品牌视觉规范指南.zip</span>
+</div>
+</td>
+<td class="py-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full" data-alt="Owner avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJkPQBy8q--puKEjFSixLjjg3nHX037ZirNdZuxl7X4J78iovmMQWsa8-l1CmgHPpm6I9xhHB435kcyoyLHl-e0MJqDj2RGI4CRpzO6hUnYYjC8V6I3GJylDA9qAQqQFXKZ6KzGw_iMbpz9SHDOtOX-FHGMKC6TfCpTPr1HWEKVprA2Evozh0BmengTIr9TL0BBx3LpCMDnTusrGKz8H9u2NzQWQ6M00Bu4fHX3lZXEMilJGc5PcYo-lQEwZQhApXrLTezrnQTrtI"/>
+<span class="text-sm">周小雨</span>
+</div>
+</td>
+<td class="py-4 text-sm text-slate-500">1周前</td>
+<td class="py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 uppercase">公开阅读</span>
+</td>
+<td class="py-4 text-right">
+<button class="text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

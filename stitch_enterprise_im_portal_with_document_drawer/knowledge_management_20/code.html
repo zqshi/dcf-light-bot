@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>文件批量操作界面 - 企业知识库</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "background-light": "#F5F5F7",
+                        "background-dark": "#1C1C1E",
+                        "folder-blue": "#007AFF"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1.25rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        .dark .glass-effect {
+            background: rgba(28, 28, 30, 0.75);
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+        .sidebar-item-active {
+            background-color: rgba(0, 122, 255, 0.1);
+            color: #007AFF;
+        }
+        .file-row:hover {
+            background-color: rgba(0, 122, 255, 0.04);
+        }
+        .file-row-selected {
+            background-color: rgba(0, 122, 255, 0.08) !important;
+        }
+        .dark .file-row-selected {
+            background-color: rgba(0, 122, 255, 0.15) !important;
+        }
+        body { font-size: 0.8125rem; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+        .batch-bar-shadow {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-700 dark:text-slate-300 antialiased h-screen overflow-hidden">
+<div class="flex h-full">
+<aside class="w-16 flex flex-col items-center py-6 border-r border-slate-200/60 dark:border-slate-800/60 glass-effect z-30">
+<div class="mb-8">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-2xl">hub</span>
+</div>
+</div>
+<nav class="flex flex-col gap-6 flex-1">
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">chat</span>
+</button>
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">group</span>
+</button>
+<button class="p-2 rounded-xl text-primary bg-primary/10 transition-all">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">auto_stories</span>
+</button>
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">calendar_month</span>
+</button>
+</nav>
+<div class="mt-auto flex flex-col gap-6">
+<button class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+<div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-white dark:ring-slate-800">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwx_0W1h6d7SVR6viJ5GmLWB1gV-VVIyLSuJ3bOA8aZaqR61ceiGRF0h1UEGCRkAem6N__tkJk4ez4saJFAvCKM_2kdOE41TvJzXyHrAMxjVcgQQ0IWLdBHn6f9qofK3GxZclknzMNP7D1PB9xL2Zp_oAr9xxoCZZhM5lhTOnS8NETa__X3ibfRmlrsP3TOAl3IYJyFJ-ec3R19UoMubwYrd_uC9y5767ta5K5b8vnbwoyFl9Bmd6zBBkXiqPUmYuqSJP7y6eD37o"/>
+</div>
+</div>
+</aside>
+<div class="w-60 border-r border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-slate-900/40 flex flex-col backdrop-blur-md">
+<div class="p-5">
+<div class="flex items-center justify-between mb-8 px-1">
+<h2 class="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">知识库管理</h2>
+</div>
+<div class="mb-7">
+<h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">企业级</h3>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined text-[18px]">account_tree</span>
+<span>标准流程</span>
+</a>
+<a class="sidebar-item-active flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold" href="#">
+<span class="material-symbols-outlined text-[18px]">corporate_fare</span>
+<span>部门资产</span>
+</a>
+</div>
+</div>
+<div class="mb-7">
+<h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">协作空间</h3>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+<span>我的草稿</span>
+</a>
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined text-[18px]">star</span>
+<span>收藏夹</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<main class="flex-1 flex flex-col bg-white dark:bg-black/20 overflow-hidden relative">
+<header class="h-14 flex items-center justify-between px-8 border-b border-slate-200/60 dark:border-slate-800/60 glass-effect relative z-20">
+<nav class="flex items-center gap-2 text-[13px]">
+<a class="text-slate-500 hover:text-primary transition-colors" href="#">部门资产</a>
+<span class="material-symbols-outlined text-[16px] text-slate-300">chevron_right</span>
+<span class="font-semibold text-slate-900 dark:text-white">财务部 (Finance)</span>
+</nav>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+<input class="pl-9 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800/50 border-transparent rounded-lg text-[12px] focus:ring-2 focus:ring-primary/30 focus:bg-white dark:focus:bg-slate-800 w-64 transition-all" placeholder="在财务部文件夹内搜索..." type="text"/>
+</div>
+<div class="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+<div class="flex items-center gap-2">
+<button class="bg-primary text-white px-5 py-1.5 rounded-lg text-[12px] font-semibold flex items-center gap-2 hover:bg-primary/90 shadow-md shadow-primary/10 transition-all">
+<span class="material-symbols-outlined text-[18px]">upload</span>
+                        上传文件
+                    </button>
+<button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-5 py-1.5 rounded-lg text-[12px] font-semibold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
+<span class="material-symbols-outlined text-[18px]">add_box</span>
+                        新建文档
+                    </button>
+</div>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto custom-scrollbar pb-24">
+<table class="w-full text-left border-collapse">
+<thead class="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-10">
+<tr class="border-b border-slate-100 dark:border-slate-800">
+<th class="pl-8 pr-4 py-4 w-10">
+<input class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox"/>
+</th>
+<th class="px-4 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-[40%]">文件名</th>
+<th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">修改人</th>
+<th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">修改时间</th>
+<th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">大小</th>
+<th class="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">操作</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
+<tr class="file-row file-row-selected group cursor-pointer transition-colors">
+<td class="pl-8 pr-4 py-4">
+<input checked="" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-4">
+<div class="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-500 shadow-sm">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">picture_as_pdf</span>
+</div>
+<span class="text-[14px] font-medium text-slate-700 dark:text-slate-200">2024Q1_财务报表汇总.pdf</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">李明 (Financial)</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">2024-03-20 14:30</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">4.2 MB</td>
+<td class="px-8 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</td>
+</tr>
+<tr class="file-row file-row-selected group cursor-pointer transition-colors">
+<td class="pl-8 pr-4 py-4">
+<input checked="" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-4">
+<div class="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center text-green-600 shadow-sm">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">table_view</span>
+</div>
+<span class="text-[14px] font-medium text-slate-700 dark:text-slate-200">年度预算执行表_2024.xlsx</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">王志强</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">2小时前</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">856 KB</td>
+<td class="px-8 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</td>
+</tr>
+<tr class="file-row group cursor-pointer transition-colors">
+<td class="pl-8 pr-4 py-4">
+<input class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-4">
+<div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 shadow-sm">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">description</span>
+</div>
+<span class="text-[14px] font-medium text-slate-700 dark:text-slate-200">部门报销流程指南_V2.docx</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">李明 (Financial)</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">昨天 09:15</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">1.5 MB</td>
+<td class="px-8 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</td>
+</tr>
+<tr class="file-row group cursor-pointer transition-colors">
+<td class="pl-8 pr-4 py-4">
+<input class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-4">
+<div class="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center text-green-600 shadow-sm">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">table_view</span>
+</div>
+<span class="text-[14px] font-medium text-slate-700 dark:text-slate-200">差旅费用明细清单.sheets</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">陈美琳</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">2024-03-15</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">2.1 MB</td>
+<td class="px-8 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</td>
+</tr>
+<tr class="file-row group cursor-pointer transition-colors">
+<td class="pl-8 pr-4 py-4">
+<input class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-4">
+<div class="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-orange-600 shadow-sm">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">analytics</span>
+</div>
+<span class="text-[14px] font-medium text-slate-700 dark:text-slate-200">2023年度审计报告最终版.pdf</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">赵立新</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">2024-02-28</td>
+<td class="px-6 py-4 text-[13px] text-slate-500">12.4 MB</td>
+<td class="px-8 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all text-slate-400">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 z-50">
+<div class="glass-effect rounded-2xl border border-white/20 px-6 py-3.5 flex items-center gap-8 batch-bar-shadow">
+<div class="flex items-center gap-3 border-r border-slate-200 dark:border-slate-700 pr-6">
+<div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold">2</div>
+<span class="text-[13px] font-semibold text-slate-900 dark:text-white">已选择 2 项</span>
+</div>
+<div class="flex items-center gap-5">
+<button class="flex items-center gap-2 text-[13px] font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">drive_file_move</span>
+<span>移动</span>
+</button>
+<button class="flex items-center gap-2 text-[13px] font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">download</span>
+<span>下载</span>
+</button>
+<button class="flex items-center gap-2 text-[13px] font-medium text-red-500 hover:text-red-600 transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+<span>删除</span>
+</button>
+</div>
+<div class="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-700">
+<button class="px-3 py-1.5 rounded-lg text-[12px] font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        取消选择
+                    </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

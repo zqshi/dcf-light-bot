@@ -2,6 +2,7 @@
   const DEFAULT_NAV_ITEMS = [
     { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
     { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
+    { path: '/admin/shared-agents.html', label: '共享Agent', permission: 'admin.employees.page.overview.read' },
     { path: '/admin/openclaw-config.html', label: 'OpenClaw 配置', permission: 'admin.runtime.page.openclaw-config.read' },
     { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
     { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
@@ -471,6 +472,7 @@
 
     const currentPath = window.location.pathname;
     const sectionPathMap = new Map([
+      ['/admin/logs-service.html', '/admin/logs.html'],
       ['/admin/logs-agent.html', '/admin/logs.html'],
       ['/admin/logs-admin.html', '/admin/logs.html'],
       ['/admin/auth-users.html', '/admin/auth-members.html'],
@@ -484,6 +486,7 @@
       { path: '/admin/auth-roles.html', label: '角色管理', permission: 'admin.auth.page.roles.read' }
     ].filter((item) => canAccess(session.user, item.permission));
     const logsGroupChildren = [
+      { path: '/admin/logs-service.html', label: '平台服务日志', permission: 'admin.logs.page.behavior.read' },
       { path: '/admin/logs-agent.html', label: 'Agent 行为日志', permission: 'admin.logs.page.agent.read' },
       { path: '/admin/logs-admin.html', label: '后台操作日志', permission: 'admin.logs.page.admin.read' }
     ].filter((item) => canAccess(session.user, item.permission));

@@ -12,6 +12,7 @@ function baseConfig(overrides = {}) {
     openclawRuntimeVersion: '2026.2.27',
     matrixHomeserver: 'https://matrix.org',
     matrixUserId: '@bot:matrix.org',
+    matrixAccessToken: 'matrix-token',
     providers: [{ name: 'openai', key: 'k1' }],
     ...overrides
   };
@@ -97,6 +98,30 @@ describe('OpenClawProvisioner', () => {
     expect(parsed.models.providers.deepseek.baseUrl).toBe('https://api.deepseek.com/v1');
   });
 
+  test('generates native matrix channel config and room allowlist for instance', () => {
+    const provisioner = new OpenClawProvisioner(baseConfig());
+    const configText = provisioner.buildOpenClawConfig(
+      { id: 'i-mx', tenantId: 't-mx', name: 'mx-agent', matrixRoomId: '!room1:localhost' },
+      { namespace: 'n-mx', serviceName: 'n-mx-svc' },
+      { all: [], byType: { skill: [], tool: [], knowledge: [] } }
+    );
+    const parsed = yaml.parse(configText);
+    expect(parsed.channels.matrix.enabled).toBe(true);
+    expect(parsed.channels.matrix.userId).toBe('@bot:matrix.org');
+    expect(parsed.channels.matrix.accessToken).toBe('${MATRIX_ACCESS_TOKEN}');
+    expect(parsed.channels.matrix.groupPolicy).toBe('allowlist');
+    expect(parsed.channels.matrix.groups['!room1:localhost'].requireMention).toBe(false);
+    expect(parsed.matrix).toBeUndefined();
+  });
+
+  test('injects matrix credentials into secret data for channel runtime', () => {
+    const provisioner = new OpenClawProvisioner(baseConfig());
+    const secrets = provisioner.getProviderSecretData();
+    expect(secrets.MATRIX_ACCESS_TOKEN).toBe('matrix-token');
+    expect(secrets.MATRIX_HOMESERVER).toBe('https://matrix.org');
+    expect(secrets.MATRIX_USER_ID).toBe('@bot:matrix.org');
+  });
+
   test('continues provisioning when asset resolve fails and records mount issue', async () => {
     const provisioner = new OpenClawProvisioner(
       baseConfig({ kubernetesSimulationMode: false }),
@@ -121,5 +146,75 @@ describe('OpenClawProvisioner', () => {
     expect(out.mode).toBe('kubernetes');
     expect(Array.isArray(out.mountIssues)).toBe(true);
     expect(out.mountIssues[0].code).toBe('ASSET_RESOLVE_FAILED');
+  });
+
+  test('waits until pod ready before marking provision succeeded', async () => {
+    const provisioner = new OpenClawProvisioner(
+      baseConfig({
+        kubernetesSimulationMode: false,
+        kubernetesReadyTimeoutMs: 5_000,
+        kubernetesReadyPollIntervalMs: 10
+      })
+    );
+    provisioner.applyDesiredResources = async () => ({ mountedAssets: { all: [] }, mountIssues: [] });
+    provisioner.ensureK8sClients = () => ({
+      core: {
+        readNamespacedPod: async () => ({
+          body: {
+            status: {
+              phase: 'Running',
+              conditions: [{ type: 'Ready', status: 'True', reason: 'ContainersReady' }]
+            }
+          }
+        })
+      }
+    });
+
+    const out = await provisioner.provision({ id: 'i-ready', tenantId: 't-ready', name: 'n-ready' });
+    expect(out.readiness.status).toBe('ready');
+    expect(out.matrixChannelCheck.status).toBe('degraded');
+    expect(out.matrixChannelCheck.issues).toContain('room_not_bound');
+    expect(out.mode).toBe('kubernetes');
+  });
+
+  test('matrix channel check is ready when room binding and auth are present', () => {
+    const provisioner = new OpenClawProvisioner(baseConfig());
+    const check = provisioner.buildMatrixChannelCheck(
+      { id: 'i-r', matrixRoomId: '!roomA:localhost' },
+      { status: 'ready' }
+    );
+    expect(check.status).toBe('ready');
+    expect(check.roomBound).toBe(true);
+    expect(check.authConfigured).toBe(true);
+    expect(check.runtimeReady).toBe(true);
+    expect(check.issues).toEqual([]);
+  });
+
+  test('fails provisioning when pod does not become ready in time', async () => {
+    const provisioner = new OpenClawProvisioner(
+      baseConfig({
+        kubernetesSimulationMode: false,
+        kubernetesReadyTimeoutMs: 50,
+        kubernetesReadyPollIntervalMs: 10
+      })
+    );
+    provisioner.applyDesiredResources = async () => ({ mountedAssets: { all: [] }, mountIssues: [] });
+    provisioner.rollback = async () => ({ ok: true });
+    provisioner.ensureK8sClients = () => ({
+      core: {
+        readNamespacedPod: async () => ({
+          body: {
+            status: {
+              phase: 'Pending',
+              conditions: [{ type: 'Ready', status: 'False', reason: 'ContainerCreating' }]
+            }
+          }
+        })
+      }
+    });
+
+    await expect(
+      provisioner.provision({ id: 'i-timeout', tenantId: 't-timeout', name: 'n-timeout' })
+    ).rejects.toBeInstanceOf(AppError);
   });
 });

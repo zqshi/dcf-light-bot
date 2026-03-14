@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>新建文档 - 知识管理中心</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "PingFang SC", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .glass-effect {
+            @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl;
+        }
+        .mac-toolbar-btn {
+            @apply p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors flex items-center justify-center;
+        }
+        .mac-input {
+            @apply w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 transition-all py-2.5 px-4;
+        }
+        .sidebar-label {
+            @apply text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block;
+        }
+        .editor-canvas {
+            box-shadow: 0 4px 24px -2px rgba(0,0,0,0.05);
+        }
+        .mac-switch {
+            @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+        }
+        .mac-switch-dot {
+            @apply pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased h-screen overflow-hidden">
+<div class="flex h-full flex-col">
+<header class="h-14 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 glass-effect z-30">
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+<div class="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<h1 class="text-sm font-semibold truncate max-w-[200px]">未命名文档</h1>
+<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium">自动保存 12:45</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-1.5 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all">
+                保存草稿
+            </button>
+<button class="px-5 py-1.5 text-sm font-medium rounded-xl bg-primary text-white hover:bg-primary/90 shadow-sm shadow-primary/20 transition-all">
+                发布
+            </button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<main class="flex-1 overflow-y-auto relative flex flex-col items-center bg-white dark:bg-slate-950">
+<div class="sticky top-0 w-full z-20 flex justify-center py-2 glass-effect border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-1 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<button class="mac-toolbar-btn">
+<span class="material-symbols-outlined">text_fields</span>
+</button>
+<div class="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<button class="mac-toolbar-btn font-bold">B</button>
+<button class="mac-toolbar-btn italic">I</button>
+<button class="mac-toolbar-btn underline">U</button>
+<div class="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<button class="mac-toolbar-btn">
+<span class="material-symbols-outlined">format_list_bulleted</span>
+</button>
+<button class="mac-toolbar-btn">
+<span class="material-symbols-outlined">format_list_numbered</span>
+</button>
+<div class="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<button class="mac-toolbar-btn">
+<span class="material-symbols-outlined">image</span>
+</button>
+<button class="mac-toolbar-btn">
+<span class="material-symbols-outlined">attach_file</span>
+</button>
+<button class="mac-toolbar-btn">
+<span class="material-symbols-outlined">table_chart</span>
+</button>
+<button class="mac-toolbar-btn">
+<span class="material-symbols-outlined">link</span>
+</button>
+</div>
+</div>
+<div class="w-full max-w-[840px] px-8 py-16 min-h-full">
+<textarea class="w-full text-4xl font-bold border-none focus:ring-0 placeholder:text-slate-200 dark:placeholder:text-slate-800 bg-transparent mb-8 resize-none overflow-hidden" placeholder="请输入文章标题..." rows="1"></textarea>
+<div class="prose prose-slate dark:prose-invert max-w-none">
+<p class="text-lg text-slate-400 cursor-text min-h-[500px]" contenteditable="true">
+                        在这里开始你的创作...
+                    </p>
+</div>
+</div>
+</main>
+<aside class="w-80 border-l border-slate-200 dark:border-slate-800 glass-effect flex flex-col overflow-hidden">
+<div class="flex-1 overflow-y-auto p-6">
+<h2 class="text-base font-bold mb-8">文档设置</h2>
+<div class="space-y-6">
+<section>
+<label class="sidebar-label">展示标题</label>
+<input class="mac-input" placeholder="输入用于显示的简短标题" type="text"/>
+</section>
+<section>
+<label class="sidebar-label">选择分类</label>
+<div class="relative group">
+<select class="mac-input appearance-none">
+<option>企业知识库</option>
+<option>部门资产</option>
+<option>个人空间</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">expand_more</span>
+</div>
+</section>
+<section>
+<label class="sidebar-label">访问权限</label>
+<div class="space-y-2">
+<label class="flex items-center gap-3 p-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+<input checked="" class="text-primary focus:ring-primary/20 border-slate-300" name="perm" type="radio"/>
+<div class="flex flex-col">
+<span class="text-sm font-medium">全员公开</span>
+<span class="text-[10px] text-slate-500">企业内所有人可阅读</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+<input class="text-primary focus:ring-primary/20 border-slate-300" name="perm" type="radio"/>
+<div class="flex flex-col">
+<span class="text-sm font-medium">指定人员</span>
+<span class="text-[10px] text-slate-500">仅特定成员或部门可见</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+<input class="text-primary focus:ring-primary/20 border-slate-300" name="perm" type="radio"/>
+<div class="flex flex-col">
+<span class="text-sm font-medium">仅我可见</span>
+<span class="text-[10px] text-slate-500">私密文档，仅自己可访问</span>
+</div>
+</label>
+</div>
+</section>
+<section>
+<label class="sidebar-label">协作人员</label>
+<div class="flex flex-wrap gap-2 mb-3">
+<div class="w-8 h-8 rounded-full ring-2 ring-white dark:ring-slate-900 overflow-hidden relative group">
+<img alt="Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5330Oq6W5aqS8wYuQKgVqFvfj2m-mxhVZj2sMCj3jUo-ZZ1Vd1_QkTMpaNTcEGT_MdVMV1m3QhmENa-lGr0tdOOnhBUVv4YAxcYTLE4pwSUq8hdh3GpqYU4DGJLgJAhaaexCzYtL8g_e9-b3vgVZFZitoDHuFSnRKMnxctxk86MIxbv6ehzgy37oaGIsONq6-UO2tqBvHL2xcJNmRuB1isG9T1lAyeDI06FtK8KJ7Y-fqUY1XWrxWJFGiAq21RHkpmG7WmUt6ZYY"/>
+</div>
+<div class="w-8 h-8 rounded-full ring-2 ring-white dark:ring-slate-900 overflow-hidden relative group">
+<img alt="Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIpf2nv8BZj2t7LyflHFDmb8EGE3Ohu2ZV_OyDIW0l3pRPxV4IJMVXX8jVl8uE0MFP2feIUPOMyjvWEvF7mmdeo6ZLA9f0du3VxlkJTbs1znepT10daJg7ZxXrFC8t72i75u5al6EQUzZSvMNHh98_BKXkvkdqvnxGdRNh7_t96uW97y9b8fOoa3h6QJjDKJblyQL_ZTnhU3L9weFSALhH73jAvOrD1JgGRiOCyhd9X5j4DkoFIU5I6D1wYuPe5VB5QEdQUG1S-wA"/>
+</div>
+<button class="w-8 h-8 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</section>
+<div class="pt-6 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between mb-4">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">高级设置</span>
+<span class="material-symbols-outlined text-slate-400">expand_more</span>
+</div>
+<div class="space-y-6">
+<section>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-sm font-medium">水印设置</span>
+<span class="text-[10px] text-slate-500">在文档背景显示安全水印</span>
+</div>
+<button class="mac-switch bg-primary">
+<span class="mac-switch-dot translate-x-4"></span>
+</button>
+</div>
+</section>
+<section>
+<label class="sidebar-label">评论权限</label>
+<div class="relative group">
+<select class="mac-input appearance-none">
+<option>所有人可评论</option>
+<option>仅协作人可评论</option>
+<option>关闭评论</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">unfold_more</span>
+</div>
+</section>
+<section>
+<label class="sidebar-label">文档有效期</label>
+<div class="relative">
+<input class="mac-input" type="date" value="2024-12-31"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">calendar_today</span>
+</div>
+<p class="mt-1.5 text-[10px] text-slate-500 px-1">到期后文档将自动归档且无法访问</p>
+</section>
+<section>
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+<div class="flex flex-col">
+<span class="text-sm font-medium">防复制/导出</span>
+<span class="text-[10px] text-slate-500">禁止复制文本及导出PDF</span>
+</div>
+<button class="mac-switch bg-slate-200 dark:bg-slate-700">
+<span class="mac-switch-dot translate-x-0"></span>
+</button>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+
+</body></html>

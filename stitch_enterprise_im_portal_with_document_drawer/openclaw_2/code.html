@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00D4B8",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0A0F1E",
+                        "space-blue": "#0A0F1E",
+                        "frost-glass": "rgba(255, 255, 255, 0.03)",
+                        "accent-cyan": "#00D4B8"
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .cyan-glow {
+            box-shadow: 0 0 15px rgba(0, 212, 184, 0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 184, 0.2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display selection:bg-primary/30">
+<div class="flex h-screen w-full overflow-hidden">
+<!-- COLUMN 1: NAVIGATION DOCK (80px) -->
+<aside class="w-20 border-r border-white/10 flex flex-col items-center py-6 gap-8 bg-black/20">
+<div class="size-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary cyan-glow">
+<span class="material-symbols-outlined text-3xl">terminal</span>
+</div>
+<nav class="flex flex-col gap-6">
+<button class="p-3 rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined">dashboard</span></button>
+<button class="p-3 rounded-xl text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">security</span></button>
+<button class="p-3 rounded-xl text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">database</span></button>
+<button class="p-3 rounded-xl text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">monitoring</span></button>
+<button class="p-3 rounded-xl text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">settings</span></button>
+</nav>
+<div class="mt-auto flex flex-col gap-6">
+<button class="text-slate-400"><span class="material-symbols-outlined">notifications</span></button>
+<div class="size-10 rounded-full border-2 border-primary/50 overflow-hidden">
+<img alt="User Profile" data-alt="Cyberpunk style user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDs7N1vZkQrtC-Ty3wZpGLho9eZy_Z_-snGCf2RY2Mk7MuOoF2VvbLzSn-2xA6tUdhhzi84z0n7qIazYA5nE03aMviQJ9LuQ9znWw9gNuF4MCGM_xH-Iq3cnupT0Lb7ST6GZA3WcI7j5WpQGDzIddKI90F18s7VWPpANneR1hz6Sfz5LFS4GRPQWbEC7qOAfEHI5_2WMujNgJSGecDRn_H0lM6F9paxVPl5M81HzPZOvI3LpdTv8q_0apDRfpFygp2_kPZjyFQEsB9D"/>
+</div>
+</div>
+</aside>
+<!-- COLUMN 2: AGENT LIST (240px) -->
+<section class="w-60 border-r border-white/10 flex flex-col bg-black/10">
+<div class="p-6">
+<h2 class="text-xl font-bold tracking-tight mb-6">OpenClaw</h2>
+<div class="relative mb-6">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">search</span>
+<input class="w-full bg-white/5 border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none" placeholder="搜索代理..." type="text"/>
+</div>
+<div class="space-y-2">
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-4">活跃代理</p>
+<div class="p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center gap-3">
+<div class="size-2 rounded-full bg-primary animate-pulse"></div>
+<span class="text-sm font-medium">渗透测试专家</span>
+</div>
+<div class="p-3 rounded-lg hover:bg-white/5 flex items-center gap-3 text-slate-400 transition-colors cursor-pointer">
+<div class="size-2 rounded-full bg-slate-600"></div>
+<span class="text-sm font-medium">流量分析员</span>
+</div>
+<div class="p-3 rounded-lg hover:bg-white/5 flex items-center gap-3 text-slate-400 transition-colors cursor-pointer">
+<div class="size-2 rounded-full bg-slate-600"></div>
+<span class="text-sm font-medium">应急响应助手</span>
+</div>
+</div>
+</div>
+</section>
+<!-- COLUMN 3: CHAT AREA (Remaining space minus 50%) -->
+<main class="flex-1 flex flex-col relative bg-black/5">
+<header class="h-16 border-b border-white/10 flex items-center justify-between px-6 glass-panel">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<span class="font-semibold text-sm">思维链分析：当前扫描任务</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-xs text-slate-400 border border-white/10 px-2 py-1 rounded hover:bg-white/5">导出日志</button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+<div class="flex gap-4">
+<div class="size-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+</div>
+<div class="max-w-[80%] space-y-2">
+<div class="glass-panel p-4 rounded-xl rounded-tl-none">
+<p class="text-sm leading-relaxed text-slate-300">
+                                正在分析目标子域名 <code class="text-primary">api.internal.cloud</code>... 
+                                我发现了一个潜在的 SSRF 漏洞。正在准备验证负载。
+                            </p>
+</div>
+<span class="text-[10px] text-slate-500">14:22:05</span>
+</div>
+</div>
+<div class="flex flex-col gap-3 ml-12 border-l-2 border-white/5 pl-4">
+<div class="text-xs text-slate-500 font-mono italic">思考路径...</div>
+<div class="glass-panel p-3 rounded-lg border-primary/20 text-xs font-mono text-slate-400">
+                        1. 识别接口参数: ?url= <br/>
+                        2. 尝试本地回环地址绕过... <br/>
+                        3. 检测到 HTTP 响应头中的 Server 签名变化... <br/>
+                        4. 确认可向内网 10.0.0.1 发起请求。
+                    </div>
+</div>
+<div class="flex gap-4 justify-end">
+<div class="max-w-[80%] space-y-2 text-right">
+<div class="bg-primary/10 border border-primary/20 p-4 rounded-xl rounded-tr-none">
+<p class="text-sm leading-relaxed text-primary">
+                                继续深入扫描，优先检查内网 Redis 服务。
+                            </p>
+</div>
+<span class="text-[10px] text-slate-500">14:23:41</span>
+</div>
+</div>
+</div>
+<div class="p-6 border-t border-white/10">
+<div class="relative">
+<textarea class="w-full bg-white/5 border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-primary outline-none resize-none" placeholder="输入指令或提问..." rows="1"></textarea>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 size-8 rounded-lg bg-primary text-background-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+</main>
+<!-- COLUMN 4: RIGHT DRAWER (50% WIDTH) -->
+<section class="w-1/2 border-l border-white/10 flex flex-col bg-background-dark/95 backdrop-blur-3xl z-10 shadow-2xl">
+<!-- Top Bar -->
+<header class="h-16 border-b border-white/10 flex items-center justify-between px-6">
+<button class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">arrow_back</span>
+<span class="text-sm font-medium">返回任务列表</span>
+</button>
+<h1 class="text-sm font-bold tracking-widest uppercase">安全扫描任务详情 #882</h1>
+<div class="flex items-center gap-3">
+<button class="size-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-slate-400"><span class="material-symbols-outlined text-lg">share</span></button>
+<button class="size-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-slate-400"><span class="material-symbols-outlined text-lg">more_horiz</span></button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<!-- Status Section -->
+<div class="p-8 flex flex-col items-center border-b border-white/10 bg-gradient-to-b from-primary/5 to-transparent">
+<div class="relative size-48 flex items-center justify-center mb-6">
+<svg class="size-full transform -rotate-90">
+<circle class="text-white/5" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary transition-all duration-1000" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="553" stroke-dashoffset="88.5" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-5xl font-black text-white">84%</span>
+<span class="text-xs text-primary font-bold tracking-widest uppercase mt-1">扫描中</span>
+</div>
+<div class="absolute inset-0 rounded-full border border-primary/30 animate-ping opacity-20"></div>
+</div>
+<div class="text-center">
+<p class="text-slate-400 text-sm mb-1">正在进行</p>
+<p class="text-lg font-semibold text-white">漏洞匹配与关联分析</p>
+</div>
+</div>
+<!-- Content Grid -->
+<div class="p-6 space-y-8">
+<!-- Sub-task List -->
+<div class="space-y-4">
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">子任务状态</h3>
+<div class="grid grid-cols-1 gap-3">
+<div class="glass-panel p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<p class="text-sm font-semibold">环境初始化</p>
+<p class="text-xs text-slate-500">容器部署完成</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded bg-green-500/10 text-green-500 text-[10px] font-bold uppercase">Success</span>
+</div>
+<div class="glass-panel p-4 rounded-xl flex items-center justify-between border-primary/20 bg-primary/5">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined animate-spin">sync</span>
+</div>
+<div>
+<p class="text-sm font-semibold">网络拓扑扫描</p>
+<p class="text-xs text-slate-400">正在探测活跃主机...</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase">Running</span>
+</div>
+<div class="glass-panel p-4 rounded-xl flex items-center justify-between opacity-60">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-500">
+<span class="material-symbols-outlined">hourglass_empty</span>
+</div>
+<div>
+<p class="text-sm font-semibold">漏洞深度匹配</p>
+<p class="text-xs text-slate-500">等待扫描结果注入</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded bg-white/10 text-slate-500 text-[10px] font-bold uppercase">Pending</span>
+</div>
+</div>
+</div>
+<!-- Execution Log -->
+<div class="space-y-4">
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">执行日志</h3>
+<div class="bg-black/40 rounded-xl p-4 font-mono text-xs leading-6 h-48 overflow-y-auto custom-scrollbar border border-white/5">
+<p class="text-slate-500">[14:20:01] <span class="text-green-500">INFO</span> 建立安全审计连接...</p>
+<p class="text-slate-500">[14:20:05] <span class="text-green-500">INFO</span> 载入 CVE-2024 数据库插件 (v2.4.1)</p>
+<p class="text-slate-500">[14:21:12] <span class="text-amber-500">WARN</span> 目标 WAF 阻断了 ICMP 包，切换为 TCP ACK 探测</p>
+<p class="text-slate-500">[14:22:45] <span class="text-primary">EXEC</span> 启动自定义脚本: web_exploit_fuzzer.py</p>
+<p class="text-slate-500">[14:23:01] <span class="text-green-500">INFO</span> 发现 1 个开放端口 (8080/tcp)</p>
+<p class="text-slate-500">[14:24:18] <span class="text-green-500">SUCCESS</span> 捕获到目标节点基础指纹: Alpine/3.18</p>
+<p class="text-slate-300 animate-pulse">_</p>
+</div>
+</div>
+<!-- Generated Assets -->
+<div class="space-y-4 pb-10">
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">生成资产</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="glass-panel p-4 rounded-xl flex flex-col gap-3 group cursor-pointer hover:border-primary/40">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary">description</span>
+<span class="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors">download</span>
+</div>
+<div>
+<p class="text-sm font-semibold">manifest.json</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-wider mt-1">12.4 KB • 配置清单</p>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-xl flex flex-col gap-3 group cursor-pointer hover:border-primary/40">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary">table_chart</span>
+<span class="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors">download</span>
+</div>
+<div>
+<p class="text-sm font-semibold">scan_results.csv</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-wider mt-1">2.8 MB • 原始数据</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Drawer Footer -->
+<footer class="p-4 border-t border-white/10 flex gap-4 glass-panel">
+<button class="flex-1 py-3 bg-primary text-background-dark font-bold rounded-xl text-sm hover:brightness-110 transition-all">停止任务</button>
+<button class="flex-1 py-3 border border-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/5 transition-all">生成完整报告</button>
+</footer>
+</section>
+</div>
+</body></html>

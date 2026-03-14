@@ -77,9 +77,20 @@ describe('admin ui static routes', () => {
     expect(notificationRes.status).toBe(200);
     expect(notificationRes.headers['content-type']).toContain('text/html');
 
+    const serviceLogRes = await request(app).get('/admin/logs-service.html');
+    expect(serviceLogRes.status).toBe(200);
+    expect(serviceLogRes.headers['content-type']).toContain('text/html');
+
     const openclawRes = await request(app).get('/admin/openclaw-config.html');
     expect(openclawRes.status).toBe(200);
     expect(openclawRes.headers['content-type']).toContain('text/html');
+
+    const sharedAgentRes = await request(app).get('/admin/shared-agents.html');
+    expect(sharedAgentRes.status).toBe(200);
+    expect(sharedAgentRes.headers['content-type']).toContain('text/html');
+
+    const identityRes = await request(app).get('/admin/identity-mappings.html');
+    expect(identityRes.status).toBe(404);
 
     const disabledRes = await request(app).get('/admin/runtime.html');
     expect(disabledRes.status).toBe(404);

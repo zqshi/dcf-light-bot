@@ -1,0 +1,11 @@
+{
+  "name": "@dcf/matrix-sdk-wrapper",
+  "private": true,
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "echo 'matrix-sdk-wrapper placeholder'",
+    "typecheck": "echo 'matrix-sdk-wrapper placeholder'"
+  }
+}
