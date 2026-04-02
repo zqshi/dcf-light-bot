@@ -9,6 +9,9 @@ const { buildRuntimeRouter } = require('./routes/runtime');
 const { buildAssetRouter } = require('./routes/assets');
 const { buildReleaseRouter } = require('./routes/release');
 const { buildDocumentRouter } = require('./routes/documents');
+const { buildCategoryRouter } = require('./routes/categories');
+const { buildKnowledgeAuditRouter } = require('./routes/knowledgeAudits');
+const { buildStorageRouter } = require('./routes/storage');
 const { buildUploadRouter } = require('./routes/uploads');
 const { buildWeKnoraProxyRouter } = require('./routes/weknora');
 const { buildAdminCompatRouter } = require('./routes/adminCompat');
@@ -36,6 +39,15 @@ function buildApiRouter(context) {
   router.use('/api/control/runtime', buildRuntimeRouter(context.runtimeProxyService, requirePermission));
   if (context.documentService) {
     router.use('/api/control/documents', buildDocumentRouter(context.documentService, requirePermission));
+  }
+  if (context.categoryService) {
+    router.use('/api/control/categories', buildCategoryRouter(context.categoryService, requirePermission));
+  }
+  if (context.knowledgeAuditService) {
+    router.use('/api/control/knowledge-audits', buildKnowledgeAuditRouter(context.knowledgeAuditService, requirePermission));
+  }
+  if (context.storageService) {
+    router.use('/api/control/storage', buildStorageRouter(context.storageService, requirePermission));
   }
   router.use('/api/control/uploads', buildUploadRouter(context.config, requirePermission));
   if (context.weKnoraService || context.config.weKnoraEnabled) {

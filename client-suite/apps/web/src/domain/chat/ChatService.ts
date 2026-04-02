@@ -23,9 +23,11 @@ export class ChatService {
   }
 
   static sortByRecent(rooms: ChatRoom[]): ChatRoom[] {
-    return [...rooms].sort(
-      (a, b) => (b.lastMessageTs ?? 0) - (a.lastMessageTs ?? 0),
-    );
+    return [...rooms].sort((a, b) => {
+      // Pinned rooms always come first
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return (b.lastMessageTs ?? 0) - (a.lastMessageTs ?? 0);
+    });
   }
 
   /**

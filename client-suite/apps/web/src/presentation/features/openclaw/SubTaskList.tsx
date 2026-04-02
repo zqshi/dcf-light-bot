@@ -40,10 +40,4 @@ export function SubTaskList({ tasks }: SubTaskListProps) {
   );
 }
 
-export const MOCK_SUBTASKS: SubTask[] = [
-  { id: 'st1', name: '环境初始化', status: 'success' },
-  { id: 'st2', name: '正在扫描网络第 7 层', status: 'running' },
-  { id: 'st3', name: '审计日志汇编', status: 'pending' },
-];
-
 export type { SubTask };

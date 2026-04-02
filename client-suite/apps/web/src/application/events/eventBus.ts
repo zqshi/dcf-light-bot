@@ -12,6 +12,18 @@ export interface AppEvents {
   'navigate:knowledge': { subView: string; documentId?: string };
   /** IM reply sent from OpenClaw */
   'im:reply-sent': { roomId: string; message: string };
+  /** Cross-channel reply forwarded between IM channels */
+  'im:cross-channel-reply': { channel: string; sender: string; message: string };
+  /** Agent task progress updated */
+  'agent:task-updated': { taskId: string; progress: number; status: string };
+  /** Decision request created */
+  'decision:created': { decisionId: string; agentId: string; urgency: string };
+  /** Decision responded by user */
+  'decision:responded': { decisionId: string; response: string };
+  /** New inbound message received from a channel */
+  'inbox:message-received': { notificationId: string; channel: string };
+  /** Reply sent to a channel */
+  'inbox:reply-sent': { notificationId: string; channel: string; body: string };
 }
 
 type EventHandler<T> = (payload: T) => void;

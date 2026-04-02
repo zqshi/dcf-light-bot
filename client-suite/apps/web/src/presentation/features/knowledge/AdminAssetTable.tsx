@@ -1,42 +1,24 @@
 /**
  * AdminAssetTable — 知识库管理员视图 全量资产明细表 (km_10 对齐)
- * 表头：文件名 / 所有部门 / 最后修改 / 全局权限(管理) / 状态 / 操作
+ * 表头：文件名 / 所属分类 / 最后修改 / 权限 / 状态 / 操作
+ *
+ * 数据来源：knowledgeStore.documents
  */
+import { useEffect } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { useToastStore } from '../../../application/stores/toastStore';
-
-type Permission = 'public' | 'restricted' | 'all-read';
-type DocStatus = 'published' | 'archived';
-
-interface AdminAsset {
-  id: string;
-  name: string;
-  icon: string;
-  iconColor: string;
-  department: string;
-  lastModified: string;
-  permission: Permission;
-  status: DocStatus;
-}
-
-const PERMISSION_META: Record<Permission, { label: string; icon: string; color: string }> = {
-  public: { label: '公开文档', icon: 'public', color: '#34C759' },
-  restricted: { label: '仅限管理', icon: 'lock', color: '#FF3B30' },
-  'all-read': { label: '全员可读', icon: 'group', color: '#007AFF' },
-};
-
-const STATUS_META: Record<DocStatus, { label: string; color: string }> = {
-  published: { label: '已发布', color: '#007AFF' },
-  archived: { label: '归档中', color: '#FF9500' },
-};
-
-const MOCK_ADMIN_ASSETS: AdminAsset[] = [
-  { id: 'aa1', name: '企业差旅报销管理制度_2024版', icon: 'description', iconColor: '#007AFF', department: '财务部', lastModified: '2024-05-20', permission: 'public', status: 'published' },
-  { id: 'aa2', name: '2024年客户满意度调研原始数据', icon: 'insert_chart', iconColor: '#FF9500', department: '客服中心', lastModified: '2024-05-15', permission: 'restricted', status: 'archived' },
-  { id: 'aa3', name: '办公设备采购合同模板', icon: 'description', iconColor: '#007AFF', department: '行政部', lastModified: '2024-05-10', permission: 'all-read', status: 'published' },
-];
+import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
+import { useUIStore } from '../../../application/stores/uiStore';
+import { getCategoryName } from '../../../domain/knowledge/Category';
 
 export function AdminAssetTable() {
+  const documents = useKnowledgeStore((s) => s.documents);
+  const fetchDocuments = useKnowledgeStore((s) => s.fetchDocuments);
+
+  useEffect(() => {
+    if (documents.length === 0) fetchDocuments();
+  }, [documents.length, fetchDocuments]);
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -61,76 +43,71 @@ export function AdminAssetTable() {
           <thead>
             <tr className="bg-fill-tertiary/30 border-b border-border">
               <th className="text-left px-4 py-3 text-xs font-medium text-text-secondary">文件名</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-text-secondary">所有部门</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-text-secondary">所属分类</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-text-secondary">最后修改</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-primary">全局权限 (管理)</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-primary">权限 (管理)</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-text-secondary">状态</th>
               <th className="text-center px-4 py-3 text-xs font-medium text-text-secondary">操作</th>
             </tr>
           </thead>
           <tbody>
-            {MOCK_ADMIN_ASSETS.map((asset) => {
-              const perm = PERMISSION_META[asset.permission];
-              const stat = STATUS_META[asset.status];
-              return (
-                <tr key={asset.id} className="border-b border-border last:border-0 hover:bg-bg-hover/50 transition-colors">
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-2.5">
-                      <Icon name={asset.icon} size={18} style={{ color: asset.iconColor }} />
-                      <span className="text-sm font-medium text-text-primary">{asset.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-sm text-text-secondary">{asset.department}</td>
-                  <td className="px-4 py-3.5 text-sm text-text-secondary">{asset.lastModified}</td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-1.5">
-                      <Icon name={perm.icon} size={14} style={{ color: perm.color }} />
-                      <span className="text-xs text-text-primary">{perm.label}</span>
-                      <Icon name="expand_more" size={14} className="text-text-muted" />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span
-                      className="text-[11px] font-medium px-2 py-0.5 rounded"
-                      style={{ color: stat.color, backgroundColor: `${stat.color}14` }}
-                    >
-                      {stat.label}
+            {documents.map((doc) => (
+              <tr key={doc.id} className="border-b border-border last:border-0 hover:bg-bg-hover/50 transition-colors">
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <Icon name="description" size={18} className="text-primary" />
+                    <span className="text-sm font-medium text-text-primary">{doc.title}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3.5 text-sm text-text-secondary">{getCategoryName(doc.categoryId)}</td>
+                <td className="px-4 py-3.5 text-sm text-text-secondary">{new Date(doc.updatedAt).toLocaleDateString('zh-CN')}</td>
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center gap-1.5">
+                    <Icon name={doc.permissions.length > 0 ? 'group' : 'lock'} size={14} className="text-text-muted" />
+                    <span className="text-xs text-text-primary">
+                      {doc.permissions.length > 0 ? `${doc.permissions.length} 条规则` : '未设置'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center justify-center gap-1">
-                      <button type="button" onClick={() => useToastStore.getState().addToast('编辑功能开发中', 'info')} className="p-1 rounded text-text-muted hover:text-primary hover:bg-primary/5">
-                        <Icon name="edit" size={16} />
-                      </button>
-                      <button type="button" onClick={() => useToastStore.getState().addToast('操作菜单开发中', 'info')} className="p-1 rounded text-text-muted hover:text-text-secondary">
-                        <Icon name="more_horiz" size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                    <Icon name="expand_more" size={14} className="text-text-muted" />
+                  </div>
+                </td>
+                <td className="px-4 py-3.5">
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${doc.statusColor}`}>
+                    {doc.statusLabel}
+                  </span>
+                </td>
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center justify-center gap-1">
+                    <button type="button" onClick={() => {
+                      useKnowledgeStore.getState().selectDocument(doc.id);
+                      useUIStore.getState().setSubView('knowledge:doc-editor');
+                    }} className="p-1 rounded text-text-muted hover:text-primary hover:bg-primary/5">
+                      <Icon name="edit" size={16} />
+                    </button>
+                    <button type="button" onClick={() => {
+                      useKnowledgeStore.getState().selectDocument(doc.id);
+                      useUIStore.getState().setSubView('knowledge:doc-read');
+                    }} className="p-1 rounded text-text-muted hover:text-text-secondary">
+                      <Icon name="visibility" size={16} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-xs text-text-muted px-1">
-        <span>显示 1 - 3 个文档，共 1,245 个</span>
+        <span>显示 1 - {documents.length} 个文档，共 {documents.length} 个</span>
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="p-1 rounded hover:bg-bg-hover text-text-muted">
+          <button type="button" className="p-1 rounded hover:bg-bg-hover text-text-muted">
             <Icon name="chevron_left" size={16} />
           </button>
-          <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="w-7 h-7 rounded-lg bg-primary text-white text-xs font-medium flex items-center justify-center">
+          <button type="button" className="w-7 h-7 rounded-lg bg-primary text-white text-xs font-medium flex items-center justify-center">
             1
           </button>
-          <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="w-7 h-7 rounded-lg hover:bg-bg-hover text-text-secondary text-xs flex items-center justify-center">
-            2
-          </button>
-          <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="w-7 h-7 rounded-lg hover:bg-bg-hover text-text-secondary text-xs flex items-center justify-center">
-            3
-          </button>
-          <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="p-1 rounded hover:bg-bg-hover text-text-muted">
+          <button type="button" className="p-1 rounded hover:bg-bg-hover text-text-muted">
             <Icon name="chevron_right" size={16} />
           </button>
         </div>
@@ -141,11 +118,13 @@ export function AdminAssetTable() {
 
 /** Stats card shown in the recent section */
 export function OrgStatsCard() {
+  const documents = useKnowledgeStore((s) => s.documents);
+
   return (
     <div className="bg-surface-dark rounded-xl p-5 flex flex-col justify-between min-h-[180px] text-white">
       <div>
         <p className="text-xs text-white/60">本月组织新增</p>
-        <p className="text-3xl font-bold mt-1">128 件</p>
+        <p className="text-3xl font-bold mt-1">{documents.length} 件</p>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-xs text-white/60">报表分析</span>

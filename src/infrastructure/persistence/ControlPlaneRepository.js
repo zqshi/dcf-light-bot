@@ -301,6 +301,120 @@ class ControlPlaneRepository {
     return deleted;
   }
 
+  // ─── Categories ──────────────────────────────────────────────────
+
+  async listCategories() {
+    const doc = await this.store.read();
+    return Array.isArray(doc.categories) ? doc.categories : [];
+  }
+
+  async getCategory(id) {
+    const rows = await this.listCategories();
+    return rows.find((x) => x.id === id) || null;
+  }
+
+  async saveCategory(category) {
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.categories) ? doc.categories : [];
+      const idx = list.findIndex((x) => x.id === category.id);
+      if (idx >= 0) list[idx] = category;
+      else list.push(category);
+      return { ...doc, categories: list };
+    });
+    return category;
+  }
+
+  async deleteCategory(id) {
+    const key = String(id || '').trim();
+    if (!key) return false;
+    let deleted = false;
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.categories) ? doc.categories : [];
+      const next = list.filter((x) => {
+        const keep = String((x && x.id) || '') !== key;
+        if (!keep) deleted = true;
+        return keep;
+      });
+      return { ...doc, categories: next };
+    });
+    return deleted;
+  }
+
+  // ─── Document Versions ──────────────────────────────────────────
+
+  async listVersions(documentId) {
+    const doc = await this.store.read();
+    const rows = Array.isArray(doc.documentVersions) ? doc.documentVersions : [];
+    if (!documentId) return rows;
+    return rows.filter((x) => x.documentId === documentId);
+  }
+
+  async getVersion(id) {
+    const doc = await this.store.read();
+    const rows = Array.isArray(doc.documentVersions) ? doc.documentVersions : [];
+    return rows.find((x) => x.id === id) || null;
+  }
+
+  async saveVersion(version) {
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.documentVersions) ? doc.documentVersions : [];
+      const idx = list.findIndex((x) => x.id === version.id);
+      if (idx >= 0) list[idx] = version;
+      else list.unshift(version);
+      return { ...doc, documentVersions: list.slice(0, 10000) };
+    });
+    return version;
+  }
+
+  // ─── Knowledge Audit Log ────────────────────────────────────────
+
+  async appendKnowledgeAudit(entry) {
+    await this.store.update((doc) => {
+      const rows = Array.isArray(doc.knowledgeAudits) ? doc.knowledgeAudits : [];
+      rows.unshift(entry);
+      return { ...doc, knowledgeAudits: rows.slice(0, 10000) };
+    });
+    return entry;
+  }
+
+  async listKnowledgeAudits(filter = {}) {
+    const doc = await this.store.read();
+    let rows = Array.isArray(doc.knowledgeAudits) ? doc.knowledgeAudits : [];
+    if (filter.operationType) {
+      rows = rows.filter((x) => x.operationType === filter.operationType);
+    }
+    if (filter.operatorId) {
+      rows = rows.filter((x) => x.operatorId === filter.operatorId);
+    }
+    if (filter.search) {
+      const q = String(filter.search).toLowerCase();
+      rows = rows.filter((x) =>
+        (x.operatorName || '').toLowerCase().includes(q) ||
+        (x.targetName || '').toLowerCase().includes(q)
+      );
+    }
+    const limit = Math.min(Math.max(1, Number(filter.limit || 100)), 1000);
+    return rows.slice(0, limit);
+  }
+
+  // ─── Document Permissions ───────────────────────────────────────
+
+  async listDocumentPermissions(documentId) {
+    const doc = await this.store.read();
+    const rows = Array.isArray(doc.documentPermissions) ? doc.documentPermissions : [];
+    return rows.filter((x) => x.documentId === documentId);
+  }
+
+  async saveDocumentPermissions(documentId, permissions) {
+    await this.store.update((doc) => {
+      const all = Array.isArray(doc.documentPermissions) ? doc.documentPermissions : [];
+      const others = all.filter((x) => x.documentId !== documentId);
+      const mapped = permissions.map((p) => ({ ...p, documentId }));
+      return { ...doc, documentPermissions: [...others, ...mapped] };
+    });
+    return permissions;
+  }
+
   async getPlatformConfig(key) {
     const name = String(key || '').trim();
     if (!name) return null;

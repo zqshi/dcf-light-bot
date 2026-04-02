@@ -5,43 +5,75 @@
 import { useState } from 'react';
 import { useUIStore } from '../../../application/stores/uiStore';
 import { useToastStore } from '../../../application/stores/toastStore';
+import { useOpenClawStore } from '../../../application/stores/openclawStore';
+import { CoTMessage } from '../../../domain/agent/CoTMessage';
 import { Icon } from '../../components/ui/Icon';
+
+const EMPTY_MESSAGES: CoTMessage[] = [];
 import { CircularProgress } from './CircularProgress';
-import { SubTaskList, MOCK_SUBTASKS } from './SubTaskList';
-import { ExecutionLogViewer, MOCK_LOGS } from './ExecutionLogViewer';
+import { SubTaskList } from './SubTaskList';
+import { ExecutionLogViewer } from './ExecutionLogViewer';
+import type { SubTask } from './SubTaskList';
+import type { LogEntry } from './ExecutionLogViewer';
 
-const COT_MESSAGES = [
-  { id: 'c1', role: 'agent' as const, text: '正在建立安全审计连接至核心服务集群...' },
-  { id: 'c2', role: 'agent' as const, text: '已完成 auth-service.js 的静态分析，检测到 2 个高危问题：\n1. JWT secret 硬编码（第 42 行）\n2. Cookie 缺少 HttpOnly 标志（第 78 行）' },
-  { id: 'c3', role: 'user' as const, text: '给出修复建议并生成完整报告。' },
-  { id: 'c4', role: 'agent' as const, text: '正在生成修复建议与安全报告，预计 30 秒内完成...' },
-];
-
-interface CotMsg {
-  id: string;
-  role: 'user' | 'agent';
-  text: string;
+function formatTimestamp(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
 }
 
 export function TaskDetailView() {
   const setSubView = useUIStore((s) => s.setSubView);
   const [input, setInput] = useState('');
-  const [chatMsgs, setChatMsgs] = useState<CotMsg[]>(COT_MESSAGES);
   const toast = (msg: string) => useToastStore.getState().addToast(msg, 'info');
+
+  const selectedTaskId = useOpenClawStore((s) => s.selectedTaskId);
+  const tasks = useOpenClawStore((s) => s.tasks);
+  const activeConversationId = useOpenClawStore((s) => s.activeConversationId);
+  const conversations = useOpenClawStore((s) => s.conversations);
+  const conversation = conversations[activeConversationId] ?? EMPTY_MESSAGES;
+
+  const task = tasks.find((t) => t.id === selectedTaskId);
+
+  if (!task) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <Icon name="task_alt" size={48} className="text-slate-600 mb-3" />
+          <p className="text-sm text-slate-400">请选择一个任务查看详情</p>
+        </div>
+      </div>
+    );
+  }
+
+  const cotMessages = conversation;
+
+  const subtasks: SubTask[] = task.subtasks.map((s) => ({
+    id: s.id,
+    name: s.name,
+    status: s.status,
+  }));
+
+  const logs: LogEntry[] = task.logs.map((l) => ({
+    time: formatTimestamp(l.timestamp),
+    level: l.level,
+    message: l.message,
+  }));
 
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
-    setChatMsgs((prev) => [...prev, { id: `u-${Date.now()}`, role: 'user', text }]);
+    // Placeholder: append user message to unified conversation
+    useOpenClawStore.getState().appendMessage(
+      CoTMessage.create({
+        id: `u-${Date.now()}`,
+        agentId: 'primary',
+        sessionId: useOpenClawStore.getState().sessionId ?? '',
+        role: 'user',
+        text,
+        timestamp: Date.now(),
+      }),
+    );
     setInput('');
-    // Simulate agent reply
-    setTimeout(() => {
-      setChatMsgs((prev) => [...prev, {
-        id: `a-${Date.now()}`,
-        role: 'agent',
-        text: `收到指令："${text.slice(0, 30)}"，正在处理中...`,
-      }]);
-    }, 600 + Math.random() * 800);
   };
 
   return (
@@ -50,7 +82,14 @@ export function TaskDetailView() {
       <div className="flex-1 flex flex-col min-w-0 border-r border-white/10">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
-          <span className="text-xs font-medium text-slate-300">思维链分析：当前扫描任务</span>
+          <button
+            type="button"
+            onClick={() => setSubView(null)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors"
+          >
+            <Icon name="arrow_back" size={18} />
+          </button>
+          <span className="text-xs font-medium text-slate-300">思维链分析：{task.name}</span>
           <div className="flex-1" />
           <button type="button" onClick={() => toast('日志导出中...')} className="text-xs text-primary hover:underline flex items-center gap-1">
             <Icon name="download" size={14} />
@@ -60,7 +99,7 @@ export function TaskDetailView() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto dcf-scrollbar px-6 py-4 space-y-3">
-          {chatMsgs.map((msg) => (
+          {cotMessages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line ${
@@ -70,6 +109,9 @@ export function TaskDetailView() {
                 }`}
               >
                 {msg.text}
+                {msg.timestamp > 0 && (
+                  <span className="block text-[10px] text-slate-500 mt-1">{formatTimestamp(msg.timestamp)}</span>
+                )}
               </div>
             </div>
           ))}
@@ -108,26 +150,26 @@ export function TaskDetailView() {
           >
             <Icon name="arrow_back" size={18} />
           </button>
-          <span className="text-sm font-medium text-slate-100">安全扫描任务详情 #882</span>
+          <span className="text-sm font-medium text-slate-100">{task.name} #{task.id}</span>
         </div>
 
         {/* Scrollable */}
         <div className="flex-1 overflow-y-auto dcf-scrollbar px-4 py-4 space-y-5">
           {/* Circular progress */}
           <div className="flex justify-center py-2">
-            <CircularProgress percent={84} label="扫描中" />
+            <CircularProgress percent={task.progress} label={task.status === 'completed' ? '已完成' : '扫描中'} />
           </div>
 
           {/* Sub-tasks */}
           <section>
             <h4 className="text-xs font-medium text-slate-300 mb-2">子任务状态</h4>
-            <SubTaskList tasks={MOCK_SUBTASKS} />
+            <SubTaskList tasks={subtasks} />
           </section>
 
           {/* Logs */}
           <section>
             <h4 className="text-xs font-medium text-slate-300 mb-2">执行日志</h4>
-            <ExecutionLogViewer logs={MOCK_LOGS} maxHeight={250} />
+            <ExecutionLogViewer logs={logs} maxHeight={250} />
           </section>
         </div>
 

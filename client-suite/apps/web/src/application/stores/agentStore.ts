@@ -1,8 +1,17 @@
 import { create } from 'zustand';
-import { Agent } from '../../domain/agent/Agent';
-import type { AgentCategory } from '../../domain/shared/types';
+import { Agent, type AgentProps } from '../../domain/agent/Agent';
+import { CapabilityRegistry } from '../../domain/agent/CapabilityRegistry';
+import { DEFAULT_CAPABILITY_TEMPLATES, type CapabilityTemplate } from '../../domain/agent/CapabilityTemplate';
+import type { AgentCategory, ModelId } from '../../domain/shared/types';
 import { agentApi, type SharedAgentDTO } from '../../infrastructure/api/dcfApiClient';
+import { getCategoryDisplay } from '../../domain/agent/AgentCategoryConfig';
+import { useAuthStore } from './authStore';
 
+/**
+ * SharedAgent — backward-compatible DTO for IM-mode components (AgentsHub, AgentCard).
+ * Derived from CapabilityTemplate in the new architecture.
+ * @deprecated Use CapabilityTemplate / Agent directly in new code.
+ */
 export interface SharedAgent {
   id: string;
   name: string;
@@ -13,79 +22,26 @@ export interface SharedAgent {
   tags: string[];
   icon: string;
   creator: string;
-  userId?: string; // Matrix userId for DM creation
+  userId?: string;
 }
 
-const INITIAL_SHARED_AGENTS: SharedAgent[] = [
-  { id: 'sa-1', name: '代码助手', role: '全栈开发工程师', description: '编写、审查、调试代码', category: 'dev', invokeCount: 128, tags: ['code', 'review'], icon: '💻', creator: 'system', userId: '@agent-coder:dcf.local' },
-  { id: 'sa-2', name: '文档写手', role: '技术文档工程师', description: 'PRD、API 文档、技术方案撰写', category: 'docs', invokeCount: 96, tags: ['doc', 'prd'], icon: '📝', creator: 'system', userId: '@agent-writer:dcf.local' },
-  { id: 'sa-3', name: '数据分析师', role: '数据分析工程师', description: 'SQL 生成、数据可视化、报表分析', category: 'data', invokeCount: 72, tags: ['sql', 'data'], icon: '📊', creator: 'system' },
-  { id: 'sa-4', name: '原型设计师', role: 'UI/UX 设计师', description: '原型设计、交互方案', category: 'design', invokeCount: 54, tags: ['design', 'ux'], icon: '🎨', creator: 'system' },
-  { id: 'sa-5', name: '测试工程师', role: '质量保障工程师', description: '单元测试、集成测试、E2E 测试生成', category: 'test', invokeCount: 67, tags: ['test', 'qa'], icon: '🧪', creator: 'system' },
-  { id: 'sa-6', name: '运维助手', role: '运维工程师', description: 'Docker、K8s、CI/CD 配置', category: 'ops', invokeCount: 45, tags: ['devops', 'k8s'], icon: '⚙️', creator: 'system' },
-  { id: 'sa-7', name: '翻译专员', role: '国际化工程师', description: '多语言翻译、i18n 资源管理', category: 'translate', invokeCount: 33, tags: ['i18n', 'l10n'], icon: '🌐', creator: 'system' },
-  { id: 'sa-8', name: '安全审计员', role: '安全工程师', description: '代码安全审计、漏洞扫描', category: 'security', invokeCount: 28, tags: ['security', 'audit'], icon: '🔒', creator: 'system' },
-];
+const LS_PRIMARY_AGENT_KEY = 'dcf_primary_agent';
+const LS_ACTIVE_CAPS_KEY = 'dcf_active_capabilities';
+const LS_OC_VISITED_KEY = 'dcf_openclaw_visited';
 
-const LS_AGENTS_KEY = 'dcf_agents';
-const LS_SHARED_AGENTS_KEY = 'dcf_shared_agents';
-
-interface AgentSerialized {
-  id: string;
-  name: string;
-  role: string;
-  department: string;
-  personality: 'professional' | 'friendly' | 'creative' | 'analytical';
-  model: string;
-  status?: 'online' | 'busy' | 'offline';
-  category?: AgentCategory;
-  employeeId?: string;
-  email?: string;
-  invokeCount?: number;
-  creatorId?: string;
-  createdAt?: number;
-  description?: string;
-  avatarGradient?: string;
-}
-
-function serializeAgent(agent: Agent): AgentSerialized {
-  return {
-    id: agent.id,
-    name: agent.name,
-    role: agent.role,
-    department: agent.department,
-    personality: agent.personality,
-    model: agent.model,
-    status: agent.status,
-    category: agent.category,
-    employeeId: agent.employeeId,
-    email: agent.email,
-    invokeCount: agent.invokeCount,
-    creatorId: agent.creatorId,
-    createdAt: agent.createdAt,
-    description: agent.description,
-    avatarGradient: agent.avatarGradient,
-  };
-}
-
-function deserializeAgent(data: AgentSerialized): Agent {
-  return Agent.create({
-    id: data.id,
-    name: data.name,
-    role: data.role,
-    department: data.department,
-    personality: data.personality,
-    model: data.model as Agent['model'],
-    status: data.status,
-    category: data.category,
-    employeeId: data.employeeId,
-    email: data.email,
-    invokeCount: data.invokeCount,
-    creatorId: data.creatorId,
-    createdAt: data.createdAt,
-    description: data.description,
-    avatarGradient: data.avatarGradient,
-  });
+/** Derive SharedAgent[] from capability templates for backward compat */
+function templatesToSharedAgents(templates: CapabilityTemplate[]): SharedAgent[] {
+  return templates.map((t) => ({
+    id: `sa-${t.category}`,
+    name: t.name,
+    role: t.description,
+    description: t.description,
+    category: t.category,
+    invokeCount: 0,
+    tags: [t.category],
+    icon: getCategoryDisplay(t.category).icon,
+    creator: 'system',
+  }));
 }
 
 function dtoToSharedAgent(dto: SharedAgentDTO): SharedAgent {
@@ -103,53 +59,188 @@ function dtoToSharedAgent(dto: SharedAgentDTO): SharedAgent {
   };
 }
 
-interface AgentState {
-  createdAgents: Agent[];
-  sharedAgents: SharedAgent[];
-  addCreatedAgent(agent: Agent): void;
+interface PrimaryAgentSetupProps {
+  name: string;
+  role: string;
+  department: string;
+  persona: string;
+  model: ModelId;
+}
 
-  loadPersistedAgents(): void;
+interface AgentState {
+  // ── New model ──────────────────────────────────────────────────
+  primaryAgent: Agent | null;
+  capabilityRegistry: CapabilityRegistry;
+  isPrimaryAgentSetup: boolean;
+  /** True if user has never visited OpenClaw before (show intro card) */
+  isFirstVisit: boolean;
+
+  /** Manual setup (kept for edge cases) */
+  setupPrimaryAgent(props: PrimaryAgentSetupProps): void;
+  /** Auto-create Primary Agent from login identity — zero user input */
+  autoSetupFromAuth(): void;
+  /** Update existing Primary Agent fields (edit mode) */
+  updatePrimaryAgent(props: Partial<PrimaryAgentSetupProps>): void;
+  /** Mark first visit as complete */
+  markVisited(): void;
+  activateCapability(templateId: string): Agent;
+  getAgentById(id: string): Agent | undefined;
+
+  // ── Backward-compat (derived from templates) ───────────────────
+  /** @deprecated Use capabilityRegistry.getAvailableTemplates() */
+  sharedAgents: SharedAgent[];
+
   invokeAgent(agentId: string): void;
+  loadPersistedAgents(): void;
   reset(): void;
-  /** Fetch shared agents from DCF backend; falls back to local data on failure */
   fetchFromBackend(): Promise<void>;
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
-  createdAgents: [],
-  sharedAgents: [...INITIAL_SHARED_AGENTS],
+  primaryAgent: null,
+  capabilityRegistry: CapabilityRegistry.createDefault(),
+  isPrimaryAgentSetup: false,
+  isFirstVisit: !localStorage.getItem(LS_OC_VISITED_KEY),
+  sharedAgents: templatesToSharedAgents(DEFAULT_CAPABILITY_TEMPLATES),
 
-  addCreatedAgent(agent: Agent) {
-    set((state) => {
-      const next = [...state.createdAgents, agent];
-      try {
-        localStorage.setItem(LS_AGENTS_KEY, JSON.stringify(next.map(serializeAgent)));
-      } catch { /* quota exceeded — ignore */ }
-      return { createdAgents: next };
+  setupPrimaryAgent(props) {
+    const agent = Agent.create({
+      id: `primary-${Date.now()}`,
+      name: props.name,
+      role: props.role,
+      department: props.department,
+      personality: 'professional',
+      model: props.model,
+      agentType: 'primary',
+      persona: props.persona,
+      ownerId: 'current-user',
+    });
+    set({ primaryAgent: agent, isPrimaryAgentSetup: true });
+
+    // Persist
+    try {
+      localStorage.setItem(LS_PRIMARY_AGENT_KEY, JSON.stringify(agent.toProps()));
+    } catch { /* quota exceeded */ }
+  },
+
+  autoSetupFromAuth() {
+    // Already set up — skip
+    if (get().isPrimaryAgentSetup) return;
+
+    const { user, dcfUser } = useAuthStore.getState();
+    if (!user) return;
+
+    const displayName = user.displayName || dcfUser?.username || '我的助手';
+    const role = user.role || dcfUser?.role || '员工';
+    const department = user.department || '未设置';
+
+    get().setupPrimaryAgent({
+      name: `${displayName}的数字分身`,
+      role,
+      department,
+      persona: `你是${displayName}的数字分身，担任${role}，隶属${department}。协助处理日常工作并在需要时调用专业能力。`,
+      model: 'claude-sonnet-4-6',
     });
   },
 
+  updatePrimaryAgent(props) {
+    const { primaryAgent } = get();
+    if (!primaryAgent) return;
+
+    let updated = primaryAgent;
+    if (props.name !== undefined) updated = Agent.create({ ...updated.toProps(), name: props.name });
+    if (props.role !== undefined) updated = Agent.create({ ...updated.toProps(), role: props.role });
+    if (props.department !== undefined) updated = Agent.create({ ...updated.toProps(), department: props.department });
+    if (props.persona !== undefined) updated = Agent.create({ ...updated.toProps(), persona: props.persona });
+    if (props.model !== undefined) updated = Agent.create({ ...updated.toProps(), model: props.model });
+
+    set({ primaryAgent: updated });
+    try {
+      localStorage.setItem(LS_PRIMARY_AGENT_KEY, JSON.stringify(updated.toProps()));
+    } catch { /* ignore */ }
+  },
+
+  markVisited() {
+    set({ isFirstVisit: false });
+    try { localStorage.setItem(LS_OC_VISITED_KEY, '1'); } catch { /* ignore */ }
+  },
+
+  activateCapability(templateId) {
+    const { capabilityRegistry, primaryAgent } = get();
+    const existing = capabilityRegistry.getActiveAgent(templateId);
+    if (existing) return existing;
+
+    const template = capabilityRegistry.findTemplate(templateId);
+    if (!template) throw new Error(`Unknown capability template: ${templateId}`);
+
+    const agent = Agent.create({
+      id: `cap-agent-${template.category}-${Date.now()}`,
+      name: template.name,
+      role: template.description,
+      department: '能力中心',
+      personality: 'professional',
+      model: primaryAgent?.model ?? 'claude-sonnet-4-6',
+      agentType: 'capability',
+      category: template.category,
+      description: template.systemPrompt,
+    });
+
+    const nextRegistry = capabilityRegistry.registerAgent(templateId, agent);
+    const nextPrimary = primaryAgent?.withCapability(templateId) ?? null;
+    set({ capabilityRegistry: nextRegistry, primaryAgent: nextPrimary });
+
+    // Persist activated capabilities
+    try {
+      const caps = [...nextRegistry.getAllActiveAgents().map((a) => ({
+        templateId: a.category ? `cap-${a.category}` : templateId,
+        agentProps: a.toProps(),
+      }))];
+      localStorage.setItem(LS_ACTIVE_CAPS_KEY, JSON.stringify(caps));
+    } catch { /* ignore */ }
+
+    return agent;
+  },
+
+  getAgentById(id) {
+    const { primaryAgent, capabilityRegistry } = get();
+    if (primaryAgent?.id === id) return primaryAgent;
+    return capabilityRegistry.getAllActiveAgents().find((a) => a.id === id);
+  },
 
   loadPersistedAgents() {
+    // Restore primary agent
     try {
-      const raw = localStorage.getItem(LS_AGENTS_KEY);
+      const raw = localStorage.getItem(LS_PRIMARY_AGENT_KEY);
       if (raw) {
-        const parsed: AgentSerialized[] = JSON.parse(raw);
-        set({ createdAgents: parsed.map(deserializeAgent) });
+        const props: AgentProps = JSON.parse(raw);
+        const agent = Agent.create(props);
+        set({ primaryAgent: agent, isPrimaryAgentSetup: true });
       }
-    } catch { /* corrupted data — ignore */ }
+    } catch { /* corrupted */ }
 
+    // Restore activated capabilities
     try {
-      const raw = localStorage.getItem(LS_SHARED_AGENTS_KEY);
+      const raw = localStorage.getItem(LS_ACTIVE_CAPS_KEY);
       if (raw) {
-        const parsed: SharedAgent[] = JSON.parse(raw);
-        set({ sharedAgents: parsed });
+        const items: Array<{ templateId: string; agentProps: AgentProps }> = JSON.parse(raw);
+        let registry = get().capabilityRegistry;
+        for (const item of items) {
+          const agent = Agent.create(item.agentProps);
+          registry = registry.registerAgent(item.templateId, agent);
+        }
+        set({ capabilityRegistry: registry });
       }
-    } catch { /* corrupted data — ignore */ }
+    } catch { /* corrupted */ }
   },
 
   reset() {
-    set({ createdAgents: [], sharedAgents: [...INITIAL_SHARED_AGENTS] });
+    set({
+      primaryAgent: null,
+      capabilityRegistry: CapabilityRegistry.createDefault(),
+      isPrimaryAgentSetup: false,
+      isFirstVisit: !localStorage.getItem(LS_OC_VISITED_KEY),
+      sharedAgents: templatesToSharedAgents(DEFAULT_CAPABILITY_TEMPLATES),
+    });
   },
 
   async fetchFromBackend() {
@@ -157,35 +248,19 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const res = await agentApi.listShared();
       if (res.rows && res.rows.length > 0) {
         set({ sharedAgents: res.rows.map(dtoToSharedAgent) });
-        return;
       }
     } catch {
       // Backend unreachable — keep local data
     }
   },
 
-  invokeAgent(agentId: string) {
-    // Check created agents first
-    const { createdAgents, sharedAgents } = get();
-    const createdIdx = createdAgents.findIndex((a) => a.id === agentId);
-    if (createdIdx >= 0) {
-      const updated = [...createdAgents];
-      updated[createdIdx] = updated[createdIdx].withInvoke();
-      try {
-        localStorage.setItem(LS_AGENTS_KEY, JSON.stringify(updated.map(serializeAgent)));
-      } catch { /* ignore */ }
-      set({ createdAgents: updated });
-      return;
-    }
-
-    // Check shared agents
-    const sharedIdx = sharedAgents.findIndex((a) => a.id === agentId);
-    if (sharedIdx >= 0) {
+  invokeAgent(agentId) {
+    // Backward compat for IM mode
+    const { sharedAgents } = get();
+    const idx = sharedAgents.findIndex((a) => a.id === agentId);
+    if (idx >= 0) {
       const updated = [...sharedAgents];
-      updated[sharedIdx] = { ...updated[sharedIdx], invokeCount: updated[sharedIdx].invokeCount + 1 };
-      try {
-        localStorage.setItem(LS_SHARED_AGENTS_KEY, JSON.stringify(updated));
-      } catch { /* ignore */ }
+      updated[idx] = { ...updated[idx], invokeCount: updated[idx].invokeCount + 1 };
       set({ sharedAgents: updated });
     }
   },

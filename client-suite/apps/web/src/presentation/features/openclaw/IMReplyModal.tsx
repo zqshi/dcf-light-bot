@@ -9,18 +9,21 @@ interface IMReplyModalProps {
   roomId?: string;
   senderName?: string;
   originalMessage?: string;
+  channel?: string;
   onClose: () => void;
 }
 
 const QUICK_REPLIES = ['收到，明白了', '正在检查，请稍等', '让我确认一下'];
 
-export function IMReplyModal({ roomId, senderName, originalMessage, onClose }: IMReplyModalProps) {
+export function IMReplyModal({ roomId, senderName, originalMessage, channel, onClose }: IMReplyModalProps) {
   const [reply, setReply] = useState('');
 
   const handleSend = () => {
     if (!reply.trim()) return;
     if (roomId) {
       appEvents.emit('im:reply-sent', { roomId, message: reply.trim() });
+    } else if (channel) {
+      appEvents.emit('im:cross-channel-reply', { channel, sender: senderName ?? '', message: reply.trim() });
     }
     onClose();
   };

@@ -2,24 +2,30 @@
  * DocumentSecurityPanel — 文档高级安全设置面板 (km_14 对齐)
  * 水印设置(内容选项) + 安全防护(复制/下载/外部分享) + 文档信息
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 import { useToastStore } from '../../../application/stores/toastStore';
 import { useUIStore } from '../../../application/stores/uiStore';
+import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
 
 interface DocumentSecurityPanelProps {
   onClose?: () => void;
 }
 
-const WATERMARK_OPTIONS = ['陈萨拉', '1234', '内部机密'];
+const WATERMARK_OPTIONS = ['用户名', '工号', '内部机密'];
 
 export function DocumentSecurityPanel({ onClose }: DocumentSecurityPanelProps) {
-  const [watermark, setWatermark] = useState(true);
+  const selectedDocumentId = useKnowledgeStore((s) => s.selectedDocumentId);
+  const documents = useKnowledgeStore((s) => s.documents);
+  const doc = useMemo(() => documents.find((d) => d.id === selectedDocumentId), [documents, selectedDocumentId]);
+
+  const sec = doc?.securitySettings;
+  const [watermark, setWatermark] = useState(sec?.watermark ?? true);
   const [activeWatermark, setActiveWatermark] = useState('透明度');
-  const [watermarkContent, setWatermarkContent] = useState('陈萨拉');
-  const [preventCopy, setPreventCopy] = useState(true);
-  const [preventDownload, setPreventDownload] = useState(true);
+  const [watermarkContent, setWatermarkContent] = useState('用户名');
+  const [preventCopy, setPreventCopy] = useState(sec?.preventCopy ?? true);
+  const [preventDownload, setPreventDownload] = useState(sec?.preventDownload ?? true);
   const [allowExternal, setAllowExternal] = useState(false);
 
   return (
@@ -114,9 +120,9 @@ export function DocumentSecurityPanel({ onClose }: DocumentSecurityPanelProps) {
         <section>
           <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-3">文档信息</h4>
           <div className="space-y-2">
-            <InfoRow label="创建者" value="陈萨拉" />
-            <InfoRow label="文件大小" value="1.2 MB" />
-            <InfoRow label="所在位置" value="/ 财务部 / 2024Q1" />
+            <InfoRow label="创建者" value={doc?.author.name ?? '-'} />
+            <InfoRow label="文件大小" value={doc?.size ?? '-'} />
+            <InfoRow label="所在位置" value={doc ? `/ ${doc.departmentId ?? '未分类'}` : '-'} />
           </div>
         </section>
       </div>

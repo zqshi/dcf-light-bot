@@ -227,8 +227,8 @@ export function CalendarPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-text-primary">{VIEW_TITLES[view]}</h2>
             <p className="text-xs text-text-muted mt-0.5">{dateStr}</p>

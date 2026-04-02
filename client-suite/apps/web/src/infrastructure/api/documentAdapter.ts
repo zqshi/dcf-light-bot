@@ -33,6 +33,12 @@ export function fromDTO(dto: DocumentDTO): Document {
     size: htmlContent.length > 1024
       ? `${Math.round(htmlContent.length / 1024)} KB`
       : `${htmlContent.length} B`,
+    // New fields from backend
+    status: (dto as any).status || 'draft',
+    categoryId: (dto as any).categoryId || meta.folderId || '',
+    departmentId: (dto as any).departmentId || '',
+    ownerId: (dto as any).ownerId || dto.createdBy || 'system',
+    permissions: Array.isArray((dto as any).permissions) ? (dto as any).permissions : [],
   };
 
   return Document.create(props);

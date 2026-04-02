@@ -17,7 +17,8 @@ import { useToastStore } from '../../../application/stores/toastStore';
 import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
 import { useUIStore } from '../../../application/stores/uiStore';
 import { documentApi } from '../../../infrastructure/api/dcfApiClient';
-import { weKnoraApi } from '../../../infrastructure/api/weKnoraClient';
+
+import { PublishTargetModal } from './PublishTargetModal';
 
 interface DocumentEditorWithSettingsProps {
   title?: string;
@@ -117,12 +118,17 @@ export function DocumentEditorWithSettings({
   const [docVersion, setDocVersion] = useState<number | undefined>();
   const [collaborators, setCollaborators] = useState<string[]>(['张', '李']);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [category, setCategory] = useState('企业知识库');
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const [commentPerm, setCommentPerm] = useState('仅协作人可评论');
   const [expiryDate, setExpiryDate] = useState('2024-12-31');
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { createDocument, updateDocument } = useKnowledgeStore();
+  const selectedDocumentId = useKnowledgeStore((s) => s.selectedDocumentId);
+  const storeDocuments = useKnowledgeStore((s) => s.documents);
   const setSubView = useUIStore((s) => s.setSubView);
+
+  // Load from store if we have a selectedDocumentId and no explicit documentId prop
+  const resolvedDocId = documentId || selectedDocumentId || undefined;
 
   const editor = useEditor({
     extensions: [
@@ -131,23 +137,33 @@ export function DocumentEditorWithSettings({
       Link.configure({ openOnClick: false }),
       Image,
     ],
-    content: documentId ? '' : DEFAULT_CONTENT,
+    content: resolvedDocId ? '' : DEFAULT_CONTENT,
     editable: true,
     immediatelyRender: false,
   });
 
-  // Load existing document content when editing
+  // Load existing doc from store (for demo mode) or API
   useEffect(() => {
-    if (!documentId || !editor) return;
-    documentApi.get(documentId).then(({ document: doc }) => {
+    if (!resolvedDocId || !editor) return;
+    // Try store first (demo mode)
+    const storeDoc = storeDocuments.find((d) => d.id === resolvedDocId);
+    if (storeDoc) {
+      setDocTitle(storeDoc.title);
+      setCurrentDocId(storeDoc.id);
+      editor.commands.setContent(storeDoc.content || DEFAULT_CONTENT);
+      return;
+    }
+    // Fall back to API
+    documentApi.get(resolvedDocId).then(({ document: doc }) => {
       setDocTitle(doc.title);
       setDocVersion(doc.version);
+      setCurrentDocId(resolvedDocId);
       const html = typeof doc.content?.html === 'string' ? doc.content.html : '';
       editor.commands.setContent(html || DEFAULT_CONTENT);
     }).catch(() => {
       useToastStore.getState().addToast('加载文档失败', 'error');
     });
-  }, [documentId, editor]);
+  }, [resolvedDocId, editor, storeDocuments]);
 
   const handleExport = () => {
     if (!editor) return;
@@ -193,23 +209,11 @@ export function DocumentEditorWithSettings({
 
   const handlePublish = async () => {
     await handleSaveDraft();
-    // Sync to WeKnora RAG if AI indexing is enabled
-    if (aiIndexing && currentDocId && editor) {
-      try {
-        const html = editor.getHTML();
-        const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        await weKnoraApi.syncDocument({
-          id: currentDocId,
-          title: docTitle,
-          content: text,
-          type: 'doc',
-        });
-      } catch {
-        // Non-blocking: WeKnora sync failure should not prevent publish
-      }
+    if (currentDocId) {
+      setShowPublishModal(true);
+    } else {
+      useToastStore.getState().addToast('请先保存文档', 'info');
     }
-    onPublish?.();
-    useToastStore.getState().addToast('文档已发布', 'success');
   };
 
   const handleAddCollaborator = useCallback(() => {
@@ -317,9 +321,8 @@ export function DocumentEditorWithSettings({
 
         {/* Right settings panel — min-h-0 enables flex child scroll */}
         <div className="w-80 border-l border-border flex flex-col min-h-0">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
+          <div className="px-4 py-3 border-b border-border shrink-0">
             <h3 className="text-sm font-semibold text-text-primary">文档设置</h3>
-            <button type="button" onClick={() => setSubView('knowledge:doc-settings')} className="text-[10px] text-primary hover:underline">更多设置 →</button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-5 dcf-scrollbar">
@@ -332,16 +335,6 @@ export function DocumentEditorWithSettings({
                 onChange={(e) => setDocTitle(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
-            </div>
-
-            {/* Category select */}
-            <div>
-              <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5 block">选择分类</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-white">
-                <option>企业知识库</option>
-                <option>部门资产</option>
-                <option>个人空间</option>
-              </select>
             </div>
 
             {/* Access permission */}
@@ -505,6 +498,18 @@ export function DocumentEditorWithSettings({
           </div>
         </div>
       </div>
+
+      {showPublishModal && currentDocId && (
+        <PublishTargetModal
+          documentId={currentDocId}
+          documentTitle={docTitle}
+          onClose={() => setShowPublishModal(false)}
+          onPublished={() => {
+            setShowPublishModal(false);
+            onPublish?.();
+          }}
+        />
+      )}
     </div>
   );
 }

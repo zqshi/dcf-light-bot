@@ -73,7 +73,11 @@ export function useMatrixClient() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const persistAuth = useAuthStore((s) => s.persistAuth);
   const loadPersistedAuth = useAuthStore((s) => s.loadPersistedAuth);
-  const { setRooms, setMessages, setCurrentRoom, setTyping, clearUnread } = useChatStore();
+  const setRooms = useChatStore((s) => s.setRooms);
+  const setMessages = useChatStore((s) => s.setMessages);
+  const setCurrentRoom = useChatStore((s) => s.setCurrentRoom);
+  const setTyping = useChatStore((s) => s.setTyping);
+  const clearUnread = useChatStore((s) => s.clearUnread);
 
   const wireUpCallbacks = useCallback(
     (client: IMatrixClient) => {

@@ -1,404 +1,245 @@
 /**
- * OpenClawPage — 主页面：CoT 对话区 + 输入框
- * 根据 subView 可切换到 TaskDetailView。
- * 接入 WeKnora RAG API (SSE streaming) — Task #25
+ * OpenClawPage — 按类型分栏布局
+ *
+ * notification（消息）→ A+B+C+D：B 栏 EventDetailPanel 四分栏原始样式
+ * decision/task/goal → A+C+D：C 栏上下文卡片 + 对话，D 栏按需展开
  */
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useUIStore } from '../../../application/stores/uiStore';
+import { useOpenClawStore } from '../../../application/stores/openclawStore';
+import { useNotificationStore } from '../../../application/stores/notificationStore';
 import { useAgentStore } from '../../../application/stores/agentStore';
-import { useToastStore } from '../../../application/stores/toastStore';
-import { weKnoraApi } from '../../../infrastructure/api/weKnoraClient';
+import { useAgentChat } from '../../../application/hooks/useAgentChat';
+import type { Attachment, CoTMessage } from '../../../domain/agent/CoTMessage';
 import { Icon } from '../../components/ui/Icon';
-import { TaskMonitorPanel } from './TaskMonitorPanel';
-import { TaskDetailDrawer } from './TaskDetailDrawer';
+import type { OpenClawDrawerContent } from '../../../domain/agent/DrawerContent';
+import { OpenClawDrawer } from './OpenClawDrawer';
 import { TaskDetailView } from './TaskDetailView';
-import { IMReplyModal } from './IMReplyModal';
+import { MessageBlockRenderer } from './blocks/MessageBlockRenderer';
+import { OpenClawComposer } from './OpenClawComposer';
+import { AttentionColumn } from './AttentionColumn';
+import { EventDetailPanel } from './EventDetailPanel';
+import { TaskInitPage } from './TaskInitPage';
+import { GoalInitPage } from './GoalInitPage';
+import { DecisionInitPage } from './DecisionInitPage';
 import { OpenClawWelcomePage } from './OpenClawWelcomePage';
 
-interface CoTStep {
-  id: string;
-  label: string;
-  status: 'done' | 'running' | 'pending';
-  detail: string;
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'agent';
-  text: string;
-  html?: string;
-  time: string;
-  cotSteps?: CoTStep[];
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-const MOCK_MESSAGES: ChatMessage[] = [
-  {
-    id: 'm1',
-    role: 'user',
-    text: '帮我对 auth-service.js 做一次全面安全审计，重点检查 JWT 和 Cookie 相关的风险。',
-    time: '12:42 PM',
-  },
-  {
-    id: 'm2',
-    role: 'agent',
-    html: '正在为您生成报告。初步检查发现模块 <code>auth-service.js</code> 存在 JWT 硬编码风险，Cookie 缺少 <code>HttpOnly</code> 标志。详细报告将在扫描完成后输出。',
-    text: '正在为您生成报告。初步检查发现模块 auth-service.js 存在 JWT 硬编码风险，Cookie 缺少 HttpOnly 标志。详细报告将在扫描完成后输出。',
-    time: '12:43 PM',
-    cotSteps: [
-      { id: 's1', label: '扫描代码仓库', status: 'done', detail: '发现 3 个潜在依赖风险点' },
-      { id: 's2', label: '检索知识库', status: 'done', detail: '已提取 OWASP 2024 准则' },
-      { id: 's3', label: '生成初步安全建议', status: 'running', detail: '正在分析内存泄漏风险...' },
-    ],
-  },
-];
-
-/** Per-agent greeting messages */
-const AGENT_GREETINGS: Record<string, ChatMessage[]> = {
-  'sa-1': MOCK_MESSAGES,
-  'sa-2': [{ id: 'g-doc', role: 'agent', text: '你好！我是文档写手，可以帮你撰写 PRD、技术方案、API 文档等。有什么需要？', time: '12:00 PM' }],
-  'sa-3': [{ id: 'g-data', role: 'agent', text: '你好！我是数据分析师，擅长 SQL 生成、数据可视化和报表分析。请描述你的需求。', time: '12:00 PM' }],
-  'sa-5': [{ id: 'g-test', role: 'agent', text: '你好！我是测试工程师，可以帮你生成单元测试、集成测试和 E2E 测试。', time: '12:00 PM' }],
-  'sa-6': [{ id: 'g-ops', role: 'agent', text: '你好！我是运维助手，擅长 Docker、K8s 和 CI/CD 配置。有什么可以帮你？', time: '12:00 PM' }],
-  'sa-8': [{ id: 'g-sec', role: 'agent', text: '你好！我是安全审计员，可以为你做代码安全审计和漏洞扫描。请描述目标。', time: '12:00 PM' }],
-};
-
-const STEP_ICON: Record<CoTStep['status'], { icon: string; cls: string }> = {
-  done: { icon: 'check_circle', cls: 'text-green-400' },
-  running: { icon: 'autorenew', cls: 'text-primary animate-spin' },
-  pending: { icon: 'hourglass_empty', cls: 'text-slate-500' },
-};
-
-/** Notification context for IMReplyModal */
-interface ReplyContext {
-  id: string;
-  source: string;
-  sender: string;
-  message: string;
-  roomId?: string;
-}
-
-export function OpenClawPage() {
-  const subView = useUIStore((s) => s.subView);
-  const selectedAgentId = useUIStore((s) => s.selectedAgentId);
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [replyCtx, setReplyCtx] = useState<ReplyContext | null>(null);
-  const [showWelcome, setShowWelcome] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  // Stable session ID — one per component lifecycle
-  const sessionIdRef = useRef<string>(`oc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-
-  // When agent changes, reset messages to that agent's greeting and generate new session
-  useEffect(() => {
-    if (!selectedAgentId) return;
-    sessionIdRef.current = `oc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const greeting = AGENT_GREETINGS[selectedAgentId];
-    if (greeting) {
-      setMessages([...greeting]);
-      setShowWelcome(false);
-    }
-  }, [selectedAgentId]);
-
-  // Cleanup abort controller on unmount
-  useEffect(() => {
-    return () => { abortRef.current?.abort(); };
-  }, []);
-
-  const getAgentName = useCallback(() => {
-    if (!selectedAgentId) return 'AI 助手';
-    const agent = useAgentStore.getState().sharedAgents.find((a) => a.id === selectedAgentId);
-    return agent?.name ?? 'AI 助手';
-  }, [selectedAgentId]);
-
-  /**
-   * Send query to WeKnora RAG backend.
-   * Strategy: try SSE streaming first; fall back to non-streaming ask(); show error on total failure.
-   */
-  const sendToWeKnora = useCallback(async (userText: string) => {
-    const botMsgId = `r-${Date.now()}`;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-
-    // Insert placeholder bot message with CoT "thinking" step
-    const thinkingStep: CoTStep = {
-      id: `s-${Date.now()}-1`,
-      label: '检索知识库',
-      status: 'running',
-      detail: '正在连接 WeKnora RAG...',
-    };
-
-    setMessages((prev) => [
-      ...prev,
-      { id: botMsgId, role: 'agent', text: '', time: timeStr, cotSteps: [thinkingStep] },
-    ]);
-    setIsSending(true);
-
-    // Abort previous request if any
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    // Helper: update the bot message in-place
-    const updateBotMsg = (updater: (msg: ChatMessage) => ChatMessage) => {
-      setMessages((prev) => prev.map((m) => (m.id === botMsgId ? updater(m) : m)));
-    };
-
-    try {
-      // ── Attempt 1: SSE streaming ──
-      let streamFailed = false;
-      let accumulated = '';
-
-      await weKnoraApi.chat(sessionIdRef.current, userText, {
-        signal: controller.signal,
-        onChunk: (text) => {
-          accumulated += text;
-          updateBotMsg((m) => ({
-            ...m,
-            text: accumulated,
-            cotSteps: m.cotSteps?.map((s) =>
-              s.id === thinkingStep.id
-                ? { ...s, status: 'done' as const, label: '知识检索完成', detail: '正在生成回答...' }
-                : s,
-            ),
-          }));
-        },
-        onSources: (sources) => {
-          updateBotMsg((m) => ({
-            ...m,
-            cotSteps: [
-              ...(m.cotSteps ?? []),
-              {
-                id: `s-src-${Date.now()}`,
-                label: '引用来源',
-                status: 'done' as const,
-                detail: sources.map((s) => s.title).join('、') || '无引用',
-              },
-            ],
-          }));
-        },
-        onDone: () => {
-          updateBotMsg((m) => ({
-            ...m,
-            cotSteps: m.cotSteps?.map((s) =>
-              s.status === 'running' ? { ...s, status: 'done' as const, detail: '完成' } : s,
-            ),
-          }));
-        },
-        onError: (err) => {
-          console.warn('[OpenClaw] SSE stream error, will try non-streaming fallback:', err.message);
-          streamFailed = true;
-        },
-      });
-
-      // ── Attempt 2: non-streaming fallback ──
-      if (streamFailed && !controller.signal.aborted) {
-        try {
-          updateBotMsg((m) => ({
-            ...m,
-            text: '',
-            cotSteps: [{ ...thinkingStep, detail: '流式连接失败，正在尝试非流式请求...' }],
-          }));
-          const result = await weKnoraApi.ask(userText);
-          updateBotMsg((m) => ({
-            ...m,
-            text: result.answer,
-            cotSteps: [
-              { ...thinkingStep, status: 'done' as const, label: '知识检索完成', detail: '非流式回答' },
-              ...(result.sources?.length
-                ? [{
-                    id: `s-src-${Date.now()}`,
-                    label: '引用来源',
-                    status: 'done' as const,
-                    detail: result.sources.map((s) => s.title).join('、'),
-                  }]
-                : []),
-            ],
-          }));
-        } catch (fallbackErr: any) {
-          // Both paths failed
-          updateBotMsg((m) => ({
-            ...m,
-            text: `抱歉，AI 服务暂时不可用。错误信息：${fallbackErr?.message || '未知错误'}`,
-            cotSteps: [{ ...thinkingStep, status: 'done' as const, label: '连接失败', detail: '请稍后重试' }],
-          }));
-        }
-      }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        updateBotMsg((m) => ({
-          ...m,
-          text: `抱歉，请求出错：${err?.message || '未知错误'}`,
-          cotSteps: [{ ...thinkingStep, status: 'done' as const, label: '请求失败', detail: err?.message || '' }],
-        }));
-      }
-    } finally {
-      setIsSending(false);
-    }
-  }, []);
-
-  const handleSend = useCallback(() => {
-    const text = input.trim();
-    if (!text || isSending) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    setMessages((prev) => [...prev, { id: `m-${Date.now()}`, role: 'user', text, time: timeStr }]);
-    setInput('');
-    setShowWelcome(false);
-    sendToWeKnora(text);
-  }, [input, isSending, sendToWeKnora]);
-
-  // Callback from WelcomePage: user sends from welcome input or clicks quick command
-  const handleStartChat = useCallback((text: string) => {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    setMessages((prev) => [...prev, { id: `m-${Date.now()}`, role: 'user', text, time: timeStr }]);
-    setShowWelcome(false);
-    sendToWeKnora(text);
-  }, [sendToWeKnora]);
-
-  const handleReply = useCallback((ctx: ReplyContext) => {
-    setReplyCtx(ctx);
-  }, []);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Task detail full-screen view
-  if (subView === 'openclaw:task-detail') {
-    return <TaskDetailView />;
-  }
-
-  // Welcome page (openclaw_v2 design)
-  if (showWelcome) {
-    return <OpenClawWelcomePage onStartChat={handleStartChat} />;
-  }
-
+function AttachmentList({ attachments }: { attachments: Attachment[] }) {
   return (
-    <div className="flex h-full">
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto dcf-scrollbar px-6 py-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-sm text-slate-500">发送消息开始对话</p>
+    <div className="flex flex-wrap gap-2 mt-2">
+      {attachments.map((att) => (
+        att.type === 'image' ? (
+          <a key={att.id} href={att.url} target="_blank" rel="noopener noreferrer" className="block">
+            <img src={att.url} alt={att.name} className="max-w-[300px] max-h-[200px] rounded-lg border border-white/10 object-cover" />
+          </a>
+        ) : (
+          <div key={att.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.04]">
+            <Icon name={att.type === 'audio' ? 'audio_file' : 'attach_file'} size={16} className="text-slate-400" />
+            <div className="min-w-0">
+              <p className="text-[11px] text-slate-200 truncate max-w-[180px]">{att.name}</p>
+              <p className="text-[10px] text-slate-500">{formatSize(att.size)}</p>
             </div>
-          )}
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] ${msg.role === 'user' ? 'order-1' : ''}`}>
-                {/* CoT Steps */}
-                {msg.cotSteps && (
-                  <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Icon name="psychology" size={16} className="text-primary" />
-                      <span className="text-xs font-medium text-primary">思维链路 (Chain of Thought)</span>
-                    </div>
-                    <div className="relative">
-                      {msg.cotSteps.map((step, idx) => {
-                        const si = STEP_ICON[step.status];
-                        const isLast = idx === (msg.cotSteps?.length ?? 0) - 1;
-                        return (
-                          <div key={step.id} className="flex items-start gap-2 relative">
-                            {!isLast && (
-                              <div className="absolute left-[7px] top-[18px] w-px h-[calc(100%+2px)] bg-white/10" />
-                            )}
-                            <Icon name={si.icon} size={16} className={`${si.cls} relative z-10`} />
-                            <div className="min-w-0 pb-2.5">
-                              <span className="text-xs font-medium text-slate-200">{step.label}</span>
-                              <span className="text-xs text-slate-400 ml-1.5">— {step.detail}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Bubble */}
-                <div
-                  className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed [&_code]:text-primary [&_code]:bg-white/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono ${
-                    msg.role === 'user'
-                      ? 'bg-bg-active text-slate-100 chat-bubble-sent'
-                      : 'bg-white/5 text-slate-200 chat-bubble-received'
-                  }`}
-                  {...(msg.html ? { dangerouslySetInnerHTML: { __html: msg.html } } : { children: msg.text })}
-                />
-                <p className={`text-[10px] text-slate-500 mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
-                  {msg.time}{msg.role === 'user' ? ' · 已送达' : ''}
-                </p>
-              </div>
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input area */}
-        <div className="border-t border-white/10 px-6 py-3">
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <button type="button" onClick={() => useToastStore.getState().addToast('附件上传功能开发中', 'info')} className="text-slate-500 hover:text-slate-300 transition-colors">
-              <Icon name="attach_file" size={20} />
-            </button>
-            <button type="button" onClick={() => useToastStore.getState().addToast('语音输入功能开发中', 'info')} className="text-slate-500 hover:text-slate-300 transition-colors">
-              <Icon name="mic" size={20} />
-            </button>
-            <input
-              type="text"
-              placeholder="发送消息或输入 '/' 唤起指令圈…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 outline-none"
-            />
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={!input.trim() || isSending}
-              className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white hover:bg-primary-dark transition-colors disabled:opacity-40"
-            >
-              <Icon name="send" size={18} />
-            </button>
           </div>
-        </div>
-      </div>
-
-      {/* Right panel — task monitor */}
-      <TaskMonitorPanel
-        onOpenTaskDetail={() => setShowDrawer(true)}
-        onReply={handleReply}
-      />
-
-      {/* Task detail drawer */}
-      {showDrawer && <TaskDetailDrawer onClose={() => setShowDrawer(false)} />}
-
-      {/* IM Reply modal */}
-      {replyCtx && (
-        <IMReplyModal
-          roomId={replyCtx.roomId}
-          senderName={`${replyCtx.source} · ${replyCtx.sender}`}
-          originalMessage={replyCtx.message}
-          onClose={() => setReplyCtx(null)}
-        />
-      )}
+        )
+      ))}
     </div>
   );
 }
 
-/* Sidebar wrapper — reuses OpenClawSidebar with uiStore state */
-import { OpenClawSidebar } from './OpenClawSidebar';
-import { Sidebar } from '../../layouts/Sidebar';
-
-export function OpenClawSidebarWrapper() {
-  const selectedAgent = useUIStore((s) => s.selectedAgentId);
-  const setSelectedAgent = useUIStore((s) => s.setSelectedAgentId);
+function MessageBubble({ msg, openDrawer }: { msg: CoTMessage; openDrawer: (c: OpenClawDrawerContent) => void }) {
   return (
-    <Sidebar>
-      <OpenClawSidebar selectedAgentId={selectedAgent} onSelectAgent={setSelectedAgent} />
-    </Sidebar>
+    <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[70%] ${msg.role === 'user' ? 'order-1' : ''}`}>
+        {msg.cotSteps && msg.cotSteps.length > 0 && (
+          <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Icon name="psychology" size={16} className="text-primary" />
+                <span className="text-xs font-medium text-primary">思维链路</span>
+                <span className="text-[10px] text-slate-500">
+                  {msg.cotSteps.length} 步骤 · {msg.cotSteps.filter((s) => s.status === 'done').length} 完成
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => openDrawer({ type: 'cot-detail', title: '推理过程', data: { messageId: msg.id } })}
+                className="text-[11px] text-primary hover:text-primary/80 flex items-center gap-1"
+              >
+                展开推理过程
+                <Icon name="chevron_right" size={14} />
+              </button>
+            </div>
+            {msg.cotSteps.length > 0 && (
+              <p className="text-[11px] text-slate-400 mt-1.5 truncate">
+                {msg.cotSteps[msg.cotSteps.length - 1].label} — {msg.cotSteps[msg.cotSteps.length - 1].detail}
+              </p>
+            )}
+          </div>
+        )}
+
+        {msg.blocks && msg.blocks.length > 0 && (
+          <div className="mb-2">
+            <MessageBlockRenderer blocks={msg.blocks} onOpenDrawer={openDrawer} />
+          </div>
+        )}
+
+        <div
+          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed [&_code]:text-primary [&_code]:bg-white/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono ${
+            msg.role === 'user'
+              ? 'bg-bg-active text-slate-100 chat-bubble-sent'
+              : 'bg-white/5 text-slate-200 chat-bubble-received'
+          } ${msg.role !== 'user' ? 'openclaw-markdown [&_p]:mb-1.5 [&_p:last-child]:mb-0 [&_strong]:text-slate-100 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:mb-1.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:mb-1.5 [&_li]:mb-0.5 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-1.5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:text-slate-400 [&_blockquote]:my-1.5 [&_hr]:border-white/10 [&_hr]:my-2' : ''}`}
+        >
+          {msg.html ? (
+            <div dangerouslySetInnerHTML={{ __html: msg.html }} />
+          ) : msg.role !== 'user' && msg.text ? (
+            <Markdown remarkPlugins={[remarkGfm]}>{msg.text}</Markdown>
+          ) : (
+            msg.text
+          )}
+        </div>
+
+        {msg.attachments && msg.attachments.length > 0 && (
+          <AttachmentList attachments={msg.attachments} />
+        )}
+
+        <p className={`text-[10px] text-slate-500 mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
+          {formatTime(msg.timestamp)}{msg.role === 'user' ? ' · 已送达' : ''}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function OpenClawPage() {
+  const subView = useUIStore((s) => s.subView);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const drawerContent = useOpenClawStore((s) => s.drawerContent);
+  const openDrawer = useOpenClawStore((s) => s.openDrawer);
+  const activeSharedAgentId = useOpenClawStore((s) => s.activeSharedAgentId);
+  const returnToPrimary = useOpenClawStore((s) => s.returnToPrimaryAgent);
+  const discussingNotificationId = useOpenClawStore((s) => s.discussingNotificationId);
+  const discussingDecisionId = useOpenClawStore((s) => s.discussingDecisionId);
+  const discussingTaskId = useOpenClawStore((s) => s.discussingTaskId);
+  const discussingGoalId = useOpenClawStore((s) => s.discussingGoalId);
+  const sharedAgents = useAgentStore((s) => s.sharedAgents);
+
+  const [radarCollapsed, setRadarCollapsed] = useState(false);
+
+  const activeSharedAgent = activeSharedAgentId
+    ? sharedAgents.find((a) => a.id === activeSharedAgentId)
+    : null;
+
+  const { messages, sendMessage, isSending } = useAgentChat();
+
+  useEffect(() => {
+    useOpenClawStore.getState().initConversation();
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length, discussingNotificationId, discussingDecisionId, discussingTaskId, discussingGoalId]);
+
+  /** When discussion card appears, scroll to top to show it in viewport */
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (discussingNotificationId || discussingDecisionId || discussingTaskId || discussingGoalId) {
+      requestAnimationFrame(() => {
+        scrollAreaRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  }, [discussingNotificationId, discussingDecisionId, discussingTaskId, discussingGoalId]);
+
+  const handleSend = useCallback((text: string, attachments?: Attachment[]) => {
+    if ((!text.trim() && !attachments?.length) || isSending) return;
+    sendMessage(text, attachments);
+  }, [isSending, sendMessage]);
+
+  if (subView === 'openclaw:task-detail') {
+    return <TaskDetailView />;
+  }
+
+  return (
+    <div className="flex h-full">
+      {/* A: Event radar */}
+      <AttentionColumn
+        collapsed={radarCollapsed}
+        onToggleCollapse={() => setRadarCollapsed(!radarCollapsed)}
+      />
+
+      {/* B: Notification detail — message types use original 4-column with EventDetailPanel */}
+      {discussingNotificationId && <EventDetailPanel />}
+
+      {/* C: Command console — decision/task/goal use C column cards */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Shared agent header (data-driven) */}
+        {activeSharedAgent && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 bg-white/[0.02] shrink-0">
+            <button
+              type="button"
+              onClick={returnToPrimary}
+              className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] transition-colors"
+            >
+              <Icon name="arrow_back" size={16} />
+            </button>
+            <Icon name={activeSharedAgent.icon || 'smart_toy'} size={18} className="text-primary" />
+            <span className="text-sm font-medium text-slate-200">{activeSharedAgent.name}</span>
+            <span className="text-xs text-slate-500">{activeSharedAgent.role}</span>
+          </div>
+        )}
+
+        {/* Scrollable area — data-driven content */}
+        <div ref={scrollAreaRef} className="flex-1 overflow-y-auto dcf-scrollbar px-6 py-4 space-y-4">
+          {/* Discussion mode: context anchors (decision/task/goal in C column) */}
+          {discussingDecisionId && <DecisionInitPage />}
+          {discussingTaskId && <TaskInitPage onOpenDrawer={openDrawer} />}
+          {discussingGoalId && <GoalInitPage onOpenDrawer={openDrawer} />}
+
+          {/* Welcome page — only when no active discussion and no messages */}
+          {!discussingNotificationId && !discussingDecisionId && !discussingTaskId && !discussingGoalId && messages.length === 0 && (
+            <OpenClawWelcomePage onStartChat={(text) => sendMessage(text)} />
+          )}
+
+          {/* Full message stream */}
+          {messages.map((msg) => (
+            <MessageBubble key={msg.id} msg={msg} openDrawer={openDrawer} />
+          ))}
+
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Composer — always present */}
+        <div className="relative shrink-0">
+          <OpenClawComposer
+            onSend={handleSend}
+            disabled={isSending}
+            placeholder={
+              discussingNotificationId
+                ? (useNotificationStore.getState().notifications.find(n => n.id === discussingNotificationId)?.channel === 'email'
+                  ? '输入邮件回复要求，如"修改草稿"、"用正式语气重写"…'
+                  : '向 Agent 提问或下达指令…')
+                : '发送消息或输入 \'/\' 唤起指令圈…'
+            }
+            autoFocus
+          />
+        </div>
+      </div>
+
+      {/* D: Intelligence panel */}
+      {drawerContent && <OpenClawDrawer />}
+    </div>
   );
 }

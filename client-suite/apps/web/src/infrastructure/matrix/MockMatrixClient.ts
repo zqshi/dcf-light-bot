@@ -28,11 +28,13 @@ const DEMO_USER: UserProfile = {
 interface RawRoom {
   roomId: string;
   name: string;
-  type: 'dm' | 'bot' | 'group' | 'subscription';
+  type: 'dm' | 'bot' | 'group' | 'subscription' | 'system';
   dmUserId: string | null;
   unread: number;
   lastMessage: string;
   lastTs: number;
+  pinned?: boolean;
+  category?: 'system' | 'integration' | 'normal';
 }
 
 interface RawMessage {
@@ -58,18 +60,41 @@ function createDemoData() {
   const hour = 3_600_000;
 
   const rooms: RawRoom[] = [
+    // System rooms (pinned)
+    { roomId: '!approval-center:dcf.local', name: '审批中心', type: 'system', dmUserId: '@approval-bot:dcf.local', unread: 2, lastMessage: '', lastTs: 0, category: 'system' },
+    { roomId: '!sys-notify:dcf.local', name: '系统通知', type: 'system', dmUserId: '@sys-notify-bot:dcf.local', unread: 3, lastMessage: '', lastTs: 0, category: 'system' },
+    // Bot rooms
     { roomId: '!factory:dcf.local', name: '数字工厂', type: 'bot', dmUserId: '@dcf-factory-bot:dcf.local', unread: 1, lastMessage: '', lastTs: 0 },
     { roomId: '!agent-coder:dcf.local', name: '小码 · 代码助手', type: 'bot', dmUserId: '@agent-coder:dcf.local', unread: 0, lastMessage: '', lastTs: 0 },
     { roomId: '!agent-writer:dcf.local', name: '小文 · 文档写手', type: 'bot', dmUserId: '@agent-writer:dcf.local', unread: 3, lastMessage: '', lastTs: 0 },
+    // DM rooms
     { roomId: '!lisi:dcf.local', name: '李四', type: 'dm', dmUserId: '@lisi:dcf.local', unread: 0, lastMessage: '', lastTs: 0 },
     { roomId: '!wangwu:dcf.local', name: '王五', type: 'dm', dmUserId: '@wangwu:dcf.local', unread: 2, lastMessage: '', lastTs: 0 },
+    // Group rooms
     { roomId: '!team-frontend:dcf.local', name: '前端技术组', type: 'group', dmUserId: null, unread: 5, lastMessage: '', lastTs: 0 },
     { roomId: '!team-product:dcf.local', name: '产品讨论组', type: 'group', dmUserId: null, unread: 0, lastMessage: '', lastTs: 0 },
+    // Integration / subscription rooms (from dissolved "动态")
+    { roomId: '!jira-bot:dcf.local', name: 'Jira 项目动态', type: 'subscription', dmUserId: '@jira-bot:dcf.local', unread: 1, lastMessage: '', lastTs: 0, category: 'integration' },
     { roomId: '!ai-intel:dcf.local', name: 'AI 行业助手', type: 'subscription', dmUserId: null, unread: 1, lastMessage: '', lastTs: 0 },
-    { roomId: '!company-news:dcf.local', name: '公司公告', type: 'subscription', dmUserId: null, unread: 3, lastMessage: '', lastTs: 0 },
+    { roomId: '!security-news:dcf.local', name: '安全与公告', type: 'subscription', dmUserId: '@security-bot:dcf.local', unread: 2, lastMessage: '', lastTs: 0, category: 'integration' },
   ];
 
   const messages: Record<string, RawMessage[]> = {
+    // ── System: 审批中心 ──
+    '!approval-center:dcf.local': [
+      { id: 'ac1', sender: '@approval-bot:dcf.local', senderName: '审批中心', type: 'm.text', body: '审批中心为您聚合所有审批事项，可在此直接处理。', ts: now - 6 * hour, isOwn: false },
+      { id: 'ac2', sender: '@approval-bot:dcf.local', senderName: '审批中心', type: 'm.text', body: '权限申请', ts: now - 2 * hour, isOwn: false, approvalRequest: { applicant: '李四', documentName: '2024Q1_财务报表汇总', documentContent: '<h1>2024Q1 财务报表汇总</h1><p>主营业务收入 3,280.5 万元</p>', reason: '需要更新Q1报表数据，截止日期临近。' } },
+      { id: 'ac3', sender: '@approval-bot:dcf.local', senderName: '审批中心', type: 'm.text', body: '差旅报销申请', ts: now - hour, isOwn: false, approvalRequest: { applicant: '王五', documentName: '差旅报销单 ¥3,200', reason: '上海出差 3 天差旅费报销，含机票+酒店+交通。' } },
+      { id: 'ac4', sender: '@approval-bot:dcf.local', senderName: '审批中心', type: 'm.text', body: '采购申请已通过', ts: now - 30 * min, isOwn: false, systemNotification: { notificationType: 'approved', documentName: '采购申请 — MacBook Pro', approver: '赵六' } },
+    ],
+    // ── System: 系统通知 ──
+    '!sys-notify:dcf.local': [
+      { id: 'sn1', sender: '@sys-notify-bot:dcf.local', senderName: '系统通知', type: 'm.text', body: '🔧 平台将于今晚22:00进行例行维护，预计持续30分钟，届时服务可能短暂中断。', ts: now - 5 * hour, isOwn: false },
+      { id: 'sn2', sender: '@sys-notify-bot:dcf.local', senderName: '系统通知', type: 'm.text', body: '⚠️ 检测到新设备登录（IP: 203.*.*.* 上海），请确认是否为本人操作。如非本人，请立即修改密码。', ts: now - 3 * hour, isOwn: false },
+      { id: 'sn3', sender: '@sys-notify-bot:dcf.local', senderName: '系统通知', type: 'm.text', body: '权限变更通知', ts: now - 2 * hour, isOwn: false, systemNotification: { notificationType: 'approved', documentName: '前端重构设计规范 v2.0', documentId: 'doc-design-spec-v2', approver: '王五', reason: '需要更新组件库迁移章节' } },
+      { id: 'sn4', sender: '@sys-notify-bot:dcf.local', senderName: '系统通知', type: 'm.text', body: '✅ 您的报销申请（¥2,800）已由赵六审批通过，预计 3 个工作日内到账。', ts: now - hour, isOwn: false },
+    ],
+    // ── Bot: 数字工厂 ──
     '!factory:dcf.local': [
       { id: 'f1', sender: '@dcf-factory-bot:dcf.local', senderName: '数字工厂', type: 'm.text', body: '欢迎来到数字工厂！我可以帮你创建和管理数字员工。\n\n你可以说：\n- "创建一个前端开发助手"\n- "查看我的数字员工列表"', ts: now - 2 * hour, isOwn: false },
       { id: 'f2', sender: DEMO_USER.userId, senderName: DEMO_USER.displayName, type: 'm.text', body: '帮我创建一个前端开发助手', ts: now - 2 * hour + 5 * min, isOwn: true },
@@ -103,14 +128,20 @@ function createDemoData() {
     '!team-product:dcf.local': [
       { id: 'p1', sender: '@wangwu:dcf.local', senderName: '王五', type: 'm.text', body: 'PRD 初稿我放到文档中心了', ts: now - 8 * hour, isOwn: false },
     ],
+    // ── Integration: Jira 项目动态 ──
+    '!jira-bot:dcf.local': [
+      { id: 'jb1', sender: '@jira-bot:dcf.local', senderName: 'Jira 项目动态', type: 'm.text', body: '✅ PROD-2048: 移动端订阅功能优化 — Sarah Chen 变更为「已完成」', ts: now - 3 * hour, isOwn: false },
+      { id: 'jb2', sender: '@jira-bot:dcf.local', senderName: 'Jira 项目动态', type: 'm.text', body: '🔀 feat/dark-mode 分支已合并到 main — GitHub Actions CI 全部通过，覆盖率 94%', ts: now - hour, isOwn: false },
+    ],
+    // ── Subscription: AI 行业助手 ──
     '!ai-intel:dcf.local': [
       { id: 'ai1', sender: '@ai-intel:dcf.local', senderName: 'AI 行业助手', type: 'm.text', body: '您好！这是为您定制的今日行业深度动态简报。', ts: now - 30 * min, isOwn: false },
       { id: 'ai2', sender: '@ai-intel:dcf.local', senderName: 'AI 行业助手', type: 'm.text', body: '低空经济与 AI 手机市场每日简报', ts: now - 28 * min, isOwn: false, briefing: { title: '低空经济与 AI 手机市场每日简报', date: '2024年5月24日', summary: '今日行业动态聚焦于政策红利释放与硬件生态革新。低空经济领域迎来实质性进展，AI原生OS完成重要升级。', news: [{ title: '亿航智能 EH216-S 完成跨海首航，低空物流进入新阶段', category: '政策与基建', categoryColor: '#34C759', source: '新华社', time: '2小时前' }, { title: '手机大厂发布端侧 7B 模型优化方案，推理速度提升 40%', category: '核心技术', categoryColor: '#007AFF', source: '智东西', time: '5小时前' }, { title: '深圳出台低空经济三年行动方案，计划投资超 200 亿', category: '地方政策', categoryColor: '#AF52DE', source: '财联社', time: '8小时前' }] } },
     ],
-    '!company-news:dcf.local': [
-      { id: 'cn1', sender: '@system:dcf.local', senderName: '公司公告', type: 'm.text', body: '关于2024年Q2全员大会的通知', ts: now - 2 * hour, isOwn: false },
-      { id: 'cn2', sender: '@system:dcf.local', senderName: '公司公告', type: 'm.text', body: '新的办公区域将于下月启用，请各部门提前做好搬迁准备。', ts: now - hour, isOwn: false },
-      { id: 'cn3', sender: '@system:dcf.local', senderName: '系统通知', type: 'm.text', body: '权限申请', ts: now - 45 * min, isOwn: false, approvalRequest: { applicant: '李明', documentName: '2024Q1_财务报表汇总', documentContent: '<h1>2024Q1 财务报表汇总</h1><h2>一、收入概览</h2><table style="width:100%;border-collapse:collapse;margin:12px 0"><tr style="background:#f5f5f5"><th style="border:1px solid #ddd;padding:8px;text-align:left">科目</th><th style="border:1px solid #ddd;padding:8px;text-align:right">金额 (万元)</th></tr><tr><td style="border:1px solid #ddd;padding:8px">主营业务收入</td><td style="border:1px solid #ddd;padding:8px;text-align:right">3,280.5</td></tr><tr><td style="border:1px solid #ddd;padding:8px">其他业务收入</td><td style="border:1px solid #ddd;padding:8px;text-align:right">145.2</td></tr><tr style="font-weight:bold"><td style="border:1px solid #ddd;padding:8px">合计</td><td style="border:1px solid #ddd;padding:8px;text-align:right">3,425.7</td></tr></table><h2>二、税务抵扣明细</h2><p>本季度增值税进项抵扣合计 <strong>486.3 万元</strong>，其中：</p><ul><li>原材料采购：312.1 万元</li><li>设备租赁：98.7 万元</li><li>技术服务费：75.5 万元</li></ul><p style="color:#e65100;margin-top:12px">⚠ 注意：技术服务费抵扣凭证需在 3 月 31 日前补齐。</p>', reason: '需要更新Q1报表数据，特别是税务抵扣明细需要修正。截止日期临近，需紧急处理。' } },
+    // ── Integration: 安全与公告 ──
+    '!security-news:dcf.local': [
+      { id: 'sec1', sender: '@security-bot:dcf.local', senderName: '安全与公告', type: 'm.text', body: '🚨 Log4j 3.x 新高危漏洞公告 (CVE-2026-XXXX)，影响所有 3.0-3.2 版本，建议立即升级。', ts: now - 4 * hour, isOwn: false },
+      { id: 'sec2', sender: '@security-bot:dcf.local', senderName: '安全与公告', type: 'm.text', body: '📢 关于2024年Q2全员大会的通知：时间 3月15日 14:00，地点：三楼报告厅。请各部门提前安排。', ts: now - 2 * hour, isOwn: false },
     ],
   };
 
@@ -160,6 +191,8 @@ function rawToRoom(raw: RawRoom): ChatRoom {
     lastMessage: raw.lastMessage,
     lastMessageTs: raw.lastTs,
     unreadCount: raw.unread,
+    pinned: raw.pinned,
+    category: raw.category,
   });
 }
 

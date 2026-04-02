@@ -185,8 +185,8 @@ export function ContactsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-text-primary">
             {activeDept === 'all' ? '全部成员' : (buildDepartments(contacts).find((d) => d.id === activeDept)?.label ?? activeDept)}
           </h2>

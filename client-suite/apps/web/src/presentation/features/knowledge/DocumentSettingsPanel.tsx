@@ -2,12 +2,14 @@
  * DocumentSettingsPanel — 文档设置面板 (km_1 对齐)
  * 展示标题/分类/访问权限/协作人员/高级设置(水印/评论/有效期/防复制)
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { Avatar } from '../../components/ui/Avatar';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { useToastStore } from '../../../application/stores/toastStore';
+import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
+import { SYSTEM_CATEGORIES } from '../../../domain/knowledge/Category';
 
 type AccessLevel = 'public' | 'specific' | 'private';
 
@@ -22,14 +24,19 @@ interface DocumentSettingsPanelProps {
 }
 
 export function DocumentSettingsPanel({ onClose }: DocumentSettingsPanelProps) {
+  const selectedDocumentId = useKnowledgeStore((s) => s.selectedDocumentId);
+  const documents = useKnowledgeStore((s) => s.documents);
+  const doc = useMemo(() => documents.find((d) => d.id === selectedDocumentId), [documents, selectedDocumentId]);
+
   const [access, setAccess] = useState<AccessLevel>('public');
-  const [watermark, setWatermark] = useState(true);
-  const [preventCopy, setPreventCopy] = useState(false);
+  const sec = doc?.securitySettings;
+  const [watermark, setWatermark] = useState(sec?.watermark ?? true);
+  const [preventCopy, setPreventCopy] = useState(sec?.preventCopy ?? false);
   const [collabs, setCollabs] = useState<string[]>(['张', '李']);
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('企业知识库');
+  const [title, setTitle] = useState(doc?.title ?? '');
+  const [category, setCategory] = useState(doc?.categoryId ?? 'cat-official');
   const [commentPerm, setCommentPerm] = useState('所有人可评论');
-  const [expiryDate, setExpiryDate] = useState('2024-12-31');
+  const [expiryDate, setExpiryDate] = useState(doc?.expiryDate ?? '2024-12-31');
 
   return (
     <div className="w-80 border-l border-border bg-bg-secondary flex flex-col min-h-0">
@@ -60,9 +67,9 @@ export function DocumentSettingsPanel({ onClose }: DocumentSettingsPanelProps) {
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-text-secondary">选择分类</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-bg-white-var focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
-            <option>企业知识库</option>
-            <option>部门资产</option>
-            <option>个人空间</option>
+            {SYSTEM_CATEGORIES.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
           </select>
         </div>
 

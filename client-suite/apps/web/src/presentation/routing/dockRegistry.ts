@@ -5,7 +5,7 @@ export interface DockRoute {
   key: DockTab;
   icon: string;
   label: string;
-  Sidebar: ComponentType;
+  Sidebar: ComponentType | null;
   Main: ComponentType;
   position: 'top' | 'bottom';
 }

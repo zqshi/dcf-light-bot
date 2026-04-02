@@ -9,8 +9,8 @@ import { Dock } from './Dock';
 import { useUIStore } from '../../application/stores/uiStore';
 import { appEvents } from '../../application/events/eventBus';
 import { getMatrixClient, globalSelectRoom } from '../../application/hooks/useMatrixClient';
+import { useToastStore } from '../../application/stores/toastStore';
 import { OpenClawHeader } from '../features/openclaw/OpenClawHeader';
-import { FloatingNotification } from '../features/openclaw/FloatingNotification';
 
 interface AppShellProps {
   sidebar: ReactNode;
@@ -59,6 +59,9 @@ export function AppShell({ sidebar, children, onLogout }: AppShellProps) {
           useUIStore.getState().setSubView(null);
         }
       }),
+      appEvents.on('im:cross-channel-reply', ({ channel, sender, message }) => {
+        useToastStore.getState().addToast(`已向 ${channel} 渠道发送回复`, 'success');
+      }),
     ];
     return () => unsubs.forEach((u) => u());
   }, []);
@@ -76,7 +79,6 @@ export function AppShell({ sidebar, children, onLogout }: AppShellProps) {
           {children}
         </main>
       </div>
-      {isOC && <FloatingNotification />}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+/** @deprecated Use inline filter chips in AppsGrid */
 import { Icon } from '../../components/ui/Icon';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { SectionLabel } from '../../components/ui/SectionLabel';

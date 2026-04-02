@@ -1,70 +1,54 @@
 /**
  * VersionHistoryPanel — 版本历史面板 (document_version_history 对齐)
  * 版本列表 + 当前预览版本提示 + 恢复按钮 + diff统计 + 显示对比修改开关
+ *
+ * 数据来源：knowledgeStore.versions (通过 fetchVersions)
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { Avatar } from '../../components/ui/Avatar';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 import { useToastStore } from '../../../application/stores/toastStore';
-
-interface VersionEntry {
-  id: string;
-  label: string;
-  author: string;
-  avatar: string;
-  time: string;
-  description: string;
-  isCurrent?: boolean;
-  additions?: number;
-  deletions?: number;
-}
-
-const MOCK_VERSIONS: VersionEntry[] = [
-  {
-    id: 'v-current',
-    label: '李伟 (当前版本)',
-    author: '李伟',
-    avatar: '李',
-    time: '刚才',
-    description: '修正了末尾页面的错别字和排版间距。',
-    isCurrent: true,
-  },
-  {
-    id: 'v3',
-    label: '版本 3',
-    author: '张三',
-    avatar: '张',
-    time: '2小时前',
-    description: '更新了市场预算分配，增加了50万推广费。',
-    additions: 12,
-    deletions: 4,
-  },
-  {
-    id: 'v2',
-    label: '版本 2',
-    author: '王五',
-    avatar: '王',
-    time: '昨天 16:45',
-    description: '添加了东南亚市场的时间节点规划。',
-  },
-  {
-    id: 'v1',
-    label: '版本 1',
-    author: '产品研发部',
-    avatar: '产',
-    time: '2024-08-15',
-    description: '初始版本提交：包含基础架构和核心业务描述。',
-  },
-];
+import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
 
 interface VersionHistoryPanelProps {
   onClose?: () => void;
+  documentId?: string;
 }
 
-export function VersionHistoryPanel({ onClose }: VersionHistoryPanelProps) {
-  const [selectedVersion, setSelectedVersion] = useState('v3');
+export function VersionHistoryPanel({ onClose, documentId }: VersionHistoryPanelProps) {
   const [showDiff, setShowDiff] = useState(true);
+
+  const selectedDocumentId = useKnowledgeStore((s) => s.selectedDocumentId);
+  const versions = useKnowledgeStore((s) => s.versions);
+  const fetchVersions = useKnowledgeStore((s) => s.fetchVersions);
+  const restoreVersion = useKnowledgeStore((s) => s.restoreVersion);
+
+  const docId = documentId || selectedDocumentId;
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (docId) fetchVersions(docId);
+  }, [docId, fetchVersions]);
+
+  // Auto-select first non-current version
+  useEffect(() => {
+    if (versions.length > 1 && !selectedVersionId) {
+      setSelectedVersionId(versions[1]?.id ?? null);
+    }
+  }, [versions, selectedVersionId]);
+
+  const selectedVersion = versions.find((v) => v.id === selectedVersionId);
+
+  const handleRestore = async () => {
+    if (!selectedVersionId) return;
+    const ok = await restoreVersion(selectedVersionId);
+    if (ok) {
+      useToastStore.getState().addToast('已恢复至所选版本', 'success');
+    } else {
+      useToastStore.getState().addToast('该版本没有内容快照，无法恢复', 'info');
+    }
+  };
 
   return (
     <div className="w-80 border-l border-border bg-bg-secondary overflow-y-auto flex flex-col">
@@ -80,16 +64,19 @@ export function VersionHistoryPanel({ onClose }: VersionHistoryPanelProps) {
 
       <div className="flex-1 overflow-y-auto">
         {/* Current preview hint */}
-        <div className="px-4 py-3 text-xs text-text-muted">
-          当前预览版本：<span className="font-medium text-primary">版本 3</span>
-        </div>
+        {selectedVersion && (
+          <div className="px-4 py-3 text-xs text-text-muted">
+            当前预览版本：<span className="font-medium text-primary">版本 {selectedVersion.version}</span>
+          </div>
+        )}
 
         {/* Restore button */}
         <div className="px-4 mb-4">
           <button
             type="button"
-            onClick={() => useToastStore.getState().addToast('已恢复至所选版本', 'success')}
-            className="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            onClick={handleRestore}
+            disabled={!selectedVersionId}
+            className="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Icon name="history" size={16} />
             恢复此版本
@@ -98,40 +85,50 @@ export function VersionHistoryPanel({ onClose }: VersionHistoryPanelProps) {
 
         {/* Version timeline */}
         <div className="px-4 space-y-1">
-          {MOCK_VERSIONS.map((v) => {
-            const isSelected = selectedVersion === v.id;
+          {versions.map((v, i) => {
+            const isSelected = selectedVersionId === v.id;
+            const isCurrent = i === 0;
+            const authorLetter = v.author.name.charAt(0);
             return (
               <button
                 key={v.id}
                 type="button"
-                onClick={() => setSelectedVersion(v.id)}
+                onClick={() => setSelectedVersionId(v.id)}
                 className={`w-full text-left p-3 rounded-xl transition-colors ${
                   isSelected ? 'bg-primary/5 border border-primary/20' : 'hover:bg-bg-hover border border-transparent'
                 }`}
               >
                 <div className="flex items-start gap-2.5">
-                  <Avatar letter={v.avatar} size={32} />
+                  <Avatar letter={authorLetter} size={32} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-text-primary'}`}>
-                        {v.label}
+                        {isCurrent ? `${v.author.name} (当前版本)` : `版本 ${v.version}`}
                       </span>
-                      <span className="text-[10px] text-text-muted shrink-0">{v.time}</span>
+                      <span className="text-[10px] text-text-muted shrink-0">
+                        {new Date(v.createdAt).toLocaleDateString('zh-CN')}
+                      </span>
                     </div>
-                    <p className="text-[11px] text-text-secondary mt-0.5 line-clamp-2">{v.description}</p>
-                    {(v.additions || v.deletions) && (
+                    <p className="text-[11px] text-text-secondary mt-0.5 line-clamp-2">{v.changeDescription}</p>
+                    {v.totalChanges > 0 && (
                       <div className="flex items-center gap-2 mt-1.5">
-                        {v.additions && (
+                        {v.diffStats.added > 0 && (
                           <span className="text-[10px] font-medium text-success bg-success/10 px-1.5 py-0.5 rounded">
-                            +{v.additions} 处修改
+                            +{v.diffStats.added} 处修改
                           </span>
                         )}
-                        {v.deletions && (
+                        {v.diffStats.removed > 0 && (
                           <span className="text-[10px] font-medium text-error bg-error/10 px-1.5 py-0.5 rounded">
-                            -{v.deletions} 处删除
+                            -{v.diffStats.removed} 处删除
                           </span>
                         )}
                       </div>
+                    )}
+                    {/* Status badge */}
+                    {v.status !== 'auto' && (
+                      <span className="inline-block mt-1 text-[9px] font-medium text-text-muted bg-fill-tertiary px-1.5 py-0.5 rounded">
+                        {v.statusLabel}
+                      </span>
                     )}
                   </div>
                 </div>

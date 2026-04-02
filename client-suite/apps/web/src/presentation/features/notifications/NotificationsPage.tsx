@@ -145,9 +145,9 @@ export function NotificationsPage() {
                   if (n.isUnread) markAsRead(n.id);
                   // Navigate based on notification type
                   if (n.type === 'mention') {
-                    useUIStore.getState().setDock('messages');
+                    appEvents.emit('navigate:chat', { roomId: n.roomId ?? '!sys-notify:dcf.local' });
                   } else if (n.type === 'approval') {
-                    setActiveTab('approvals');
+                    appEvents.emit('navigate:chat', { roomId: '!approval-center:dcf.local' });
                   } else if (n.type === 'update') {
                     useUIStore.getState().setDock('knowledge');
                   }

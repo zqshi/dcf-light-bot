@@ -30,10 +30,10 @@ describe('MockMatrixClient', () => {
     await vi.waitFor(() => expect(syncCb).toHaveBeenCalled());
   });
 
-  it('getRooms returns 9 demo rooms', async () => {
+  it('getRooms returns 12 demo rooms', async () => {
     await client.login('', '', '');
     const rooms = client.getRooms();
-    expect(rooms.length).toBe(9);
+    expect(rooms.length).toBe(12);
     expect(rooms.some((r) => r.name === '数字工厂')).toBe(true);
   });
 

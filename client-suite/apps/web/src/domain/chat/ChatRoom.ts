@@ -9,6 +9,8 @@ export interface ChatRoomProps {
   lastMessage?: string;
   lastMessageTs?: number;
   unreadCount?: number;
+  pinned?: boolean;
+  category?: 'system' | 'integration' | 'normal';
 }
 
 export class ChatRoom {
@@ -20,6 +22,8 @@ export class ChatRoom {
   readonly lastMessage?: string;
   readonly lastMessageTs?: number;
   readonly unreadCount: number;
+  readonly pinned: boolean;
+  readonly category: 'system' | 'integration' | 'normal';
 
   private constructor(props: ChatRoomProps) {
     this.id = props.id;
@@ -30,6 +34,8 @@ export class ChatRoom {
     this.lastMessage = props.lastMessage;
     this.lastMessageTs = props.lastMessageTs;
     this.unreadCount = props.unreadCount ?? 0;
+    this.pinned = props.pinned ?? false;
+    this.category = props.category ?? 'normal';
   }
 
   static create(props: ChatRoomProps): ChatRoom {
@@ -54,6 +60,8 @@ export class ChatRoom {
       lastMessage: message,
       lastMessageTs: ts,
       unreadCount: this.unreadCount,
+      pinned: this.pinned,
+      category: this.category,
     });
   }
 
@@ -67,6 +75,23 @@ export class ChatRoom {
       lastMessage: this.lastMessage,
       lastMessageTs: this.lastMessageTs,
       unreadCount: count,
+      pinned: this.pinned,
+      category: this.category,
+    });
+  }
+
+  withPinned(pinned: boolean): ChatRoom {
+    return new ChatRoom({
+      id: this.id,
+      name: this.name,
+      type: this.type,
+      avatarLetter: this.avatarLetter,
+      memberCount: this.memberCount,
+      lastMessage: this.lastMessage,
+      lastMessageTs: this.lastMessageTs,
+      unreadCount: this.unreadCount,
+      pinned,
+      category: this.category,
     });
   }
 
@@ -74,4 +99,27 @@ export class ChatRoom {
     if (!query) return true;
     return this.name.toLowerCase().includes(query.toLowerCase());
   }
+}
+
+/** Actions available in room context menu */
+export type RoomAction = 'pin' | 'unpin' | 'markRead' | 'markUnread';
+
+const ACTIONS_BY_TYPE: Record<RoomType, RoomAction[]> = {
+  dm:           ['pin', 'unpin', 'markRead', 'markUnread'],
+  bot:          ['pin', 'unpin', 'markRead', 'markUnread'],
+  group:        ['pin', 'unpin', 'markRead', 'markUnread'],
+  system:       ['pin', 'unpin', 'markRead'],
+  subscription: ['pin', 'unpin', 'markRead', 'markUnread'],
+};
+
+/** Get applicable context-menu actions for a room based on its current state */
+export function getRoomActions(room: ChatRoom): RoomAction[] {
+  const allowed = ACTIONS_BY_TYPE[room.type] ?? [];
+  return allowed.filter((a) => {
+    if (a === 'pin') return !room.pinned;
+    if (a === 'unpin') return room.pinned;
+    if (a === 'markRead') return room.unreadCount > 0;
+    if (a === 'markUnread') return room.unreadCount === 0;
+    return true;
+  });
 }

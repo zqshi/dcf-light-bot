@@ -15,6 +15,9 @@ const { AuthService } = require('../contexts/identity-access/application/AuthSer
 const { InstanceReconciler } = require('../contexts/tenant-instance/application/InstanceReconciler');
 const { ReleasePreflightService } = require('../contexts/release-management/application/ReleasePreflightService');
 const { DocumentService } = require('../contexts/document/application/DocumentService');
+const { CategoryService } = require('../contexts/document/application/CategoryService');
+const { KnowledgeAuditService } = require('../contexts/document/application/KnowledgeAuditService');
+const { StorageService } = require('../contexts/document/application/StorageService');
 const { WeKnoraService } = require('../integrations/weknora/WeKnoraService');
 const { createServer } = require('./createServer');
 
@@ -153,6 +156,9 @@ async function startApp() {
   const skillService = new SkillService(repo, auditService);
   const assetService = skillService;
   const documentService = new DocumentService(repo, auditService);
+  const categoryService = new CategoryService(repo);
+  const knowledgeAuditService = new KnowledgeAuditService(repo);
+  const storageService = new StorageService(repo);
   const weKnoraService = config.weKnoraEnabled ? new WeKnoraService(config) : null;
   const matrixBot = new MatrixBot(config, logger, instanceService, {
     auditService,
@@ -183,14 +189,17 @@ async function startApp() {
     authService,
     releasePreflightService,
     documentService,
+    categoryService,
+    knowledgeAuditService,
+    storageService,
     weKnoraService
   });
   const server = app.listen(config.port, config.host, () => {
     logger.info('server started', { host: config.host, port: config.port });
   });
 
-  await matrixBot.start();
-  await matrixRelay.start();
+  try { await matrixBot.start(); } catch (e) { logger.warn('matrix bot start failed (homeserver unavailable)', { error: e.message }); }
+  try { await matrixRelay.start(); } catch (e) { logger.warn('matrix relay start failed (homeserver unavailable)', { error: e.message }); }
 
   const bootstrapTimer = setInterval(() => {
     reconciler.tick().catch((error) => logger.error('bootstrap tick failed', { error: error.message }));

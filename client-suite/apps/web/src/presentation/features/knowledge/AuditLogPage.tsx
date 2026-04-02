@@ -1,120 +1,49 @@
 /**
  * AuditLogPage — 审核日志页 (km_12 对齐)
  * 筛选器 + 操作日志表格 + 操作详情面板
+ *
+ * 数据来源：knowledgeStore.auditEntries (通过 fetchAuditLog)
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { Avatar } from '../../components/ui/Avatar';
 import { useToastStore } from '../../../application/stores/toastStore';
-
-type OperationType = 'delete' | 'login' | 'edit' | 'create' | 'permission';
-
-interface AuditEntry {
-  id: string;
-  timestamp: string;
-  operator: string;
-  operatorAvatar: string;
-  operatorRole: string;
-  operatorId: string;
-  type: OperationType;
-  target: string;
-  targetIcon: string;
-  action: string;
-  actionTime: string;
-  resourcePath: string;
-  ip?: string;
-  metadata?: Record<string, string>;
-}
-
-const TYPE_LABEL: Record<OperationType, string> = {
-  delete: '删除文档',
-  login: '登录系统',
-  edit: '编辑文档',
-  create: '创建文档',
-  permission: '权限变更',
-};
-
-const TYPE_STYLE: Record<OperationType, { text: string; bg: string }> = {
-  delete: { text: 'text-error', bg: 'bg-error/10' },
-  login: { text: 'text-warning', bg: 'bg-warning/10' },
-  edit: { text: 'text-primary', bg: 'bg-primary/10' },
-  create: { text: 'text-success', bg: 'bg-success/10' },
-  permission: { text: 'text-purple', bg: 'bg-purple/10' },
-};
-
-const MOCK_ENTRIES: AuditEntry[] = [
-  {
-    id: 'a1',
-    timestamp: '2024-05-23 14:20:05',
-    operator: '李青',
-    operatorAvatar: '李',
-    operatorRole: 'Admin',
-    operatorId: '102938475',
-    type: 'delete',
-    target: '2023_财务结算报表_Final...',
-    targetIcon: 'description',
-    action: '永久删除文件',
-    actionTime: '2024年5月23日 14:20:05',
-    resourcePath: '企业知识库 / 财务中心 / 年度结算 / 2023_财务结算报表_Final.xlsx',
-    ip: '192.168.1.104',
-    metadata: { browser: 'Chrome 125.0.0', os: 'macOS 14.5.0 (Sonoma)', ip: '192.168.1.104', method: 'DELETE', user_agent: 'Mozilla/5.0...Safari/537.36' },
-  },
-  {
-    id: 'a2',
-    timestamp: '2024-05-23 13:45:12',
-    operator: '王志强',
-    operatorAvatar: '王',
-    operatorRole: '',
-    operatorId: '102938476',
-    type: 'login',
-    target: '系统账户',
-    targetIcon: 'person',
-    action: '登录系统',
-    actionTime: '2024年5月23日 13:45:12',
-    resourcePath: '系统',
-    ip: '10.0.1.55',
-  },
-  {
-    id: 'a3',
-    timestamp: '2024-05-23 12:10:33',
-    operator: '张小凡',
-    operatorAvatar: '张',
-    operatorRole: '',
-    operatorId: '102938477',
-    type: 'edit',
-    target: '入职导引手册 v2.0',
-    targetIcon: 'description',
-    action: '编辑文档',
-    actionTime: '2024年5月23日 12:10:33',
-    resourcePath: '企业知识库 / HR / 入职导引手册 v2.0',
-    ip: '172.16.0.88',
-  },
-];
+import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
+import type { AuditEntry } from '../../../domain/knowledge/AuditEntry';
 
 interface AuditLogPageProps {
   onClose?: () => void;
 }
 
 export function AuditLogPage({ onClose }: AuditLogPageProps) {
-  const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(MOCK_ENTRIES[0]);
+  const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
   const [operatorSearch, setOperatorSearch] = useState('');
   const [operationType, setOperationType] = useState('全部类型');
   const [timeRange, setTimeRange] = useState('最近 24 小时');
 
-  const TYPE_FILTER_MAP: Record<string, OperationType | undefined> = {
-    '删除文档': 'delete',
-    '登录系统': 'login',
-    '编辑文档': 'edit',
-    '创建文档': 'create',
-    '权限变更': 'permission',
-  };
+  const auditEntries = useKnowledgeStore((s) => s.auditEntries);
+  const fetchAuditLog = useKnowledgeStore((s) => s.fetchAuditLog);
 
-  const filteredEntries = MOCK_ENTRIES.filter((e) => {
-    if (operatorSearch && !e.operator.includes(operatorSearch) && !e.operatorId.includes(operatorSearch)) return false;
-    if (operationType !== '全部类型' && e.type !== TYPE_FILTER_MAP[operationType]) return false;
-    // timeRange 对 mock 静态数据不做实际过滤，保留接口以备后端对接
-    return true;
-  });
+  useEffect(() => {
+    fetchAuditLog();
+  }, [fetchAuditLog]);
+
+  // Re-fetch with filters when filters change
+  useEffect(() => {
+    const TYPE_MAP: Record<string, string | undefined> = {
+      '删除文档': 'delete',
+      '登录系统': 'login',
+      '编辑文档': 'edit',
+      '创建文档': 'create',
+      '权限变更': 'permission',
+      '发布文档': 'publish',
+      '归档文档': 'archive',
+    };
+    fetchAuditLog({
+      operationType: TYPE_MAP[operationType] as any,
+      search: operatorSearch || undefined,
+    });
+  }, [operationType, operatorSearch, fetchAuditLog]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -134,7 +63,7 @@ export function AuditLogPage({ onClose }: AuditLogPageProps) {
               <button type="button" onClick={() => useToastStore.getState().addToast('日志导出功能开发中', 'info')} className="px-3 py-1.5 text-xs font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-hover flex items-center gap-1.5">
                 <Icon name="download" size={14} /> 导出日志
               </button>
-              <button type="button" onClick={() => useToastStore.getState().addToast('已刷新', 'info')} className="px-3 py-1.5 text-xs font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-hover flex items-center gap-1.5">
+              <button type="button" onClick={() => fetchAuditLog()} className="px-3 py-1.5 text-xs font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-hover flex items-center gap-1.5">
                 <Icon name="refresh" size={14} /> 刷新
               </button>
             </div>
@@ -149,9 +78,13 @@ export function AuditLogPage({ onClose }: AuditLogPageProps) {
               <span className="text-xs text-text-muted">操作类型</span>
               <select value={operationType} onChange={(e) => setOperationType(e.target.value)} className="px-3 py-1.5 text-xs border border-border rounded-lg bg-bg-white-var appearance-none">
                 <option>全部类型</option>
-                <option>删除文档</option>
-                <option>登录系统</option>
+                <option>创建文档</option>
                 <option>编辑文档</option>
+                <option>删除文档</option>
+                <option>发布文档</option>
+                <option>归档文档</option>
+                <option>权限变更</option>
+                <option>登录系统</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -180,16 +113,16 @@ export function AuditLogPage({ onClose }: AuditLogPageProps) {
           <table className="w-full">
             <thead>
               <tr className="bg-fill-tertiary/30 text-left">
-                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">时间戳 (Timestamp)</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">操作人 (Operator)</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">操作类型 (Type)</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">操作对象 (Target)</th>
+                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">时间戳</th>
+                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">操作人</th>
+                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">操作类型</th>
+                <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">操作对象</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted">IP地址</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium text-text-muted text-right">操作</th>
               </tr>
             </thead>
             <tbody>
-              {filteredEntries.map((entry) => (
+              {auditEntries.map((entry) => (
                 <tr
                   key={entry.id}
                   onClick={() => setSelectedEntry(entry)}
@@ -197,25 +130,27 @@ export function AuditLogPage({ onClose }: AuditLogPageProps) {
                     selectedEntry?.id === entry.id ? 'bg-primary/5' : 'hover:bg-bg-hover/30'
                   }`}
                 >
-                  <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{entry.timestamp}</td>
+                  <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">
+                    {new Date(entry.timestamp).toLocaleString('zh-CN')}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Avatar letter={entry.operatorAvatar} size={24} />
-                      <span className="text-xs font-medium text-text-primary">{entry.operator}</span>
+                      <Avatar letter={entry.operatorName.charAt(0)} size={24} />
+                      <span className="text-xs font-medium text-text-primary">{entry.operatorName}</span>
                       {entry.operatorRole && (
                         <span className="text-[9px] text-text-muted">({entry.operatorRole})</span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${TYPE_STYLE[entry.type].text} ${TYPE_STYLE[entry.type].bg}`}>
-                      {TYPE_LABEL[entry.type]}
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${entry.operationColor} bg-opacity-10`}>
+                      {entry.operationLabel}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <Icon name={entry.targetIcon} size={14} className="text-text-muted" />
-                      <span className="text-xs text-text-primary truncate max-w-[200px]">{entry.target}</span>
+                      <Icon name="description" size={14} className="text-text-muted" />
+                      <span className="text-xs text-text-primary truncate max-w-[200px]">{entry.targetName}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-text-muted font-mono">{entry.ip || '-'}</td>
@@ -232,31 +167,34 @@ export function AuditLogPage({ onClose }: AuditLogPageProps) {
 
         {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-border">
-          <span className="text-xs text-text-muted">显示 1-15 条，共 3,420 条记录</span>
+          <span className="text-xs text-text-muted">显示 1-{auditEntries.length} 条，共 {auditEntries.length} 条记录</span>
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="px-2 py-1 text-xs rounded border border-border text-text-muted"><Icon name="chevron_left" size={14} /></button>
-            <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="px-2.5 py-1 text-xs rounded bg-primary text-white font-medium">1</button>
-            <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="px-2.5 py-1 text-xs rounded border border-border text-text-secondary">2</button>
-            <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="px-2.5 py-1 text-xs rounded border border-border text-text-secondary">3</button>
-            <span className="text-xs text-text-muted">...</span>
-            <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="px-2.5 py-1 text-xs rounded border border-border text-text-secondary">128</button>
-            <button type="button" onClick={() => useToastStore.getState().addToast('分页功能开发中', 'info')} className="px-2 py-1 text-xs rounded border border-border text-text-muted"><Icon name="chevron_right" size={14} /></button>
+            <button type="button" className="px-2 py-1 text-xs rounded border border-border text-text-muted"><Icon name="chevron_left" size={14} /></button>
+            <button type="button" className="px-2.5 py-1 text-xs rounded bg-primary text-white font-medium">1</button>
+            <button type="button" className="px-2 py-1 text-xs rounded border border-border text-text-muted"><Icon name="chevron_right" size={14} /></button>
           </div>
         </div>
       </div>
 
-      {/* Detail panel */}
-      {selectedEntry && (
-        <AuditDetailPanel entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
-      )}
     </div>
+
+      {/* Detail drawer overlay */}
+      {selectedEntry && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setSelectedEntry(null)} />
+          <AuditDetailPanel entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+        </>
+      )}
     </div>
   );
 }
 
 function AuditDetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
   return (
-    <div className="w-96 border-l border-border bg-bg-secondary overflow-y-auto flex flex-col">
+    <div
+      className="fixed right-0 top-0 z-50 h-full w-96 border-l border-border bg-bg-white-var overflow-y-auto flex flex-col dcf-scrollbar"
+      style={{ boxShadow: 'var(--shadow-drawer)', animation: 'slideInRight 0.25s ease-out' }}
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-sm font-semibold text-text-primary">操作详情</h3>
         <button type="button" onClick={onClose} className="p-1 rounded-md hover:bg-bg-hover text-text-secondary">
@@ -269,9 +207,9 @@ function AuditDetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () =
         <section>
           <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">操作人信息</h4>
           <div className="bg-bg-white-var rounded-xl border border-border p-3 flex items-center gap-3">
-            <Avatar letter={entry.operatorAvatar} size={40} />
+            <Avatar letter={entry.operatorName.charAt(0)} size={40} />
             <div className="flex-1">
-              <span className="text-sm font-semibold text-text-primary">{entry.operator}</span>
+              <span className="text-sm font-semibold text-text-primary">{entry.operatorName}</span>
               {entry.operatorRole && (
                 <span className="ml-2 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                   {entry.operatorRole.toUpperCase()}
@@ -289,37 +227,51 @@ function AuditDetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () =
             <div>
               <p className="text-[10px] text-text-muted mb-0.5">具体行为</p>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-error" />
-                <span className="text-xs font-medium text-text-primary">{entry.action}</span>
+                <span className={`w-2 h-2 rounded-full ${entry.operationType === 'delete' ? 'bg-error' : 'bg-primary'}`} />
+                <span className="text-xs font-medium text-text-primary">{entry.operationLabel}</span>
               </div>
             </div>
             <div>
               <p className="text-[10px] text-text-muted mb-0.5">发生时间</p>
-              <p className="text-xs font-medium text-text-primary">{entry.actionTime}</p>
+              <p className="text-xs font-medium text-text-primary">{new Date(entry.timestamp).toLocaleString('zh-CN')}</p>
             </div>
             <div>
-              <p className="text-[10px] text-text-muted mb-0.5">资源路径</p>
-              <div className="bg-fill-tertiary/30 rounded-lg p-2.5 flex items-start gap-2">
-                <Icon name="folder" size={14} className="text-text-muted mt-0.5 shrink-0" />
-                <span className="text-[11px] text-text-secondary leading-relaxed break-all">{entry.resourcePath}</span>
-              </div>
+              <p className="text-[10px] text-text-muted mb-0.5">操作对象</p>
+              <p className="text-xs font-medium text-text-primary">{entry.targetName}</p>
             </div>
+            {entry.resourcePath && (
+              <div>
+                <p className="text-[10px] text-text-muted mb-0.5">资源路径</p>
+                <div className="bg-fill-tertiary/30 rounded-lg p-2.5 flex items-start gap-2">
+                  <Icon name="folder" size={14} className="text-text-muted mt-0.5 shrink-0" />
+                  <span className="text-[11px] text-text-secondary leading-relaxed break-all">{entry.resourcePath}</span>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
         {/* Metadata */}
-        {entry.metadata && (
+        {entry.metadata && Object.keys(entry.metadata).length > 0 && (
           <section>
             <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">请求元数据</h4>
             <div className="bg-surface-dark rounded-xl p-3 font-mono text-[10px] text-[#9DA5B4] leading-relaxed">
               {'{'}
               {Object.entries(entry.metadata).map(([k, v]) => (
                 <div key={k} className="pl-3">
-                  "<span className="text-[#E06C75]">{k}</span>": "<span className="text-[#98C379]">{v}</span>",
+                  "<span className="text-[#E06C75]">{k}</span>": "<span className="text-[#98C379]">{String(v)}</span>",
                 </div>
               ))}
               {'}'}
             </div>
+          </section>
+        )}
+
+        {/* IP info */}
+        {entry.ip && (
+          <section>
+            <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">网络信息</h4>
+            <p className="text-xs font-mono text-text-secondary">IP: {entry.ip}</p>
           </section>
         )}
 

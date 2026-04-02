@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './application/hooks/useAuth';
 import { useMatrixClient } from './application/hooks/useMatrixClient';
+import { useAgentStore } from './application/stores/agentStore';
 import { LoginPage } from './presentation/pages/LoginPage';
 import { WorkspacePage } from './presentation/pages/WorkspacePage';
 import { ToastContainer } from './presentation/components/ui/Toast';
@@ -29,6 +30,14 @@ export default function App() {
     restoreSession().finally(() => setRestoring(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Restore persisted agents + auto-create Primary Agent on login
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    useAgentStore.getState().loadPersistedAgents();
+    // If no persisted agent, auto-create from login identity
+    useAgentStore.getState().autoSetupFromAuth();
+  }, [isLoggedIn]);
 
   if (restoring) {
     return (

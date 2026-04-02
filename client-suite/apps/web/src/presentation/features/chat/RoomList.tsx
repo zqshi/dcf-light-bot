@@ -12,6 +12,7 @@ const FILTER_TABS = [
   { key: 'bot', label: '数字员工' },
   { key: 'group', label: '群组' },
   { key: 'subscription', label: '订阅号' },
+  { key: 'system', label: '通知' },
 ];
 
 interface RoomListProps {
@@ -31,13 +32,12 @@ export function RoomList({ onSelectRoom }: RoomListProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 pt-4 pb-2">
-        <h3 className="text-lg font-semibold text-text-primary mb-3">消息</h3>
+      <div className="p-4 flex flex-col gap-3">
+        <h3 className="text-lg font-semibold text-text-primary">消息</h3>
         <SearchInput
           value={searchQuery}
           onChange={setSearch}
           placeholder="搜索会话..."
-          className="mb-2"
         />
         <TabBar
           tabs={FILTER_TABS}
@@ -48,20 +48,44 @@ export function RoomList({ onSelectRoom }: RoomListProps) {
 
       {/* Room list */}
       <div className="flex-1 overflow-auto px-2 py-2 dcf-scrollbar">
-        <SectionLabel>会话列表</SectionLabel>
-        <div className="flex flex-col gap-0.5">
-          {rooms.map((room) => (
-            <RoomListItem
-              key={room.id}
-              room={room}
-              isActive={room.id === currentRoomId}
-              onClick={() => onSelectRoom(room.id)}
-            />
-          ))}
-          {rooms.length === 0 && (
-            <p className="text-xs text-text-muted px-2 py-4">暂无会话</p>
-          )}
-        </div>
+        {(() => {
+          const pinnedRooms = rooms.filter((r) => r.pinned);
+          const normalRooms = rooms.filter((r) => !r.pinned);
+          return (
+            <>
+              {pinnedRooms.length > 0 && (
+                <>
+                  <SectionLabel>置顶</SectionLabel>
+                  <div className="flex flex-col gap-0.5 mb-2">
+                    {pinnedRooms.map((room) => (
+                      <RoomListItem
+                        key={room.id}
+                        room={room}
+                        isActive={room.id === currentRoomId}
+                        onClick={() => onSelectRoom(room.id)}
+                      />
+                    ))}
+                  </div>
+                  <div className="h-px bg-border mx-2 mb-2" />
+                </>
+              )}
+              <SectionLabel>会话列表</SectionLabel>
+              <div className="flex flex-col gap-0.5">
+                {normalRooms.map((room) => (
+                  <RoomListItem
+                    key={room.id}
+                    room={room}
+                    isActive={room.id === currentRoomId}
+                    onClick={() => onSelectRoom(room.id)}
+                  />
+                ))}
+                {rooms.length === 0 && (
+                  <p className="text-xs text-text-muted px-2 py-4">暂无会话</p>
+                )}
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );

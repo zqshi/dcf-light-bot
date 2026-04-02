@@ -1,53 +1,66 @@
 /**
  * FileListView — 部门文件列表 + 批量操作栏 (km_20 对齐)
  * Finder风格文件表格 + 多选checkbox + 底部批量操作浮层
+ *
+ * 数据来源：knowledgeStore.documents (按 selectedFolderId/departmentId 筛选)
  */
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { useUIStore } from '../../../application/stores/uiStore';
 import { useToastStore } from '../../../application/stores/toastStore';
+import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
 import { MoveFilesModal } from './MoveFilesModal';
 
-type FileType = 'pdf' | 'xlsx' | 'docx' | 'sheets';
-
-interface FileEntry {
-  id: string;
-  name: string;
-  type: FileType;
-  modifier: string;
-  modifierDept: string;
-  modifiedAt: string;
-  size: string;
-}
-
-const FILE_ICON: Record<FileType, { icon: string; color: string }> = {
-  pdf: { icon: 'picture_as_pdf', color: '#FF3B30' },
-  xlsx: { icon: 'table_chart', color: '#34C759' },
-  docx: { icon: 'description', color: '#007AFF' },
-  sheets: { icon: 'grid_on', color: '#34C759' },
+const TYPE_ICON: Record<string, { icon: string; color: string }> = {
+  doc: { icon: 'description', color: '#007AFF' },
+  sheet: { icon: 'table_chart', color: '#34C759' },
+  markdown: { icon: 'code', color: '#5856D6' },
+  slide: { icon: 'slideshow', color: '#FF9500' },
 };
-
-const MOCK_FILES: FileEntry[] = [
-  { id: 'f1', name: '2024Q1_财务报表汇总.pdf', type: 'pdf', modifier: '李明', modifierDept: 'Financial', modifiedAt: '2024-03-20 14:30', size: '4.2 MB' },
-  { id: 'f2', name: '年度预算执行表_2024.xlsx', type: 'xlsx', modifier: '王志强', modifierDept: '', modifiedAt: '2小时前', size: '856 KB' },
-  { id: 'f3', name: '部门报销流程指南_V2.docx', type: 'docx', modifier: '李明', modifierDept: 'Financial', modifiedAt: '昨天 09:15', size: '1.5 MB' },
-  { id: 'f4', name: '差旅费用明细清单.sheets', type: 'sheets', modifier: '陈美琳', modifierDept: '', modifiedAt: '2024-03-15', size: '2.1 MB' },
-  { id: 'f5', name: '2023年度审计报告最终版.pdf', type: 'pdf', modifier: '赵立新', modifierDept: '', modifiedAt: '2024-02-28', size: '12.4 MB' },
-];
 
 interface FileListViewProps {
   departmentName?: string;
+  folderId?: string;
   onMoveFiles?: (ids: string[]) => void;
   onBack?: () => void;
 }
 
-export function FileListView({ departmentName = '财务部', onMoveFiles, onBack }: FileListViewProps) {
+export function FileListView({ departmentName, folderId, onMoveFiles, onBack }: FileListViewProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [search, setSearch] = useState('');
   const setSubView = useUIStore((s) => s.setSubView);
 
-  const filteredFiles = MOCK_FILES.filter((f) => !search || f.name.includes(search) || f.modifier.includes(search));
+  const documents = useKnowledgeStore((s) => s.documents);
+  const selectedFolderId = useKnowledgeStore((s) => s.selectedFolderId);
+  const folders = useKnowledgeStore((s) => s.folders);
+
+  // Resolve department name from folder store if not provided via props
+  const resolvedDeptName = departmentName || (() => {
+    const targetId = folderId || selectedFolderId;
+    if (!targetId) return '未知部门';
+    const folder = folders.find((f) => f.id === targetId);
+    return folder?.name || '未知部门';
+  })();
+  const fetchDocuments = useKnowledgeStore((s) => s.fetchDocuments);
+  const deleteDocument = useKnowledgeStore((s) => s.deleteDocument);
+
+  useEffect(() => {
+    if (documents.length === 0) fetchDocuments();
+  }, [documents.length, fetchDocuments]);
+
+  // Filter documents by folder/department
+  const targetFolderId = folderId || selectedFolderId;
+  const files = useMemo(() => {
+    if (!targetFolderId) return documents;
+    return documents.filter((d) =>
+      d.folderId === targetFolderId ||
+      d.categoryId === targetFolderId ||
+      d.departmentId === targetFolderId,
+    );
+  }, [documents, targetFolderId]);
+
+  const filteredFiles = files.filter((f) => !search || f.title.includes(search) || f.author.name.includes(search));
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -59,8 +72,8 @@ export function FileListView({ departmentName = '财务部', onMoveFiles, onBack
   };
 
   const toggleAll = () => {
-    if (selected.size === MOCK_FILES.length) setSelected(new Set());
-    else setSelected(new Set(MOCK_FILES.map((f) => f.id)));
+    if (selected.size === filteredFiles.length) setSelected(new Set());
+    else setSelected(new Set(filteredFiles.map((f) => f.id)));
   };
 
   return (
@@ -75,7 +88,7 @@ export function FileListView({ departmentName = '财务部', onMoveFiles, onBack
         <div className="flex items-center gap-1.5 text-sm">
           <span className="text-text-muted">部门资产</span>
           <Icon name="chevron_right" size={16} className="text-text-muted" />
-          <span className="font-semibold text-text-primary">{departmentName} (Finance)</span>
+          <span className="font-semibold text-text-primary">{resolvedDeptName}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -84,7 +97,7 @@ export function FileListView({ departmentName = '财务部', onMoveFiles, onBack
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={`在${departmentName}文件夹内搜索...`}
+              placeholder={`在${resolvedDeptName}文件夹内搜索...`}
               className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-bg-white-var w-56 focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -103,10 +116,10 @@ export function FileListView({ departmentName = '财务部', onMoveFiles, onBack
           <thead>
             <tr className="text-left border-b border-border">
               <th className="px-6 py-2.5 w-10">
-                <input type="checkbox" checked={selected.size === MOCK_FILES.length} onChange={toggleAll} className="rounded" />
+                <input type="checkbox" checked={selected.size === filteredFiles.length && filteredFiles.length > 0} onChange={toggleAll} className="rounded" />
               </th>
               <th className="px-3 py-2.5 text-xs font-medium text-text-muted">文件名</th>
-              <th className="px-3 py-2.5 text-xs font-medium text-text-muted">修改人</th>
+              <th className="px-3 py-2.5 text-xs font-medium text-text-muted">作者</th>
               <th className="px-3 py-2.5 text-xs font-medium text-text-muted">修改时间</th>
               <th className="px-3 py-2.5 text-xs font-medium text-text-muted">大小</th>
               <th className="px-3 py-2.5 text-xs font-medium text-text-muted text-right">操作</th>
@@ -114,7 +127,7 @@ export function FileListView({ departmentName = '财务部', onMoveFiles, onBack
           </thead>
           <tbody>
             {filteredFiles.map((file) => {
-              const fi = FILE_ICON[file.type];
+              const fi = TYPE_ICON[file.type] || TYPE_ICON.doc;
               const isSelected = selected.has(file.id);
               return (
                 <tr
@@ -132,21 +145,21 @@ export function FileListView({ departmentName = '财务部', onMoveFiles, onBack
                   <td className="px-3 py-3">
                     <button
                       type="button"
-                      onClick={() => setSubView('knowledge:doc-read')}
+                      onClick={() => {
+                        useKnowledgeStore.getState().selectDocument(file.id);
+                        setSubView('knowledge:doc-read');
+                      }}
                       className="flex items-center gap-2.5 hover:text-primary transition-colors"
                     >
                       <Icon name={fi.icon} size={20} style={{ color: fi.color }} />
-                      <span className="text-sm text-text-primary font-medium hover:text-primary">{file.name}</span>
+                      <span className="text-sm text-text-primary font-medium hover:text-primary">{file.title}</span>
                     </button>
                   </td>
                   <td className="px-3 py-3">
-                    <span className="text-xs text-text-secondary">
-                      {file.modifier}
-                      {file.modifierDept && <span className="text-text-muted"> ({file.modifierDept})</span>}
-                    </span>
+                    <span className="text-xs text-text-secondary">{file.author.name}</span>
                   </td>
                   <td className="px-3 py-3">
-                    <span className="text-xs text-text-muted">{file.modifiedAt}</span>
+                    <span className="text-xs text-text-muted">{new Date(file.updatedAt).toLocaleDateString('zh-CN')}</span>
                   </td>
                   <td className="px-3 py-3">
                     <span className="text-xs text-text-muted">{file.size}</span>
@@ -187,7 +200,10 @@ export function FileListView({ departmentName = '财务部', onMoveFiles, onBack
             <Icon name="download" size={18} />
             <span className="text-[10px]">下载</span>
           </button>
-          <button type="button" onClick={() => { useToastStore.getState().addToast(`已删除 ${selected.size} 个文件`, 'success'); setSelected(new Set()); }} className="flex flex-col items-center gap-0.5 text-text-secondary hover:text-error transition-colors">
+          <button type="button" onClick={() => {
+            selected.forEach((id) => deleteDocument(id));
+            setSelected(new Set());
+          }} className="flex flex-col items-center gap-0.5 text-text-secondary hover:text-error transition-colors">
             <Icon name="delete" size={18} />
             <span className="text-[10px] text-error">删除</span>
           </button>

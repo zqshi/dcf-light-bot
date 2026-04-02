@@ -61,6 +61,7 @@ export function SettingsPage() {
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="max-w-lg mx-auto space-y-8">
+        <h2 className="text-lg font-semibold text-text-primary">设置</h2>
         {/* Profile */}
         <section ref={(el) => { sectionRefs.current['profile'] = el; }} className="space-y-4">
           <h2 className="text-base font-semibold text-text-primary">个人信息</h2>

@@ -2,6 +2,7 @@ import type {
   AgentPersonality,
   AgentStatus,
   AgentCategory,
+  AgentType,
   ModelId,
   UserId,
 } from '../shared/types';
@@ -13,6 +14,7 @@ export interface AgentProps {
   department: string;
   personality: AgentPersonality;
   model: ModelId;
+  agentType?: AgentType;
   status?: AgentStatus;
   category?: AgentCategory;
   employeeId?: string;
@@ -22,6 +24,9 @@ export interface AgentProps {
   createdAt?: number;
   description?: string;
   avatarGradient?: string;
+  capabilities?: string[];
+  ownerId?: string;
+  persona?: string;
 }
 
 export class Agent {
@@ -31,6 +36,7 @@ export class Agent {
   readonly department: string;
   readonly personality: AgentPersonality;
   readonly model: ModelId;
+  readonly agentType: AgentType;
   readonly status: AgentStatus;
   readonly category?: AgentCategory;
   readonly employeeId: string;
@@ -40,6 +46,9 @@ export class Agent {
   readonly createdAt: number;
   readonly description?: string;
   readonly avatarGradient?: string;
+  readonly capabilities: string[];
+  readonly ownerId?: string;
+  readonly persona?: string;
 
   private constructor(props: AgentProps) {
     this.id = props.id;
@@ -48,6 +57,7 @@ export class Agent {
     this.department = props.department;
     this.personality = props.personality;
     this.model = props.model;
+    this.agentType = props.agentType ?? 'capability';
     this.status = props.status ?? 'online';
     this.category = props.category;
     this.employeeId = props.employeeId ?? Agent.generateEmployeeId();
@@ -57,6 +67,9 @@ export class Agent {
     this.createdAt = props.createdAt ?? Date.now();
     this.description = props.description;
     this.avatarGradient = props.avatarGradient;
+    this.capabilities = props.capabilities ?? [];
+    this.ownerId = props.ownerId;
+    this.persona = props.persona;
   }
 
   static create(props: AgentProps): Agent {
@@ -68,6 +81,14 @@ export class Agent {
     return `DCF-${num}`;
   }
 
+  isPrimary(): boolean {
+    return this.agentType === 'primary';
+  }
+
+  isCapability(): boolean {
+    return this.agentType === 'capability';
+  }
+
   withInvoke(): Agent {
     return new Agent({
       ...this.toProps(),
@@ -75,7 +96,22 @@ export class Agent {
     });
   }
 
-  private toProps(): AgentProps {
+  withCapability(capId: string): Agent {
+    if (this.capabilities.includes(capId)) return this;
+    return new Agent({
+      ...this.toProps(),
+      capabilities: [...this.capabilities, capId],
+    });
+  }
+
+  removeCapability(capId: string): Agent {
+    return new Agent({
+      ...this.toProps(),
+      capabilities: this.capabilities.filter((c) => c !== capId),
+    });
+  }
+
+  toProps(): AgentProps {
     return {
       id: this.id,
       name: this.name,
@@ -83,6 +119,7 @@ export class Agent {
       department: this.department,
       personality: this.personality,
       model: this.model,
+      agentType: this.agentType,
       status: this.status,
       category: this.category,
       employeeId: this.employeeId,
@@ -92,6 +129,9 @@ export class Agent {
       createdAt: this.createdAt,
       description: this.description,
       avatarGradient: this.avatarGradient,
+      capabilities: this.capabilities,
+      ownerId: this.ownerId,
+      persona: this.persona,
     };
   }
 }

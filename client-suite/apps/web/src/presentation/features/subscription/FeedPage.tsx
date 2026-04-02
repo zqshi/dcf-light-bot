@@ -34,20 +34,15 @@ export function FeedSidebar() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <h3 className="text-lg font-semibold text-text-primary">动态</h3>
-        <button type="button" className="p-1 rounded-md text-text-secondary hover:bg-bg-hover transition-colors" title="订阅设置" onClick={() => useToastStore.getState().addToast('订阅设置即将上线', 'info')}>
-          <Icon name="settings" size={18} />
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="px-4 pb-3">
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-text-primary">动态</h3>
+          <button type="button" className="p-1 rounded-md text-text-secondary hover:bg-bg-hover transition-colors" title="订阅设置" onClick={() => useToastStore.getState().addToast('订阅设置即将上线', 'info')}>
+            <Icon name="settings" size={18} />
+          </button>
+        </div>
         <SearchInput value={search} onChange={setSearch} placeholder="搜索订阅..." />
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-0.5 px-4 pb-3">
+        <div className="flex items-center gap-0.5">
         {SIDEBAR_TABS.map(({ key, label }) => {
           const active = sidebarTab === key;
           return (
@@ -65,6 +60,7 @@ export function FeedSidebar() {
             </button>
           );
         })}
+        </div>
       </div>
 
       {/* Source list */}
@@ -125,7 +121,7 @@ export function FeedPage() {
       <div className="flex-1 overflow-y-auto">
         {/* Header bar */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-bg-white-var/80 backdrop-blur-sm border-b border-border">
-          <h2 className="text-base font-semibold text-text-primary">订阅源概览</h2>
+          <h2 className="text-lg font-semibold text-text-primary">订阅源概览</h2>
           <div className="flex items-center gap-2">
             <button type="button" className="text-xs text-primary font-medium hover:text-primary/80" onClick={() => useToastStore.getState().addToast('已全部标记为已读', 'success')}>
               标记已读

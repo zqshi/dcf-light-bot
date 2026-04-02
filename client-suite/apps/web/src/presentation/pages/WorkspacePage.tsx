@@ -10,6 +10,7 @@ import { useAuthStore } from '../../application/stores/authStore';
 import { useAgentStore } from '../../application/stores/agentStore';
 import { useNotificationStore } from '../../application/stores/notificationStore';
 import { useTodoStore } from '../../application/stores/todoStore';
+import { useOpenClawStore } from '../../application/stores/openclawStore';
 import { useMatrixClient } from '../../application/hooks/useMatrixClient';
 import { getDockRoute } from '../routing/dockRegistry';
 import { registerAllRoutes } from '../routing/registerRoutes';
@@ -19,6 +20,7 @@ registerAllRoutes();
 
 export function WorkspacePage() {
   const currentDock = useUIStore((s) => s.currentDock);
+  const appMode = useUIStore((s) => s.appMode);
   const isBackendConnected = useAuthStore((s) => s.isBackendConnected);
   const { logout } = useMatrixClient();
 
@@ -30,17 +32,24 @@ export function WorkspacePage() {
     useTodoStore.getState().fetchFromBackend();
   }, [isBackendConnected]);
 
+  // Initialize OpenClaw store when entering openclaw mode
+  useEffect(() => {
+    if (appMode !== 'openclaw') return;
+    useOpenClawStore.getState().initialize();
+    return () => { useOpenClawStore.getState().reset(); };
+  }, [appMode]);
+
   const subView = useUIStore((s) => s.subView);
   const route = getDockRoute(currentDock);
   const SidebarContent = route?.Sidebar;
   const MainContent = route?.Main;
 
-  // Hide sidebar in full-screen sub-views (e.g. AI creation panel)
+  // Hide sidebar in full-screen sub-views
   const hideSidebar = subView === 'apps:create' || subView === 'apps:view' || subView === 'apps:edit';
 
   return (
     <AppShell
-      sidebar={hideSidebar ? null : <Sidebar>{SidebarContent ? <SidebarContent /> : null}</Sidebar>}
+      sidebar={hideSidebar || !SidebarContent ? null : <Sidebar><SidebarContent /></Sidebar>}
       onLogout={logout}
     >
       {MainContent ? <MainContent /> : null}

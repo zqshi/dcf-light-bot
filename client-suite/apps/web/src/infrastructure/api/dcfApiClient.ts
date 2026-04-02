@@ -187,17 +187,34 @@ export interface DocumentDTO {
   type: 'doc' | 'code' | 'markdown' | 'sheet' | 'slide';
   title: string;
   content: Record<string, any>;
+  status?: string;
+  categoryId?: string | null;
+  departmentId?: string | null;
+  ownerId?: string;
+  permissions?: any[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   version: number;
 }
 
+export interface DocumentFilter {
+  roomId?: string;
+  folderId?: string;
+  status?: string;
+  categoryId?: string;
+  departmentId?: string;
+  ownerId?: string;
+  starred?: boolean;
+  search?: string;
+}
+
 export const documentApi = {
-  list(roomId?: string, folderId?: string): Promise<{ documents: DocumentDTO[] }> {
+  list(filter: DocumentFilter = {}): Promise<{ documents: DocumentDTO[] }> {
     const qs = new URLSearchParams();
-    if (roomId) qs.set('roomId', roomId);
-    if (folderId) qs.set('folderId', folderId);
+    for (const [k, v] of Object.entries(filter)) {
+      if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+    }
     const q = qs.toString();
     return request(`/api/control/documents${q ? `?${q}` : ''}`);
   },
@@ -213,10 +230,7 @@ export const documentApi = {
     });
   },
 
-  update(
-    id: string,
-    data: Partial<DocumentDTO>,
-  ): Promise<{ document: DocumentDTO }> {
+  update(id: string, data: Partial<DocumentDTO>): Promise<{ document: DocumentDTO }> {
     return request(`/api/control/documents/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -233,6 +247,125 @@ export const documentApi = {
     return request(`/api/control/documents/${encodeURIComponent(id)}/star`, {
       method: 'PATCH',
     });
+  },
+
+  submitForReview(id: string, actor?: { id?: string; name?: string }): Promise<{ document: DocumentDTO }> {
+    return request(`/api/control/documents/${encodeURIComponent(id)}/submit-review`, {
+      method: 'POST',
+      body: JSON.stringify({ actor }),
+    });
+  },
+
+  approve(id: string, actor?: { id?: string; name?: string }): Promise<{ document: DocumentDTO }> {
+    return request(`/api/control/documents/${encodeURIComponent(id)}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ actor }),
+    });
+  },
+
+  reject(id: string, comment: string, actor?: { id?: string; name?: string }): Promise<{ document: DocumentDTO }> {
+    return request(`/api/control/documents/${encodeURIComponent(id)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ comment, actor }),
+    });
+  },
+
+  publish(id: string, actor?: { id?: string; name?: string }): Promise<{ document: DocumentDTO }> {
+    return request(`/api/control/documents/${encodeURIComponent(id)}/publish`, {
+      method: 'POST',
+      body: JSON.stringify({ actor }),
+    });
+  },
+
+  archive(id: string, actor?: { id?: string; name?: string }): Promise<{ document: DocumentDTO }> {
+    return request(`/api/control/documents/${encodeURIComponent(id)}/archive`, {
+      method: 'POST',
+      body: JSON.stringify({ actor }),
+    });
+  },
+
+  listVersions(documentId: string): Promise<{ versions: any[] }> {
+    return request(`/api/control/documents/${encodeURIComponent(documentId)}/versions`);
+  },
+
+  restoreVersion(versionId: string): Promise<{ document: DocumentDTO }> {
+    return request(`/api/control/documents/versions/${encodeURIComponent(versionId)}/restore`, {
+      method: 'POST',
+    });
+  },
+
+  getPermissions(documentId: string): Promise<{ permissions: any[] }> {
+    return request(`/api/control/documents/${encodeURIComponent(documentId)}/permissions`);
+  },
+
+  updatePermissions(documentId: string, permissions: any[]): Promise<{ permissions: any[] }> {
+    return request(`/api/control/documents/${encodeURIComponent(documentId)}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    });
+  },
+};
+
+// ─── Categories ─────────────────────────────────────────────────────
+
+export const categoryApi = {
+  list(): Promise<{ categories: any[] }> {
+    return request('/api/control/categories');
+  },
+
+  get(id: string): Promise<{ category: any }> {
+    return request(`/api/control/categories/${encodeURIComponent(id)}`);
+  },
+
+  create(data: { name: string; icon?: string; parentId?: string; departmentId?: string }): Promise<{ category: any }> {
+    return request('/api/control/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update(id: string, data: Partial<{ name: string; icon: string; description: string }>): Promise<{ category: any }> {
+    return request(`/api/control/categories/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete(id: string): Promise<{ success: boolean }> {
+    return request(`/api/control/categories/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ─── Knowledge Audit Logs ───────────────────────────────────────────
+
+export const knowledgeAuditApi = {
+  list(filter?: { operationType?: string; operatorId?: string; search?: string; limit?: number }): Promise<{ entries: any[] }> {
+    const qs = new URLSearchParams();
+    if (filter) {
+      for (const [k, v] of Object.entries(filter)) {
+        if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+      }
+    }
+    const q = qs.toString();
+    return request(`/api/control/knowledge-audits${q ? `?${q}` : ''}`);
+  },
+};
+
+// ─── Storage ────────────────────────────────────────────────────────
+
+export const storageApi = {
+  getStats(): Promise<{ stats: any }> {
+    return request('/api/control/storage/stats');
+  },
+
+  getDeptStorage(): Promise<{ departments: any[] }> {
+    return request('/api/control/storage/departments');
+  },
+
+  getLargeFiles(): Promise<{ files: any[] }> {
+    return request('/api/control/storage/large-files');
   },
 };
 
@@ -289,5 +422,29 @@ export const systemApi = {
 
   matrixStatus(): Promise<any> {
     return request('/api/admin/matrix/status');
+  },
+};
+
+// ─── OpenClaw ─────────────────────────────────────────────────────────
+
+export const openclawApi = {
+  async listRuntimes() {
+    return request<{ runtimes: Record<string, unknown>[] }>('/api/admin/agents/runtime');
+  },
+
+  async listAgentTasks(agentId: string) {
+    return request<{ tasks: Record<string, unknown>[] }>(
+      `/api/admin/agents/${encodeURIComponent(agentId)}/tasks`,
+    );
+  },
+
+  async getTaskLogs(taskId: string) {
+    return request<{ logs: Record<string, unknown>[] }>(
+      `/api/admin/agents/tasks/${encodeURIComponent(taskId)}/logs`,
+    );
+  },
+
+  async channelStatuses() {
+    return request<{ channels: Record<string, unknown>[] }>('/api/admin/channels/status');
   },
 };

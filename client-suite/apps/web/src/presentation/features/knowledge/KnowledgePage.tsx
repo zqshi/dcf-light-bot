@@ -5,10 +5,9 @@ import { SectionLabel } from '../../components/ui/SectionLabel';
 import { useKnowledgeStore } from '../../../application/stores/knowledgeStore';
 import { useUIStore } from '../../../application/stores/uiStore';
 import { useToastStore } from '../../../application/stores/toastStore';
-import type { KnowledgeTab } from '../../../application/stores/knowledgeStore';
 import { DocumentCard } from './DocumentCard';
 import { FileManager } from './FileManager';
-import { AdminAssetTable, OrgStatsCard } from './AdminAssetTable';
+import { OrgStatsCard } from './AdminAssetTable';
 import { DraftsPage } from './DraftsPage';
 import { DepartmentAssetsOverview } from './DepartmentAssetsOverview';
 import { AuditLogPage } from './AuditLogPage';
@@ -26,6 +25,9 @@ import { AIHTMLEditDiff } from './AIHTMLEditDiff';
 import { DocumentSecurityPanel } from './DocumentSecurityPanel';
 import { DocumentSettingsPanel } from './DocumentSettingsPanel';
 import { KnowledgeAIChat } from './KnowledgeAIChat';
+import { OrgLibraryPage } from './OrgLibraryPage';
+import { SharedSpacePage } from './SharedSpacePage';
+import { PendingReviewPage } from './PendingReviewPage';
 
 interface SidebarItem {
   id: string;
@@ -33,56 +35,56 @@ interface SidebarItem {
   icon: string;
 }
 
-const ENTERPRISE_ITEMS: SidebarItem[] = [
-  { id: 'standard', label: '标准流程', icon: 'account_tree' },
-  { id: 'department', label: '部门资产', icon: 'grid_view' },
-  { id: 'official', label: '官方指南', icon: 'verified' },
+/* ── 浏览 ── */
+const BROWSE_ITEMS: SidebarItem[] = [
+  { id: 'org-library', label: '公司文库', icon: 'library_books' },
+  { id: 'dept-assets', label: '部门资产', icon: 'corporate_fare' },
+  { id: 'shared-space', label: '共享空间', icon: 'group' },
 ];
 
-const PERSONAL_ITEMS: SidebarItem[] = [
-  { id: 'drafts', label: '我的草稿', icon: 'edit_note' },
-  { id: 'reading-list', label: '阅读清单', icon: 'bookmark' },
+/* ── 我的 ── */
+const MY_ITEMS: SidebarItem[] = [
+  { id: 'my-docs', label: '我的文档', icon: 'description' },
+  { id: 'pending-review', label: '待我审核', icon: 'rate_review' },
   { id: 'favorites', label: '收藏夹', icon: 'star' },
 ];
 
+/* ── 管理 ── */
 const ADMIN_ITEMS: SidebarItem[] = [
-  { id: 'dept-assets', label: '部门资产', icon: 'folder_shared' },
-  { id: 'admin', label: '管理员视图', icon: 'admin_panel_settings' },
+  { id: 'admin', label: '管理概览', icon: 'admin_panel_settings' },
   { id: 'capacity', label: '容量管理', icon: 'storage' },
   { id: 'audit', label: '审核日志', icon: 'rule' },
 ];
 
-/** Map sidebar item IDs to sub-view names */
+/** Map sidebar item IDs to sub-view names. All items now go through subView. */
 const SUBVIEW_MAP: Record<string, string> = {
-  drafts: 'knowledge:drafts',
-  'reading-list': 'knowledge:reading-list',
-  favorites: 'knowledge:favorites',
+  'org-library': 'knowledge:org-library',
   'dept-assets': 'knowledge:dept-assets',
+  'shared-space': 'knowledge:shared-space',
+  'my-docs': 'knowledge:my-docs',
+  'pending-review': 'knowledge:pending-review',
+  favorites: 'knowledge:favorites',
   admin: 'knowledge:admin',
   capacity: 'knowledge:storage',
   audit: 'knowledge:audit-log',
 };
 
 export function KnowledgeSidebar() {
-  const { selectedFolderId, selectFolder } = useKnowledgeStore();
   const subView = useUIStore((s) => s.subView);
   const setSubView = useUIStore((s) => s.setSubView);
+  const { selectFolder } = useKnowledgeStore();
+  const isAdmin = useKnowledgeStore((s) => s.isAdminView);
 
   const handleItemClick = (item: SidebarItem) => {
     const mapped = SUBVIEW_MAP[item.id];
-    if (mapped) {
-      setSubView(subView === mapped ? null : mapped);
-      selectFolder(null);
-    } else {
-      setSubView(null);
-      selectFolder(selectedFolderId === item.id ? null : item.id);
-    }
+    if (!mapped) return;
+    setSubView(subView === mapped ? null : mapped);
+    selectFolder(null);
   };
 
   const isActiveItem = (item: SidebarItem) => {
     const mapped = SUBVIEW_MAP[item.id];
-    if (mapped) return subView === mapped;
-    return selectedFolderId === item.id && !subView;
+    return mapped ? subView === mapped : false;
   };
 
   const renderItem = (item: SidebarItem) => {
@@ -101,27 +103,25 @@ export function KnowledgeSidebar() {
     );
   };
 
-  const isAdmin = useKnowledgeStore((s) => s.isAdminView);
-
   return (
     <div className="p-4 flex flex-col gap-4">
       <h3 className="text-lg font-semibold text-text-primary">知识库</h3>
 
       <div className="space-y-0.5">
-        <SectionLabel>企业知识库</SectionLabel>
-        {ENTERPRISE_ITEMS.map(renderItem)}
+        <SectionLabel>浏览</SectionLabel>
+        {BROWSE_ITEMS.map(renderItem)}
       </div>
 
       <div className="space-y-0.5">
-        <SectionLabel>个人空间</SectionLabel>
-        {PERSONAL_ITEMS.map(renderItem)}
+        <SectionLabel>我的</SectionLabel>
+        {MY_ITEMS.map(renderItem)}
       </div>
 
       {isAdmin && (
         <div className="space-y-0.5">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-primary px-2 mb-1.5 flex items-center gap-1">
-            <Icon name="admin_panel_settings" size={14} />
-            系统管理
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-muted px-2 mb-1.5 flex items-center gap-1">
+            <Icon name="admin_panel_settings" size={14} className="text-primary" />
+            管理
           </h3>
           {ADMIN_ITEMS.map(renderItem)}
         </div>
@@ -130,61 +130,54 @@ export function KnowledgeSidebar() {
   );
 }
 
-function RecentFilesGrid({ showStats = false }: { showStats?: boolean }) {
+function RecentFilesGrid() {
   const documents = useKnowledgeStore((s) => s.documents);
-  const recentCount = showStats ? 3 : 4;
-  const recent = documents.slice(0, recentCount);
+  const published = documents.filter((d) => d.status === 'published');
+  const recent = published.slice(0, 4);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon name="schedule" size={18} className="text-primary" />
-          <h3 className="text-base font-semibold text-text-primary">
-            {showStats ? '最近更新' : '最近文件'}
-          </h3>
+          <h3 className="text-base font-semibold text-text-primary">最近发布</h3>
         </div>
-        <button type="button" onClick={() => useUIStore.getState().setSubView('knowledge:file-list')} className="text-xs text-primary hover:text-primary/80 font-medium">
-          查看全部
-        </button>
       </div>
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${showStats ? 4 : 4} gap-3`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {recent.map((doc) => (
-          <DocumentCard key={doc.id} document={doc} badge={showStats ? '组织' : undefined} />
+          <DocumentCard key={doc.id} document={doc} />
         ))}
-        {showStats && <OrgStatsCard />}
       </div>
     </div>
   );
 }
 
-const TAB_ITEMS: { key: KnowledgeTab; label: string; dot?: boolean }[] = [
-  { key: 'enterprise', label: '企业知识' },
-  { key: 'personal', label: '个人主页' },
-  { key: 'org-assets', label: '组织资产', dot: true },
-];
-
 export function KnowledgePage() {
   const {
     documents, searchQuery, setSearchQuery, viewMode, setViewMode,
-    selectedFolderId, selectFolder, isAdminView, setAdminView, activeTab, setActiveTab,
-    fetchDocuments, uploadFile, loading, error,
+    fetchDocuments, loading, error,
   } = useKnowledgeStore();
   const subView = useUIStore((s) => s.subView);
   const setSubView = useUIStore((s) => s.setSubView);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  // Sub-view routing: render full-page sub-views when active
-  if (subView === 'knowledge:drafts') return <DraftsPage mode="drafts" onBack={() => setSubView(null)} />;
-  if (subView === 'knowledge:reading-list') return <DraftsPage mode="reading-list" onBack={() => setSubView(null)} />;
+  // ── Sub-view routing ─────────────────────────────────────────────
+  // Browse
+  if (subView === 'knowledge:org-library') return <OrgLibraryPage onBack={() => setSubView(null)} />;
+  if (subView === 'knowledge:dept-assets') return <DepartmentAssetsOverview onClose={() => setSubView(null)} />;
+  if (subView === 'knowledge:shared-space') return <SharedSpacePage onBack={() => setSubView(null)} />;
+  // My
+  if (subView === 'knowledge:my-docs') return <DraftsPage mode="my-docs" onBack={() => setSubView(null)} />;
+  if (subView === 'knowledge:pending-review') return <PendingReviewPage onBack={() => setSubView(null)} />;
   if (subView === 'knowledge:favorites') return <DraftsPage mode="favorites" onBack={() => setSubView(null)} />;
+  // Admin
+  if (subView === 'knowledge:admin') return <KnowledgeAdminPage onClose={() => setSubView(null)} />;
   if (subView === 'knowledge:storage') return <StorageManagementPage onClose={() => setSubView(null)} />;
   if (subView === 'knowledge:audit-log') return <AuditLogPage onClose={() => setSubView(null)} />;
-  if (subView === 'knowledge:dept-assets') return <DepartmentAssetsOverview onClose={() => setSubView(null)} />;
+  // Utility sub-views (opened from within pages, not from sidebar)
   if (subView === 'knowledge:file-list') return <FileListView onBack={() => setSubView(null)} />;
   if (subView === 'knowledge:spreadsheet') return <SpreadsheetEditor onExit={() => setSubView(null)} />;
   if (subView === 'knowledge:doc-editor') return <DocumentEditorWithSettings onClose={() => setSubView(null)} />;
@@ -193,145 +186,49 @@ export function KnowledgePage() {
   if (subView === 'knowledge:collab-conflict') return <CollaborativeEditConflict onDismiss={() => setSubView(null)} />;
   if (subView === 'knowledge:version-history') return <VersionHistoryPanel onClose={() => setSubView(null)} />;
   if (subView === 'knowledge:doc-read') return <DocumentReadView onBack={() => setSubView(null)} />;
-  if (subView === 'knowledge:admin') return <KnowledgeAdminPage onClose={() => setSubView(null)} />;
   if (subView === 'knowledge:ai-diff') return <AIHTMLEditDiff onClose={() => setSubView(null)} />;
   if (subView === 'knowledge:doc-security') return <DocumentSecurityPanel onClose={() => setSubView(null)} />;
   if (subView === 'knowledge:doc-settings') return <DocumentSettingsPanel onClose={() => setSubView(null)} />;
   if (subView === 'knowledge:ai-chat') return <KnowledgeAIChat onClose={() => setSubView(null)} />;
 
-  // Department folder navigation → show department file list
-  if (selectedFolderId === 'department') return <FileListView />;
-
-  const filtered = documents.filter((d) => {
-    if (selectedFolderId && d.folderId !== selectedFolderId) return false;
-    return d.matchesSearch(searchQuery);
-  });
+  // ── Default: 知识广场 (home) ──────────────────────────────────────
+  const filtered = searchQuery
+    ? documents.filter((d) => d.matchesSearch(searchQuery))
+    : documents.filter((d) => d.status === 'published');
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Breadcrumb (when folder selected) */}
-        {selectedFolderId && (
-          <div className="flex items-center gap-1.5 text-sm">
-            <button type="button" onClick={() => selectFolder(null)} className="text-primary hover:underline">
-              {selectedFolderId === 'department' ? '部门资产' : '标准流程'}
-            </button>
-            <Icon name="chevron_right" size={16} className="text-text-muted" />
-            <span className="text-text-primary font-medium">
-              {selectedFolderId === 'department' ? '财务部 (Finance)' : '操作流程'}
-            </span>
-          </div>
-        )}
-
-        {/* Header: tabs + admin badge + search + action buttons */}
+      <div className="max-w-5xl mx-auto space-y-4">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          {!selectedFolderId ? (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-0.5 bg-fill-tertiary rounded-lg p-0.5">
-                {TAB_ITEMS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      activeTab === tab.key
-                        ? 'bg-bg-white-var text-primary shadow-sm'
-                        : 'text-text-secondary hover:text-text-primary'
-                    }`}
-                  >
-                    {tab.label}
-                    {tab.dot && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary inline-block" />}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => setAdminView(!isAdminView)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  isAdminView
-                    ? 'bg-primary text-white'
-                    : 'bg-primary/10 text-primary hover:bg-primary/20'
-                }`}
-              >
-                <Icon name="shield" size={14} />
-                ADMIN VIEW
-              </button>
-            </div>
-          ) : (
+          <h2 className="text-lg font-semibold text-text-primary">知识广场</h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSubView('knowledge:ai-chat')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-fill-tertiary text-text-secondary rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              <Icon name="smart_toy" size={16} />
+              <span>AI 问答</span>
+            </button>
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder={`在${selectedFolderId === 'department' ? '财务部' : ''}文件夹内搜索...`}
-              className="w-72"
+              placeholder="搜索文档、流程或资产..."
+              className="w-64"
             />
-          )}
-          <div className="flex items-center gap-2">
-            {!selectedFolderId && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setSubView('knowledge:ai-chat')}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-fill-tertiary text-text-secondary rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary transition-colors"
-                >
-                  <Icon name="smart_toy" size={16} />
-                  <span>AI 问答</span>
-                </button>
-                <SearchInput
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="搜索文档、流程或资产..."
-                  className="w-64"
-                />
-              </>
-            )}
-            {selectedFolderId ? (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.png,.jpg,.jpeg,.gif,.webp,.svg"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const ok = await uploadFile(file);
-                    if (ok) {
-                      useToastStore.getState().addToast(`「${file.name}」上传成功`, 'success');
-                    }
-                    e.target.value = '';
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  <Icon name="upload" size={18} />
-                  <span>上传文件</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSubView('knowledge:doc-editor')}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-bg-white-var border border-border text-text-primary rounded-lg text-sm font-medium hover:bg-bg-hover transition-colors"
-                >
-                  <Icon name="note_add" size={18} />
-                  <span>新建文档</span>
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setSubView('knowledge:doc-editor')}
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                <Icon name="add" size={18} />
-                <span>新建</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setSubView('knowledge:doc-editor')}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Icon name="add" size={18} />
+              <span>新建</span>
+            </button>
           </div>
         </div>
 
-        {/* Loading / Error states */}
+        {/* Loading / Error */}
         {loading && documents.length === 0 && (
           <div className="flex items-center justify-center py-16 gap-2 text-text-muted">
             <Icon name="hourglass_empty" size={20} className="animate-spin" />
@@ -346,20 +243,17 @@ export function KnowledgePage() {
           </div>
         )}
 
-        {/* Recent files grid (with OrgStatsCard in admin view) */}
-        {!searchQuery && (
-          <RecentFilesGrid showStats={isAdminView || activeTab === 'org-assets'} />
-        )}
+        {/* Recent published */}
+        {!searchQuery && <RecentFilesGrid />}
 
-        {/* Admin asset table when org-assets tab selected */}
-        {activeTab === 'org-assets' && !selectedFolderId && <AdminAssetTable />}
-
-        {/* All documents table */}
+        {/* All documents */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Icon name="description" size={18} className="text-primary" />
-              <h3 className="text-base font-semibold text-text-primary">所有文档</h3>
+              <h3 className="text-base font-semibold text-text-primary">
+                {searchQuery ? '搜索结果' : '已发布文档'}
+              </h3>
             </div>
             <div className="flex items-center gap-1">
               <button

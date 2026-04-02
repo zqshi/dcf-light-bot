@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>平台运营</title>
+    <link rel="stylesheet" href="/admin/layout.css" />
+    <style>
+      /* Override the 2-column page-head-layout from drawer-a — not needed here */
+      .page-head-layout {
+        grid-template-columns: 1fr !important;
+      }
+      /* ── Hero strip ── */
+      .ops-hero-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .ops-hero-card {
+        background: #fafafa;
+        border: 1px solid #ededf2;
+        border-radius: 14px;
+        padding: 16px 14px 12px;
+        display: flex;
+        flex-direction: column;
+        transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+        cursor: default;
+      }
+      .ops-hero-card:hover {
+        border-color: #d8d8df;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        transform: translateY(-1px);
+      }
+      .ops-hero-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .ops-hero-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .ops-hero-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 1.8;
+        fill: none;
+        stroke: currentColor;
+      }
+      .ops-hero-icon.ic-conv    { background: rgba(0,113,227,0.08); color: #0071e3; }
+      .ops-hero-icon.ic-user    { background: rgba(52,199,89,0.10); color: #34c759; }
+      .ops-hero-icon.ic-round   { background: rgba(175,82,222,0.10); color: #af52de; }
+      .ops-hero-icon.ic-decision { background: rgba(255,59,48,0.10); color: #ff3b30; }
+      .ops-hero-icon.ic-alert   { background: rgba(255,149,0,0.10);  color: #ff9500; }
+      .ops-hero-label {
+        font-size: 11px;
+        color: #8e8e93;
+        margin-bottom: 6px;
+      }
+      .ops-hero-value {
+        font-size: 26px;
+        font-weight: 700;
+        color: #1d1d1f;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+      }
+      .ops-hero-desc {
+        font-size: 11px;
+        color: #aeaeb2;
+        margin-top: 6px;
+      }
+
+      /* ── Grids ── */
+      .ops-grid-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        gap: 12px;
+      }
+      .ops-section { margin-bottom: 12px; }
+
+      /* ── Panel ── */
+      .ops-panel {
+        background: #fff;
+        border: 1px solid #ededf2;
+        border-radius: 14px;
+        padding: 16px 18px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+      .ops-panel:hover {
+        border-color: #d8d8df;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+      }
+      .ops-panel-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1d1d1f;
+        margin: 0 0 12px;
+      }
+      .ops-panel-note {
+        font-size: 11px;
+        color: #aeaeb2;
+        margin: 2px 0 0;
+      }
+
+      /* ── Agent Performance List ── */
+      .agent-perf-list { display: flex; flex-direction: column; gap: 8px; }
+      .agent-perf-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid #f2f2f7;
+        border-radius: 10px;
+        transition: background 140ms ease;
+      }
+      .agent-perf-item:hover { background: #f8f8fa; }
+      .agent-perf-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+      .agent-perf-info { flex: 1; min-width: 0; }
+      .agent-perf-name {
+        font-size: 13px;
+        font-weight: 650;
+        color: #1d1d1f;
+      }
+      .agent-perf-meta {
+        font-size: 11px;
+        color: #8e8e93;
+        margin-top: 2px;
+      }
+      .agent-perf-stats {
+        display: flex;
+        gap: 16px;
+        flex-shrink: 0;
+      }
+      .agent-perf-stat {
+        text-align: center;
+      }
+      .agent-perf-stat-val {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1d1d1f;
+        font-variant-numeric: tabular-nums;
+      }
+      .agent-perf-stat-label {
+        font-size: 10px;
+        color: #aeaeb2;
+        margin-top: 1px;
+      }
+
+      /* ── Decision Queue ── */
+      .decision-list { display: flex; flex-direction: column; gap: 8px; }
+      .decision-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid #f2f2f7;
+        border-radius: 10px;
+        transition: border-color 140ms ease, background 140ms ease;
+      }
+      .decision-item:hover { border-color: #e5e5ea; background: #fafafa; }
+      .decision-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-top: 5px;
+        flex-shrink: 0;
+      }
+      .decision-dot.critical { background: #ff3b30; box-shadow: 0 0 0 3px rgba(255,59,48,0.15); }
+      .decision-dot.high { background: #ff9500; box-shadow: 0 0 0 3px rgba(255,149,0,0.15); }
+      .decision-dot.normal { background: #0071e3; }
+      .decision-info { flex: 1; min-width: 0; }
+      .decision-title { font-weight: 650; font-size: 13px; color: #1d1d1f; }
+      .decision-meta { font-size: 11px; color: #8e8e93; margin-top: 2px; }
+      .decision-context { font-size: 12px; color: #6e6e73; margin-top: 4px; line-height: 1.55; }
+      .decision-rec { font-size: 11px; color: #8e8e93; margin-top: 4px; }
+
+      /* ── Health Metric Cards ── */
+      .health-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+      }
+      .health-card {
+        background: #fafafa;
+        border: 1px solid #ededf2;
+        border-radius: 10px;
+        padding: 14px 12px;
+        text-align: center;
+        transition: border-color 140ms ease;
+      }
+      .health-card:hover { border-color: #d8d8df; }
+      .health-card-val {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1d1d1f;
+        font-variant-numeric: tabular-nums;
+      }
+      .health-card-val.good { color: #34c759; }
+      .health-card-val.warn { color: #ff9500; }
+      .health-card-val.bad { color: #ff3b30; }
+      .health-card-label {
+        font-size: 11px;
+        color: #8e8e93;
+        margin-top: 4px;
+      }
+
+      /* ── Alert List ── */
+      .alert-list { display: flex; flex-direction: column; gap: 8px; }
+      .alert-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #f2f2f7;
+        transition: background 140ms ease;
+      }
+      .alert-item:hover { background: #fafafa; }
+      .alert-badge {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .alert-badge.critical { background: #ff3b30; animation: alertPulse 2s ease infinite; }
+      .alert-badge.warning { background: #ff9500; }
+      .alert-badge.info { background: #0071e3; }
+      @keyframes alertPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0.3); }
+        50% { box-shadow: 0 0 0 4px rgba(255,59,48,0); }
+      }
+      .alert-content { flex: 1; min-width: 0; }
+      .alert-title { font-size: 12px; font-weight: 600; color: #1d1d1f; }
+      .alert-desc { font-size: 11px; color: #8e8e93; margin-top: 2px; }
+      .alert-time { font-size: 11px; color: #aeaeb2; flex-shrink: 0; }
+
+      /* ── Usage Distribution ── */
+      .usage-bar-wrap { margin-bottom: 12px; }
+      .usage-bar-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .usage-bar-name { font-weight: 600; color: #3a3a3c; }
+      .usage-bar-count { color: #8e8e93; }
+      .usage-bar-track {
+        height: 8px;
+        background: #f2f2f7;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .usage-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      /* ── Entrance ── */
+      .ops-hero-card,
+      .ops-panel {
+        animation: cardRise 220ms ease-out both;
+      }
+      .ops-hero-card:nth-child(2) { animation-delay: 30ms; }
+      .ops-hero-card:nth-child(3) { animation-delay: 60ms; }
+      .ops-hero-card:nth-child(4) { animation-delay: 90ms; }
+      .ops-hero-card:nth-child(5) { animation-delay: 120ms; }
+      .ops-section:nth-child(2) .ops-panel { animation-delay: 80ms; }
+      .ops-section:nth-child(3) .ops-panel { animation-delay: 120ms; }
+      .ops-section:nth-child(4) .ops-panel { animation-delay: 160ms; }
+
+      @media (max-width: 980px) {
+        .ops-grid-2col { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body data-required-permission="admin.runtime.page.openclaw-config.read">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <h2>管理后台</h2>
+        <a href="/admin/index.html">总览</a>
+        <a href="/admin/employees.html">员工管理</a>
+        <a href="/admin/openclaw-config.html">配置中心</a>
+        <a class="active" href="/admin/openclaw-monitor.html">平台运营</a>
+        <a href="/admin/openclaw-statistics.html">数据统计</a>
+        <a href="/admin/skills.html">技能管理</a>
+        <a href="/admin/tools.html">工具管理</a>
+        <a href="/admin/logs.html">行为日志</a>
+        <a href="/admin/auth-members.html">成员管理</a>
+      </aside>
+      <main class="content">
+        <!-- Page Head -->
+        <section class="page-head">
+          <div class="page-head-layout">
+            <div>
+              <h1 class="page-title">平台运营</h1>
+              <p class="page-subtitle">数字员工平台运行健康度、Agent 效能监控与异常告警。</p>
+              <div class="ops-hero-strip">
+                <div class="ops-hero-card">
+                  <div class="ops-hero-head">
+                    <div class="ops-hero-icon ic-conv">
+                      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                  </div>
+                  <div class="ops-hero-label">今日会话数</div>
+                  <div class="ops-hero-value" id="todayConvCount">47</div>
+                  <div class="ops-hero-desc">较昨日 +12%</div>
+                </div>
+                <div class="ops-hero-card">
+                  <div class="ops-hero-head">
+                    <div class="ops-hero-icon ic-user">
+                      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                  </div>
+                  <div class="ops-hero-label">活跃用户</div>
+                  <div class="ops-hero-value" id="activeUsers">23</div>
+                  <div class="ops-hero-desc">WAU 活跃率 74%</div>
+                </div>
+                <div class="ops-hero-card">
+                  <div class="ops-hero-head">
+                    <div class="ops-hero-icon ic-round">
+                      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                  </div>
+                  <div class="ops-hero-label">平均交互轮次</div>
+                  <div class="ops-hero-value" id="avgRounds">8.6</div>
+                  <div class="ops-hero-desc">每会话平均</div>
+                </div>
+                <div class="ops-hero-card">
+                  <div class="ops-hero-head">
+                    <div class="ops-hero-icon ic-decision">
+                      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                  </div>
+                  <div class="ops-hero-label">待处理决策</div>
+                  <div class="ops-hero-value" id="pendingDecisions">3</div>
+                  <div class="ops-hero-desc">1 紧急 · 2 一般</div>
+                </div>
+                <div class="ops-hero-card">
+                  <div class="ops-hero-head">
+                    <div class="ops-hero-icon ic-alert">
+                      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                  </div>
+                  <div class="ops-hero-label">活跃告警</div>
+                  <div class="ops-hero-value" id="alertCount">2</div>
+                  <div class="ops-hero-desc">1 严重 · 1 警告</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Agent 效能 & 决策队列 -->
+        <div class="ops-section ops-grid-2col">
+          <div class="ops-panel">
+            <div class="ops-panel-title">Agent 效能排行</div>
+            <div class="ops-panel-note">按综合评分排序，涵盖调用频率、完成率和响应速度</div>
+            <div id="agentPerfList" class="agent-perf-list"></div>
+          </div>
+          <div class="ops-panel">
+            <div class="ops-panel-title">待处理决策</div>
+            <div class="ops-panel-note">数字员工发起的需人工确认的运营决策</div>
+            <div id="decisionList" class="decision-list"></div>
+          </div>
+        </div>
+
+        <!-- 平台健康 & 告警 -->
+        <div class="ops-section ops-grid-2col">
+          <div class="ops-panel">
+            <div class="ops-panel-title">平台健康指标</div>
+            <div class="ops-panel-note">核心服务运行状态与质量指标</div>
+            <div id="healthMetrics" class="health-grid"></div>
+          </div>
+          <div class="ops-panel">
+            <div class="ops-panel-title">告警中心</div>
+            <div class="ops-panel-note">活跃的异常告警与建议处置措施</div>
+            <div id="alertList" class="alert-list"></div>
+          </div>
+        </div>
+
+        <!-- 使用分布 -->
+        <div class="ops-section ops-grid-2col">
+          <div class="ops-panel">
+            <div class="ops-panel-title">Agent 使用分布</div>
+            <div class="ops-panel-note">各数字员工今日会话量分布</div>
+            <div id="agentUsage"></div>
+          </div>
+          <div class="ops-panel">
+            <div class="ops-panel-title">部门使用分布</div>
+            <div class="ops-panel-note">各部门今日活跃度分布</div>
+            <div id="deptUsage"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="/admin/auth.js"></script>
+    <script src="/admin/openclaw-monitor.js"></script>
+  </body>
+</html>

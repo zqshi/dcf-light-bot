@@ -27,6 +27,8 @@ interface ChatState {
   setSearchQuery(query: string): void;
   setTyping(roomId: RoomId, userId: string, typing: boolean): void;
   clearUnread(roomId: RoomId): void;
+  togglePin(roomId: RoomId): void;
+  toggleUnread(roomId: RoomId): void;
   reset(): void;
 }
 
@@ -85,6 +87,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       rooms: state.rooms.map((r) =>
         r.id === roomId ? r.withUnread(0) : r,
+      ),
+    }));
+  },
+
+  togglePin(roomId) {
+    set((state) => ({
+      rooms: state.rooms.map((r) =>
+        r.id === roomId ? r.withPinned(!r.pinned) : r,
+      ),
+    }));
+  },
+
+  toggleUnread(roomId) {
+    set((state) => ({
+      rooms: state.rooms.map((r) =>
+        r.id === roomId
+          ? r.withUnread(r.unreadCount > 0 ? 0 : 1)
+          : r,
       ),
     }));
   },

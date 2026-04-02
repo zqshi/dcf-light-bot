@@ -2,7 +2,7 @@ export type RoomId = string;
 export type UserId = string;
 export type EventId = string;
 
-export type RoomType = 'dm' | 'bot' | 'group' | 'subscription';
+export type RoomType = 'dm' | 'bot' | 'group' | 'subscription' | 'system';
 
 export type DockTab =
   | 'messages'
@@ -12,7 +12,6 @@ export type DockTab =
   | 'knowledge'
   | 'agents'
   | 'skills'
-  | 'factory'
   | 'contacts'
   | 'calendar'
   | 'subscription'
@@ -50,7 +49,17 @@ export type ModelId =
   | 'gpt-4o'
   | 'deepseek-r1';
 
+export type AgentType = 'primary' | 'capability';
+
 export type AgentStatus = 'online' | 'busy' | 'offline';
+
+export type AgentRuntimeStatus = 'idle' | 'working' | 'monitoring' | 'awaiting-decision' | 'offline' | 'error';
+
+export type ChannelType = 'lark' | 'slack' | 'email' | 'matrix' | 'wechat' | 'teams' | 'system';
+
+export type TriageStatus = 'needs-human' | 'auto-handled' | 'pending';
+
+export type AgentTaskStatus = 'queued' | 'running' | 'paused' | 'completed' | 'failed';
 
 export type AgentCategory =
   | 'dev'

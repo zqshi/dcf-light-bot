@@ -42,14 +42,4 @@ export function ExecutionLogViewer({ logs, maxHeight = 200 }: ExecutionLogViewer
   );
 }
 
-export const MOCK_LOGS: LogEntry[] = [
-  { time: '12:45:01', level: 'INFO', message: '连接至核心安全审计服务...' },
-  { time: '12:45:05', level: 'INFO', message: '开始扫描 auth-service.js (247 行)' },
-  { time: '12:45:12', level: 'WARN', message: '发现未加密 Cookie: session_id' },
-  { time: '12:45:18', level: 'WARN', message: 'JWT secret 硬编码于第 42 行' },
-  { time: '12:45:25', level: 'INFO', message: '扫描网络第 7 层协议...' },
-  { time: '12:45:30', level: 'ERROR', message: 'TLS 1.0 连接已被弃用' },
-  { time: '12:45:35', level: 'INFO', message: '生成安全建议文档...' },
-];
-
 export type { LogEntry };

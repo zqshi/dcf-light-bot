@@ -2,7 +2,8 @@
  * Dock — 左侧 80px 图标导航栏
  * Switches between IM / OpenClaw item sets based on appMode.
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useUIStore } from '../../application/stores/uiStore';
 import { useAuthStore } from '../../application/stores/authStore';
 import { useChatStore } from '../../application/stores/chatStore';
@@ -20,14 +21,12 @@ interface DockItem {
 const IM_TOP_ITEMS: DockItem[] = [
   { key: 'messages', icon: 'chat_bubble', label: '消息' },
   { key: 'apps', icon: 'grid_view', label: '轻应用' },
-  { key: 'contacts', icon: 'people', label: '通讯录' },
   { key: 'knowledge', icon: 'menu_book', label: '知识库' },
   { key: 'tasks', icon: 'task_alt', label: '待办' },
-  { key: 'notifications', icon: 'notifications', label: '通知' },
   { key: 'calendar', icon: 'calendar_month', label: '日历' },
-  { key: 'subscription', icon: 'dynamic_feed', label: '动态' },
 ];
 const IM_BOTTOM_ITEMS: DockItem[] = [
+  { key: 'contacts', icon: 'people', label: '通讯录' },
   { key: 'agents', icon: 'smart_toy', label: 'Agent' },
   { key: 'settings', icon: 'settings', label: '设置' },
 ];
@@ -56,6 +55,8 @@ export function Dock({ onLogout }: DockProps) {
   const rooms = useChatStore((s) => s.rooms);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState({ bottom: 0, left: 0 });
 
   const isOC = appMode === 'openclaw';
   const topItems = isOC ? OC_TOP_ITEMS : IM_TOP_ITEMS;
@@ -63,10 +64,24 @@ export function Dock({ onLogout }: DockProps) {
 
   const totalUnread = rooms.reduce((sum, r) => sum + (r.unreadCount ?? 0), 0);
 
+  const openMenu = useCallback(() => {
+    if (avatarRef.current) {
+      const rect = avatarRef.current.getBoundingClientRect();
+      setMenuPos({
+        bottom: window.innerHeight - rect.top + 4,
+        left: rect.left + rect.width / 2 - 96, // 96 = half of w-48 (192px)
+      });
+    }
+    setMenuOpen(true);
+  }, []);
+
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        avatarRef.current && !avatarRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false);
       }
     };
@@ -138,60 +153,78 @@ export function Dock({ onLogout }: DockProps) {
       {/* Divider */}
       <div className={`w-8 h-px ${isOC ? 'bg-white/10' : 'bg-border'}`} />
 
-      {/* Bottom navigation + avatar menu */}
-      <div className="flex flex-col items-center gap-1 relative" ref={menuRef}>
+      {/* Growth Journey — OpenClaw only */}
+      {isOC && (
+        <button
+          type="button"
+          onClick={() => window.open('https://neo.ksyun.com/portal', '_blank', 'noopener')}
+          title="成长历程"
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-white/5 transition-all"
+        >
+          <Icon name="trending_up" size={22} />
+        </button>
+      )}
+
+      {/* Bottom navigation + avatar */}
+      <div className="flex flex-col items-center gap-1">
         {bottomItems.map(renderButton)}
-        <button type="button" onClick={() => setMenuOpen(!menuOpen)} className="relative mt-1">
+        <button type="button" ref={avatarRef} onClick={openMenu} className="relative mt-1">
           <Avatar letter={user?.displayName?.charAt(0) ?? 'U'} size={36} />
         </button>
+      </div>
 
-        {menuOpen && (
-          <div className={`absolute bottom-12 left-1/2 -translate-x-1/2 w-48 border rounded-xl py-1 z-50 ${
+      {/* Avatar menu — rendered via portal to avoid overflow clipping */}
+      {menuOpen && createPortal(
+        <div
+          ref={menuRef}
+          className={`fixed w-48 border rounded-xl py-1 z-[9999] ${
             isOC
               ? 'bg-[#0F1629] border-white/10 shadow-lg'
               : 'bg-bg-white-var border-border shadow-card'
-          }`}>
-            <div className={`px-3 py-2 border-b ${isOC ? 'border-white/10' : 'border-border'}`}>
-              <p className={`text-sm font-medium truncate ${isOC ? 'text-slate-100' : 'text-text-primary'}`}>
-                {user?.displayName ?? '用户'}
-              </p>
-              <p className={`text-[10px] truncate ${isOC ? 'text-slate-500' : 'text-text-muted'}`}>{user?.userId}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => { setMenuOpen(false); setDock('settings'); useUIStore.getState().setSubView('settings:profile'); }}
-              className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                isOC ? 'text-slate-200 hover:bg-white/5' : 'text-text-primary hover:bg-bg-hover'
-              }`}
-            >
-              个人资料
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMenuOpen(false); setDock('settings'); }}
-              className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                isOC ? 'text-slate-200 hover:bg-white/5' : 'text-text-primary hover:bg-bg-hover'
-              }`}
-            >
-              设置
-            </button>
-            {onLogout && (
-              <>
-                <div className={`border-t my-1 ${isOC ? 'border-white/10' : 'border-border'}`} />
-                <button
-                  type="button"
-                  onClick={() => { setMenuOpen(false); onLogout(); }}
-                  className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                    isOC ? 'text-red-400 hover:bg-white/5' : 'text-error hover:bg-bg-hover'
-                  }`}
-                >
-                  退出登录
-                </button>
-              </>
-            )}
+          }`}
+          style={{ bottom: menuPos.bottom, left: Math.max(4, menuPos.left) }}
+        >
+          <div className={`px-3 py-2 border-b ${isOC ? 'border-white/10' : 'border-border'}`}>
+            <p className={`text-sm font-medium truncate ${isOC ? 'text-slate-100' : 'text-text-primary'}`}>
+              {user?.displayName ?? '用户'}
+            </p>
+            <p className={`text-[10px] truncate ${isOC ? 'text-slate-500' : 'text-text-muted'}`}>{user?.userId}</p>
           </div>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => { setMenuOpen(false); setDock('settings'); useUIStore.getState().setSubView('settings:profile'); }}
+            className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+              isOC ? 'text-slate-200 hover:bg-white/5' : 'text-text-primary hover:bg-bg-hover'
+            }`}
+          >
+            个人资料
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMenuOpen(false); setDock('settings'); }}
+            className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+              isOC ? 'text-slate-200 hover:bg-white/5' : 'text-text-primary hover:bg-bg-hover'
+            }`}
+          >
+            设置
+          </button>
+          {onLogout && (
+            <>
+              <div className={`border-t my-1 ${isOC ? 'border-white/10' : 'border-border'}`} />
+              <button
+                type="button"
+                onClick={() => { setMenuOpen(false); onLogout(); }}
+                className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                  isOC ? 'text-red-400 hover:bg-white/5' : 'text-error hover:bg-bg-hover'
+                }`}
+              >
+                退出登录
+              </button>
+            </>
+          )}
+        </div>,
+        document.body,
+      )}
     </nav>
   );
 }

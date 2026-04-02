@@ -13,6 +13,36 @@ describe('Folder', () => {
     expect(folder.isRoot).toBe(true);
     expect(folder.hasChildren).toBe(false);
     expect(folder.documentCount).toBe(0);
+    expect(folder.type).toBe('user');
+    expect(folder.departmentId).toBe('');
+    expect(folder.ownerId).toBe('');
+  });
+
+  it('creates a system folder', () => {
+    const folder = Folder.create({
+      id: 'cat-official',
+      name: '官方指南',
+      parentId: null,
+      icon: 'verified',
+      type: 'system',
+    });
+    expect(folder.isSystem).toBe(true);
+    expect(folder.isDepartment).toBe(false);
+  });
+
+  it('creates a department folder', () => {
+    const folder = Folder.create({
+      id: 'f-dept-finance',
+      name: '财务部',
+      parentId: 'cat-department',
+      icon: 'corporate_fare',
+      type: 'department',
+      departmentId: 'dept-finance',
+      documentCount: 128,
+    });
+    expect(folder.isDepartment).toBe(true);
+    expect(folder.departmentId).toBe('dept-finance');
+    expect(folder.documentCount).toBe(128);
   });
 
   it('creates a child folder', () => {
@@ -64,6 +94,29 @@ describe('Folder', () => {
     expect(folder.hasChildren).toBe(false);
   });
 
+  it('adds child immutably', () => {
+    const folder = Folder.create({ id: 'f-1', name: '根', parentId: null, icon: 'folder' });
+    const child = Folder.create({ id: 'f-c', name: '子', parentId: 'f-1', icon: 'folder' });
+    const updated = folder.addChild(child);
+    expect(updated.children).toHaveLength(1);
+    expect(folder.children).toHaveLength(0);
+  });
+
+  it('removes child immutably', () => {
+    const child = Folder.create({ id: 'f-c', name: '子', parentId: 'f-1', icon: 'folder' });
+    const folder = Folder.create({ id: 'f-1', name: '根', parentId: null, icon: 'folder', children: [child] });
+    const updated = folder.removeChild('f-c');
+    expect(updated.children).toHaveLength(0);
+    expect(folder.children).toHaveLength(1);
+  });
+
+  it('withName updates name immutably', () => {
+    const folder = Folder.create({ id: 'f-1', name: '旧名', parentId: null, icon: 'folder' });
+    const renamed = folder.withName('新名');
+    expect(renamed.name).toBe('新名');
+    expect(folder.name).toBe('旧名');
+  });
+
   it('matches search query', () => {
     const folder = Folder.create({
       id: 'f-1',
@@ -74,5 +127,21 @@ describe('Folder', () => {
     expect(folder.matchesSearch('技术')).toBe(true);
     expect(folder.matchesSearch('设计')).toBe(false);
     expect(folder.matchesSearch('')).toBe(true);
+  });
+
+  it('toProps roundtrip preserves fields', () => {
+    const folder = Folder.create({
+      id: 'f-1',
+      name: '测试',
+      parentId: null,
+      icon: 'folder',
+      type: 'department',
+      departmentId: 'dept-1',
+      description: '描述',
+    });
+    const roundtrip = Folder.create(folder.toProps());
+    expect(roundtrip.type).toBe('department');
+    expect(roundtrip.departmentId).toBe('dept-1');
+    expect(roundtrip.description).toBe('描述');
   });
 });

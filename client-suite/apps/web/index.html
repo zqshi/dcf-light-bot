@@ -10,6 +10,7 @@
         font-family: 'Material Symbols Outlined';
         font-style: normal;
         font-weight: 100 700;
+        font-display: block;
         src: url('./fonts/material-symbols-outlined.woff2') format('woff2');
       }
       @font-face {
@@ -35,6 +36,10 @@
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
         font-feature-settings: 'liga';
+        /* Hide ligature text until font is ready */
+        overflow: hidden;
+        width: 1em;
+        height: 1em;
       }
     </style>
   </head>
