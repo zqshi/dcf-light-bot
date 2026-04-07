@@ -131,10 +131,12 @@ export function OpenClawPage() {
   const openDrawer = useOpenClawStore((s) => s.openDrawer);
   const activeSharedAgentId = useOpenClawStore((s) => s.activeSharedAgentId);
   const returnToPrimary = useOpenClawStore((s) => s.returnToPrimaryAgent);
+  const returnToHome = useOpenClawStore((s) => s.returnToHome);
   const discussingNotificationId = useOpenClawStore((s) => s.discussingNotificationId);
   const discussingDecisionId = useOpenClawStore((s) => s.discussingDecisionId);
   const discussingTaskId = useOpenClawStore((s) => s.discussingTaskId);
   const discussingGoalId = useOpenClawStore((s) => s.discussingGoalId);
+  const activeConversationId = useOpenClawStore((s) => s.activeConversationId);
   const sharedAgents = useAgentStore((s) => s.sharedAgents);
 
   const [radarCollapsed, setRadarCollapsed] = useState(false);
@@ -185,6 +187,19 @@ export function OpenClawPage() {
 
       {/* C: Command console — decision/task/goal use C column cards */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Global home navigation — shows when not on welcome */}
+        {(discussingNotificationId || discussingDecisionId || discussingTaskId || discussingGoalId || activeSharedAgentId || (activeConversationId !== 'primary' && messages.length > 0)) && !activeSharedAgent && (
+          <div className="flex items-center gap-2 px-4 py-1.5 border-b border-white/[0.06] bg-white/[0.01] shrink-0">
+            <button
+              type="button"
+              onClick={returnToHome}
+              className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <Icon name="home" size={14} />
+              返回首页
+            </button>
+          </div>
+        )}
         {/* Shared agent header (data-driven) */}
         {activeSharedAgent && (
           <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 bg-white/[0.02] shrink-0">

@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AI Gateway — 管理后台</title>
+    <link rel="stylesheet" href="/admin/layout.css" />
+    <style>
+      .page-head-layout { grid-template-columns: 1fr !important; }
+
+      /* ── Tab navigation ── */
+      .gw-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid #e5e5ea;
+        margin-bottom: 16px;
+      }
+      .gw-tab {
+        padding: 10px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #8e8e93;
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: color 140ms, border-color 140ms;
+      }
+      .gw-tab:hover { color: #1d1d1f; }
+      .gw-tab.active {
+        color: #0071e3;
+        border-bottom-color: #0071e3;
+      }
+      .gw-panel { display: none; }
+      .gw-panel.active { display: block; }
+
+      /* ── Stat cards (shared) ── */
+      .stat-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .stat-card {
+        background: #fafafa;
+        border: 1px solid #ededf2;
+        border-radius: 12px;
+        padding: 16px 14px;
+        transition: border-color 160ms, box-shadow 160ms;
+      }
+      .stat-card:hover {
+        border-color: #d8d8df;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+      }
+      .stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 6px;
+      }
+      .stat-label.completed { color: #34c759; }
+      .stat-label.blocked   { color: #ff9500; }
+      .stat-label.failed    { color: #ff3b30; }
+      .stat-label.tokens    { color: #0071e3; }
+      .stat-label.cost      { color: #af52de; }
+      .stat-label.calls     { color: #ff9500; }
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1d1d1f;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Status badges ── */
+      .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 6px;
+      }
+      .badge-completed { background: rgba(52,199,89,0.12); color: #248a3d; }
+      .badge-blocked   { background: rgba(255,149,0,0.12); color: #c93400; }
+      .badge-failed    { background: rgba(255,59,48,0.12);  color: #d70015; }
+      .badge-info      { background: rgba(0,113,227,0.10);  color: #0071e3; }
+      .badge-high      { background: rgba(255,59,48,0.12);  color: #d70015; }
+      .badge-medium    { background: rgba(255,149,0,0.12);  color: #c93400; }
+      .badge-low       { background: rgba(52,199,89,0.12);  color: #248a3d; }
+      .badge-block     { background: rgba(255,59,48,0.12);  color: #d70015; }
+      .badge-route     { background: rgba(175,82,222,0.12); color: #7d2fa0; }
+      .badge-allow     { background: rgba(52,199,89,0.12);  color: #248a3d; }
+      .badge-disabled  { background: #f2f2f7; color: #aeaeb2; }
+
+      /* ── Model cards grid ── */
+      .model-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 12px;
+      }
+      .model-card {
+        background: #fff;
+        border: 1px solid #ededf2;
+        border-radius: 14px;
+        padding: 16px 18px;
+        transition: border-color 160ms, box-shadow 160ms;
+      }
+      .model-card:hover {
+        border-color: #d8d8df;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+      }
+      .model-card.inactive { opacity: 0.55; }
+      .model-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .model-card-title {
+        font-size: 15px;
+        font-weight: 650;
+        color: #1d1d1f;
+      }
+      .model-card-desc {
+        font-size: 12px;
+        color: #8e8e93;
+        margin-bottom: 8px;
+      }
+      .model-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        font-size: 11px;
+        color: #6e6e73;
+      }
+      .model-card-meta .price {
+        font-variant-numeric: tabular-nums;
+      }
+      .model-card-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .model-card-actions button {
+        font-size: 11px;
+        padding: 4px 10px;
+        border: 1px solid #e5e5ea;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        color: #1d1d1f;
+      }
+      .model-card-actions button:hover { background: #f5f5f7; }
+      .model-card-actions button.danger { color: #d70015; border-color: rgba(255,59,48,0.3); }
+
+      /* ── Toggle switch ── */
+      .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+      .toggle-switch input { opacity: 0; width: 0; height: 0; }
+      .toggle-slider {
+        position: absolute; inset: 0; background: #e5e5ea; border-radius: 22px;
+        cursor: pointer; transition: background 200ms;
+      }
+      .toggle-slider::before {
+        content: ''; position: absolute; width: 18px; height: 18px; left: 2px; bottom: 2px;
+        background: #fff; border-radius: 50%; transition: transform 200ms;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      }
+      .toggle-switch input:checked + .toggle-slider { background: #34c759; }
+      .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+      /* ── Trace table clickable rows ── */
+      #traceTable tbody tr { cursor: pointer; }
+      #traceTable tbody tr.active td { background: #eef5ff; }
+
+      /* ── Trace detail (inside drawer) ── */
+      .trace-meta-card {
+        padding: 12px 14px; background: #fafafa; border: 1px solid #ededf2;
+        border-radius: 10px; margin-bottom: 12px;
+      }
+      .trace-meta-card .meta-title { font-size: 12px; color: #8e8e93; margin-bottom: 2px; }
+      .trace-meta-card .meta-id { font-size: 14px; font-weight: 650; color: #1d1d1f; word-break: break-all; }
+      .trace-meta-card .meta-row { font-size: 12px; color: #6e6e73; margin-top: 4px; }
+      .trace-meta-card .copy-btn {
+        font-size: 11px; padding: 3px 8px; border: 1px solid #e5e5ea; border-radius: 6px;
+        background: #fff; cursor: pointer; color: #1d1d1f; float: right; margin-top: -2px;
+      }
+
+      /* ── Execution flow ── */
+      .flow-section { margin-top: 12px; }
+      .flow-section h4 { font-size: 14px; font-weight: 650; color: #1d1d1f; margin: 0 0 4px; }
+      .flow-section .flow-desc { font-size: 12px; color: #8e8e93; margin: 0 0 14px; }
+      .flow-node { display: flex; gap: 12px; margin-bottom: 16px; position: relative; }
+      .flow-node:not(:last-child)::after {
+        content: ''; position: absolute; left: 11px; top: 26px; bottom: -12px;
+        width: 2px; background: #e5e5ea;
+      }
+      .flow-dot {
+        width: 24px; height: 24px; border-radius: 50%; border: 2px solid #e5e5ea;
+        background: #fff; flex-shrink: 0; z-index: 1;
+      }
+      .flow-dot.user_message { border-color: #34c759; background: rgba(52,199,89,0.08); }
+      .flow-dot.llm_call     { border-color: #ff9500; background: rgba(255,149,0,0.08); }
+      .flow-dot.tool_call    { border-color: #af52de; background: rgba(175,82,222,0.08); }
+      .flow-dot.assistant_response { border-color: #0071e3; background: rgba(0,113,227,0.08); }
+      .flow-dot.blocked      { border-color: #ff3b30; background: rgba(255,59,48,0.08); }
+      .flow-body { flex: 1; min-width: 0; }
+      .flow-kind-badge {
+        display: inline-block; font-size: 10px; font-weight: 600;
+        padding: 2px 7px; border-radius: 5px; margin-bottom: 4px;
+      }
+      .flow-kind-badge.user_message { background: rgba(52,199,89,0.12); color: #248a3d; }
+      .flow-kind-badge.llm_call     { background: rgba(255,149,0,0.12); color: #c93400; }
+      .flow-kind-badge.tool_call    { background: rgba(175,82,222,0.12); color: #7d2fa0; }
+      .flow-kind-badge.assistant_response { background: rgba(0,113,227,0.12); color: #0071e3; }
+      .flow-kind-badge.blocked      { background: rgba(255,59,48,0.12); color: #d70015; }
+      .flow-title { font-size: 14px; font-weight: 600; color: #1d1d1f; margin-bottom: 2px; }
+      .flow-summary { font-size: 12px; color: #6e6e73; margin-bottom: 6px; }
+      .flow-time { font-size: 11px; color: #aeaeb2; float: right; margin-top: -22px; }
+      .flow-payload {
+        background: #1d1d1f; color: #e5e5ea;
+        font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.5;
+        padding: 12px 14px; border-radius: 10px; overflow-x: auto;
+        white-space: pre-wrap; word-break: break-all; max-height: 240px; overflow-y: auto;
+      }
+      .flow-payload .jp-key    { color: #f5c07a; }
+      .flow-payload .jp-string { color: #98c379; }
+      .flow-payload .jp-number { color: #d19a66; }
+      .flow-payload .jp-bool   { color: #56b6c2; }
+      .flow-payload .jp-null   { color: #c678dd; }
+
+      /* ── Risk rule cards ── */
+      .rule-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 12px;
+      }
+      .rule-card {
+        background: #fff; border: 1px solid #ededf2; border-radius: 14px;
+        padding: 16px 18px; transition: border-color 160ms, box-shadow 160ms;
+      }
+      .rule-card:hover { border-color: #d8d8df; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+      .rule-card-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 10px; margin-bottom: 8px;
+      }
+      .rule-card-title { font-size: 15px; font-weight: 650; color: #1d1d1f; }
+      .rule-card-desc { font-size: 12px; color: #8e8e93; margin-bottom: 10px; }
+      .rule-card-pattern {
+        font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #6e6e73;
+        background: #f5f5f7; border: 1px solid #ededf2; border-radius: 8px;
+        padding: 8px 10px; word-break: break-all; margin-bottom: 10px;
+      }
+      .rule-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+      /* ── Test panel ── */
+      .test-panel {
+        background: #fff; border: 1px solid #ededf2; border-radius: 14px;
+        padding: 18px; margin-top: 16px;
+      }
+      .test-panel h3 { font-size: 15px; font-weight: 650; color: #1d1d1f; margin: 0 0 4px; }
+      .test-panel p { font-size: 12px; color: #8e8e93; margin: 0 0 12px; }
+      .test-textarea {
+        width: 100%; min-height: 100px; font-size: 13px; padding: 10px 12px;
+        border: 1px solid #e5e5ea; border-radius: 10px; background: #fafafa;
+        color: #1d1d1f; font-family: inherit; resize: vertical; outline: none;
+        box-sizing: border-box;
+      }
+      .test-textarea:focus { border-color: #0071e3; }
+      .test-btn-row { display: flex; gap: 8px; margin-top: 10px; }
+      .test-result {
+        margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+        font-size: 13px; line-height: 1.6; display: none;
+      }
+      .test-result.safe { background: rgba(52,199,89,0.08); border: 1px solid rgba(52,199,89,0.2); color: #248a3d; display: block; }
+      .test-result.risky { background: rgba(255,59,48,0.06); border: 1px solid rgba(255,59,48,0.15); color: #d70015; display: block; }
+
+      /* ── Drawer form fields ── */
+      .drawer-form label {
+        display: block; font-size: 13px; font-weight: 600; color: #3a3a3c; margin-bottom: 4px;
+      }
+      .drawer-form input,
+      .drawer-form select,
+      .drawer-form textarea {
+        width: 100%; font-size: 13px; padding: 8px 10px; border: 1px solid #e5e5ea;
+        border-radius: 8px; background: #fafafa; color: #1d1d1f; margin-bottom: 14px;
+        box-sizing: border-box; outline: none; font-family: inherit;
+      }
+      .drawer-form input:focus,
+      .drawer-form select:focus,
+      .drawer-form textarea:focus { border-color: #0071e3; }
+      .drawer-form .checkbox-label {
+        display: flex; align-items: center; gap: 8px;
+        margin-top: 4px; font-weight: 500; color: #6e6e73;
+      }
+      .drawer-form .checkbox-label input[type="checkbox"] {
+        width: auto; margin: 0; padding: 0; border: none; background: none;
+        accent-color: #0071e3;
+      }
+      .drawer-error { color: #ff3b30; font-size: 12px; margin-top: -6px; display: none; }
+
+      /* ── Buttons ── */
+      .btn-primary {
+        font-size: 13px; padding: 8px 20px; border: none; border-radius: 8px;
+        background: #0071e3; color: #fff; font-weight: 600; cursor: pointer;
+      }
+      .btn-primary:hover { background: #0062c4; }
+      .btn-secondary {
+        font-size: 13px; padding: 8px 20px; border: 1px solid #e5e5ea; border-radius: 8px;
+        background: #fff; color: #1d1d1f; cursor: pointer;
+      }
+
+      /* ── Budget progress bar ── */
+      .budget-progress {
+        display: flex; align-items: center; gap: 8px;
+      }
+      .budget-progress-bar {
+        width: 100px; height: 8px; background: #f2f2f7;
+        border-radius: 4px; overflow: hidden; flex-shrink: 0;
+      }
+      .budget-progress-fill {
+        height: 100%; border-radius: 4px; transition: width 300ms;
+      }
+      .budget-progress-fill.level-ok   { background: #0071e3; }
+      .budget-progress-fill.level-warn { background: #ff9500; }
+      .budget-progress-fill.level-over { background: #ff3b30; }
+      .badge-soft { background: rgba(52,199,89,0.12); color: #248a3d; }
+      .badge-hard { background: rgba(255,59,48,0.12); color: #d70015; }
+
+      /* ── Category pill active state ── */
+      #ruleCategoryBar .gw-tab.active {
+        background: #0071e3 !important;
+        color: #fff !important;
+        border-color: #0071e3 !important;
+      }
+      /* ── Rule card checkbox ── */
+      .rule-card-check {
+        position: absolute; top: 12px; left: 12px; width: 16px; height: 16px;
+        accent-color: #0071e3; cursor: pointer;
+      }
+      .rule-card { position: relative; }
+
+      @media (max-width: 900px) {
+        .stat-strip { grid-template-columns: repeat(2, 1fr); }
+        .model-grid { grid-template-columns: 1fr; }
+        .rule-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body data-required-permission="admin.ai-gateway.page.read">
+    <div class="admin-shell">
+            <aside class="sidebar">
+        <h2>管理后台</h2>
+        <a href="/admin/index.html">总览</a>
+        <a href="/admin/employees.html">员工管理</a>
+        <a href="/admin/shared-agents.html">共享 Agent</a>
+        <a href="/admin/openclaw-monitor.html">平台运营</a>
+        <a href="/admin/openclaw-statistics.html">数据统计</a>
+        <a href="/admin/skills.html">技能管理</a>
+        <a href="/admin/tools.html">工具管理</a>
+        <a class="active" href="/admin/ai-gateway.html">AI Gateway</a>
+        <a href="/admin/logs-service.html">行为日志</a>
+        <a href="/admin/auth-members.html">成员管理</a>
+      </aside>
+
+      <main class="content">
+        <section class="page-head">
+          <div class="page-head-layout">
+            <div>
+              <h1 class="page-title">AI Gateway</h1>
+              <p class="page-subtitle">统一管理 AI 模型接入、调用审计、成本分析与风险管控。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab navigation -->
+        <div class="gw-tabs">
+          <button class="gw-tab active" data-tab="models">模型管理</button>
+          <button class="gw-tab" data-tab="audit">审计追踪</button>
+          <button class="gw-tab" data-tab="costs">成本分析</button>
+          <button class="gw-tab" data-tab="rules">风险规则</button>
+        </div>
+
+        <!-- ═══ Tab 1: 模型管理 ═══ -->
+        <div class="gw-panel active" id="panelModels" data-tab="models">
+          <div class="toolbar" style="margin-bottom:12px">
+            <span id="modelCount" style="font-size:13px;color:#6e6e73">0 个模型</span>
+            <div style="display:flex;gap:6px">
+              <button type="button" class="btn-secondary" id="btnFailover">故障转移</button>
+              <button type="button" class="btn-secondary" id="btnDiscover">自动发现</button>
+              <button type="button" class="btn-primary" id="btnCreateModel">+ 添加模型</button>
+            </div>
+          </div>
+          <div class="model-grid" id="modelGrid">
+            <div style="padding:40px;text-align:center;color:#8e8e93;font-size:13px;grid-column:1/-1">加载中...</div>
+          </div>
+        </div>
+
+        <!-- ═══ Tab 2: 审计追踪 ═══ -->
+        <div class="gw-panel" id="panelAudit" data-tab="audit">
+          <div class="stat-strip">
+            <div class="stat-card"><div class="stat-label completed">COMPLETED</div><div class="stat-value" id="statCompleted">0</div></div>
+            <div class="stat-card"><div class="stat-label blocked">BLOCKED</div><div class="stat-value" id="statBlocked">0</div></div>
+            <div class="stat-card"><div class="stat-label failed">FAILED</div><div class="stat-value" id="statFailed">0</div></div>
+            <div class="stat-card"><div class="stat-label tokens">TOKENS</div><div class="stat-value" id="statTokens">0</div></div>
+          </div>
+          <section class="card">
+            <div class="toolbar">
+              <div style="display:flex;gap:8px;flex:1;flex-wrap:wrap">
+                <input class="admin-input" type="text" id="filterSearch" placeholder="搜索 trace、用户、模型..." style="flex:1;min-width:160px" />
+                <select class="admin-select" id="filterStatus">
+                  <option value="">全部状态</option>
+                  <option value="completed">已完成</option>
+                  <option value="blocked">已拦截</option>
+                  <option value="failed">失败</option>
+                </select>
+                <select class="admin-select" id="filterModel"><option value="">按模型筛选...</option></select>
+                <select class="admin-select" id="filterLimit">
+                  <option value="20">20 条/页</option>
+                  <option value="50">50 条/页</option>
+                  <option value="100">100 条/页</option>
+                </select>
+              </div>
+              <button type="button" id="btnRefreshTraces">刷新</button>
+            </div>
+            <div class="table-wrap">
+              <table id="traceTable">
+                <thead>
+                  <tr>
+                    <th>Trace ID</th><th>状态</th><th>模型</th>
+                    <th>Token（入/出）</th><th>成本</th><th>延迟</th><th>创建时间</th>
+                  </tr>
+                </thead>
+                <tbody id="traceTableBody">
+                  <tr><td colspan="7" class="empty">加载中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-pager" id="tracePager"></div>
+          </section>
+        </div>
+
+        <!-- ═══ Tab 3: 成本分析 ═══ -->
+        <div class="gw-panel" id="panelCosts" data-tab="costs">
+          <div class="stat-strip" id="costStatStrip">
+            <div class="stat-card"><div class="stat-label tokens">输入 TOKEN</div><div class="stat-value" id="costInputTokens">0</div></div>
+            <div class="stat-card"><div class="stat-label tokens">输出 TOKEN</div><div class="stat-value" id="costOutputTokens">0</div></div>
+            <div class="stat-card"><div class="stat-label cost">预估总成本</div><div class="stat-value" id="costTotal">¥0</div></div>
+            <div class="stat-card"><div class="stat-label calls">调用总数</div><div class="stat-value" id="costCalls">0</div></div>
+          </div>
+
+          <!-- 按部门汇总 -->
+          <section class="card" style="margin-bottom:12px">
+            <h3 style="font-size:14px;font-weight:650;margin:0 0 12px">按部门汇总</h3>
+            <div class="table-wrap">
+              <table id="costDeptTable">
+                <thead><tr><th>部门</th><th>人数</th><th>调用数</th><th>Token</th><th>成本</th><th>占比</th></tr></thead>
+                <tbody id="costDeptBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <!-- 按用户汇总 -->
+            <section class="card">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+                <h3 style="font-size:14px;font-weight:650;margin:0">按用户汇总</h3>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <select id="costUserDeptFilter" style="font-size:12px;padding:4px 8px;border:1px solid #e5e5ea;border-radius:6px;background:#fafafa">
+                    <option value="">全部部门</option>
+                  </select>
+                  <select id="costUserSort" style="font-size:12px;padding:4px 8px;border:1px solid #e5e5ea;border-radius:6px;background:#fafafa">
+                    <option value="cost">按成本↓</option>
+                    <option value="tokens">按 Token↓</option>
+                    <option value="count">按调用↓</option>
+                    <option value="name">按用户名</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-wrap" style="max-height:320px;overflow-y:auto">
+                <table id="costUserTable">
+                  <thead><tr><th>用户</th><th>部门</th><th>调用数</th><th>Token</th><th>成本</th></tr></thead>
+                  <tbody id="costUserBody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+                </table>
+              </div>
+            </section>
+            <!-- 按模型汇总 -->
+            <section class="card">
+              <h3 style="font-size:14px;font-weight:650;margin:0 0 12px">按模型汇总</h3>
+              <div class="table-wrap">
+                <table id="costModelTable">
+                  <thead><tr><th>模型</th><th>调用数</th><th>Token</th><th>成本</th></tr></thead>
+                  <tbody id="costModelBody"><tr><td colspan="4" class="empty">加载中...</td></tr></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+          <section class="card" style="margin-top:12px">
+            <h3 style="font-size:14px;font-weight:650;margin:0 0 12px">日趋势</h3>
+            <div class="table-wrap">
+              <table id="costDailyTable">
+                <thead><tr><th>日期</th><th>调用数</th><th>输入 Token</th><th>输出 Token</th><th>成本</th></tr></thead>
+                <tbody id="costDailyBody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- 预算管理 -->
+          <section class="card" style="margin-top:12px">
+            <div class="toolbar" style="margin-bottom:12px">
+              <h3 style="font-size:14px;font-weight:650;margin:0">预算管理</h3>
+              <button type="button" class="btn-primary" id="btnCreateBudget">+ 添加预算</button>
+            </div>
+            <div class="table-wrap">
+              <table id="budgetTable">
+                <thead><tr><th>范围</th><th>名称</th><th>月度额度</th><th>已用金额</th><th>使用进度</th><th>模式</th><th>操作</th></tr></thead>
+                <tbody id="budgetBody"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- ═══ Tab 4: 风险规则 ═══ -->
+        <div class="gw-panel" id="panelRules" data-tab="rules">
+          <!-- 分类筛选条 -->
+          <div id="ruleCategoryBar" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+            <button class="gw-tab active" data-rule-cat="" style="padding:6px 14px;font-size:12px;border:1px solid #e5e5ea;border-radius:16px;background:#fff;cursor:pointer;font-weight:600;color:#8e8e93;border-bottom:none">全部</button>
+            <button class="gw-tab" data-rule-cat="security" style="padding:6px 14px;font-size:12px;border:1px solid #e5e5ea;border-radius:16px;background:#fff;cursor:pointer;font-weight:600;color:#8e8e93;border-bottom:none">安全凭证</button>
+            <button class="gw-tab" data-rule-cat="privacy" style="padding:6px 14px;font-size:12px;border:1px solid #e5e5ea;border-radius:16px;background:#fff;cursor:pointer;font-weight:600;color:#8e8e93;border-bottom:none">个人隐私</button>
+            <button class="gw-tab" data-rule-cat="company" style="padding:6px 14px;font-size:12px;border:1px solid #e5e5ea;border-radius:16px;background:#fff;cursor:pointer;font-weight:600;color:#8e8e93;border-bottom:none">公司信息</button>
+            <button class="gw-tab" data-rule-cat="custom" style="padding:6px 14px;font-size:12px;border:1px solid #e5e5ea;border-radius:16px;background:#fff;cursor:pointer;font-weight:600;color:#8e8e93;border-bottom:none">自定义</button>
+          </div>
+          <div class="toolbar" style="margin-bottom:12px;flex-wrap:wrap;gap:6px">
+            <span id="ruleCount" style="font-size:13px;color:#6e6e73">0 条规则</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">
+              <button type="button" class="btn-secondary" id="btnRuleSelectAll" style="font-size:11px;padding:5px 10px">全选</button>
+              <button type="button" class="btn-secondary" id="btnRuleBatchEnable" style="font-size:11px;padding:5px 10px">批量启用</button>
+              <button type="button" class="btn-secondary" id="btnRuleBatchDisable" style="font-size:11px;padding:5px 10px">批量禁用</button>
+              <button type="button" class="btn-secondary" id="btnRuleBatchDelete" style="font-size:11px;padding:5px 10px;color:#d70015;border-color:rgba(255,59,48,0.3)">批量删除</button>
+              <button type="button" class="btn-secondary" id="btnRuleExport" style="font-size:11px;padding:5px 10px">导出 JSON</button>
+              <button type="button" class="btn-secondary" id="btnRuleImport" style="font-size:11px;padding:5px 10px">导入 JSON</button>
+              <button type="button" class="btn-secondary" id="btnRuleSnapshots" style="font-size:11px;padding:5px 10px">版本历史</button>
+              <button type="button" class="btn-primary" id="btnCreateRule">+ 新建规则</button>
+            </div>
+          </div>
+          <div class="rule-grid" id="ruleGrid">
+            <div style="padding:40px;text-align:center;color:#8e8e93;font-size:13px;grid-column:1/-1">加载中...</div>
+          </div>
+          <div class="test-panel">
+            <h3>规则测试</h3>
+            <p>输入样本文本测试风险规则。支持多行批量测试：每行作为独立文本逐条检测。</p>
+            <textarea class="test-textarea" id="testText" placeholder="粘贴或输入待检测的文本内容..."></textarea>
+            <div class="test-btn-row">
+              <button type="button" class="btn-primary" id="btnTestRules">运行测试</button>
+            </div>
+            <div class="test-result" id="testResult"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ── Shared Drawer ── -->
+    <aside id="gwDrawer" class="employee-drawer hidden" aria-hidden="true">
+      <div class="employee-drawer-head">
+        <h3 id="gwDrawerTitle">详情</h3>
+        <button id="closeGwDrawer" type="button">关闭</button>
+      </div>
+      <div id="gwDrawerBody" class="employee-drawer-body drawer-form"></div>
+      <div id="gwDrawerFoot" class="employee-drawer-foot" style="padding:16px 20px;border-top:1px solid #f2f2f7;display:none;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn-secondary" id="btnDrawerCancel">取消</button>
+        <button type="button" class="btn-primary" id="btnDrawerSave">保存</button>
+      </div>
+    </aside>
+    <div id="gwDrawerMask" class="employee-drawer-mask hidden" aria-hidden="true"></div>
+    <script src="/admin/auth-core.js"></script>
+    <script src="/admin/ai-gateway-templates.js"></script>
+    <script src="/admin/ai-gw.js"></script>
+  </body>
+</html>

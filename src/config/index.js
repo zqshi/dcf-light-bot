@@ -112,6 +112,7 @@ function loadConfig() {
   const dataDir = path.resolve(process.env.DATA_DIR || './data');
   const logsDir = path.resolve(process.env.LOGS_DIR || './logs');
   const storeFile = path.resolve(process.env.CONTROL_PLANE_STORE || path.join(dataDir, 'control-plane.json'));
+  const dbFile = path.resolve(process.env.DB_FILE || path.join(dataDir, 'dcf-light-bot.db'));
   const providers = parseProviders(process.env);
   const users = parseUsers(process.env.CONTROL_PLANE_USERS_JSON);
 
@@ -124,7 +125,8 @@ function loadConfig() {
     dataDir,
     logsDir,
     storeFile,
-    persistenceBackend: String(process.env.PERSISTENCE_BACKEND || 'file').toLowerCase(),
+    persistenceBackend: String(process.env.PERSISTENCE_BACKEND || 'sqlite').toLowerCase(),
+    dbFile,
     postgresUrl: String(process.env.POSTGRES_URL || '').trim(),
     postgresSchema: String(process.env.POSTGRES_SCHEMA || 'public').trim(),
     postgresTable: String(process.env.POSTGRES_TABLE || 'control_plane_store').trim(),
@@ -212,8 +214,8 @@ function loadConfig() {
   if (cfg.persistenceBackend === 'postgres' && !cfg.postgresUrl) {
     throw new Error('POSTGRES_URL must be set when PERSISTENCE_BACKEND=postgres');
   }
-  if (!['file', 'postgres'].includes(cfg.persistenceBackend)) {
-    throw new Error('PERSISTENCE_BACKEND must be one of: file, postgres');
+  if (!['file', 'sqlite', 'postgres'].includes(cfg.persistenceBackend)) {
+    throw new Error('PERSISTENCE_BACKEND must be one of: file, sqlite, postgres');
   }
 
   if (cfg.nodeEnv === 'production') {

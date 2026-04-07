@@ -8,18 +8,20 @@
   </head>
   <body data-required-permission="admin.auth.page.users.read">
     <div class="admin-shell">
-      <aside class="sidebar">
+            <aside class="sidebar">
         <h2>管理后台</h2>
         <a href="/admin/index.html">总览</a>
         <a href="/admin/employees.html">员工管理</a>
-        <a href="/admin/openclaw-config.html">配置中心</a>
+        <a href="/admin/shared-agents.html">共享 Agent</a>
         <a href="/admin/openclaw-monitor.html">平台运营</a>
         <a href="/admin/openclaw-statistics.html">数据统计</a>
         <a href="/admin/skills.html">技能管理</a>
         <a href="/admin/tools.html">工具管理</a>
-        <a href="/admin/logs.html">行为日志</a>
-        <a class="active" href="/admin/auth-users.html">用户管理</a>
+        <a href="/admin/ai-gateway.html">AI Gateway</a>
+        <a href="/admin/logs-service.html">行为日志</a>
+        <a class="active" href="/admin/auth-members.html">成员管理</a>
       </aside>
+
       <main class="content">
         <section class="page-head">
           <h1 class="page-title">账号权限-用户管理</h1>
@@ -137,9 +139,36 @@
         </aside>
 
         <div id="authToast" class="admin-toast hidden" role="status" aria-live="polite"></div>
+
+        <section class="card" style="margin-top:12px">
+          <details id="authAuditSection">
+            <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#6e6e73;padding:8px 0">
+              权限变更历史 (<span id="authAuditCount">0</span>)
+            </summary>
+            <div class="toolbar" style="margin-top:8px;margin-bottom:8px">
+              <select id="authAuditFilter" class="admin-select">
+                <option value="">全部操作</option>
+                <option value="auth.user">用户操作</option>
+                <option value="auth.role">角色操作</option>
+                <option value="auth.login">登录事件</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>时间</th><th>操作</th><th>详情</th><th>操作人</th></tr>
+                </thead>
+                <tbody id="authAuditRows">
+                  <tr><td colspan="4" class="empty">加载中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
       </main>
     </div>
-    <script src="/admin/auth.js"></script>
+    <script src="/admin/auth-core.js"></script>
+    <script src="/admin/auth-audit.js"></script>
     <script src="/admin/auth-members.js"></script>
   </body>
 </html>

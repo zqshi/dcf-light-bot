@@ -133,6 +133,13 @@ async function startApp() {
   const store = createStore(config);
   await store.init();
   const repo = new ControlPlaneRepository(store);
+
+  // SQLite 数据库初始化（AI Gateway 相关数据持久化）
+  if (store.db && typeof store.db.init === 'function' && config.persistenceBackend === 'sqlite') {
+    logger.info('Initializing SQLite database:', config.dbFile);
+    await store.db.init();
+    logger.info('Database initialized successfully');
+  }
   if (typeof repo.getPlatformConfig === 'function') {
     const persistedOpenclaw = await repo.getPlatformConfig('openclawConfig');
     applyOpenclawConfigToRuntimeConfig(config, persistedOpenclaw);

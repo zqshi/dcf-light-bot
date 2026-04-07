@@ -15,8 +15,6 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'employees.js',
   'shared-agents.html',
   'shared-agents.js',
-  'openclaw-config.html',
-  'openclaw-config.js',
   'openclaw-monitor.html',
   'openclaw-monitor.js',
   'openclaw-statistics.html',
@@ -29,8 +27,8 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'skill-detail-renderer.js',
   'tools.html',
   'tools.js',
-  'logs.html',
   'logs.js',
+  'logs-stats.js',
   'logs-agent.html',
   'logs-service.html',
   'logs-admin.html',
@@ -40,7 +38,13 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'auth-roles.html',
   'auth-roles.js',
   'auth.js',
+  'auth-core.js',
+  'auth-audit.js',
   'app.js',
+  'ai-gateway.html',
+  'ai-gateway.js',
+  'ai-gw.js',
+  'ai-gateway-templates.js',
   'layout.css',
   'layout-base.css',
   'layout-drawer-a.css',
@@ -87,7 +91,13 @@ function createServer(context) {
     }
     next();
   });
-  app.use('/admin', express.static(adminUiDir));
+  app.use('/admin', express.static(adminUiDir, {
+    etag: false,
+    lastModified: false,
+    setHeaders(res) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }));
   app.get('/', (req, res) => res.redirect('/admin'));
   app.use('/api', apiLimiter);
   app.use(buildApiRouter(context));

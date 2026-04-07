@@ -341,18 +341,20 @@
   </head>
   <body data-required-permission="admin.runtime.page.openclaw-config.read">
     <div class="admin-shell">
-      <aside class="sidebar">
+            <aside class="sidebar">
         <h2>管理后台</h2>
         <a href="/admin/index.html">总览</a>
         <a href="/admin/employees.html">员工管理</a>
-        <a href="/admin/openclaw-config.html">配置中心</a>
+        <a href="/admin/shared-agents.html">共享 Agent</a>
         <a href="/admin/openclaw-monitor.html">平台运营</a>
         <a class="active" href="/admin/openclaw-statistics.html">数据统计</a>
         <a href="/admin/skills.html">技能管理</a>
         <a href="/admin/tools.html">工具管理</a>
-        <a href="/admin/logs.html">行为日志</a>
+        <a href="/admin/ai-gateway.html">AI Gateway</a>
+        <a href="/admin/logs-service.html">行为日志</a>
         <a href="/admin/auth-members.html">成员管理</a>
       </aside>
+
       <main class="content">
         <!-- Page Head -->
         <section class="page-head">
@@ -450,7 +452,7 @@
         <!-- 用户 & 部门分析 -->
         <div class="stats-section stats-grid-3col">
           <div class="chart-panel">
-            <div class="chart-panel-title">部门 Token 消耗排行</div>
+            <div class="chart-panel-title">模型 Token 消耗排行</div>
             <div class="scroll-area" id="deptTokenChart"></div>
           </div>
           <div class="chart-panel">
@@ -481,7 +483,7 @@
       </main>
     </div>
 
-    <script src="/admin/auth.js"></script>
+    <script src="/admin/auth-core.js"></script>
     <script src="/admin/openclaw-statistics.js"></script>
   </body>
 </html>

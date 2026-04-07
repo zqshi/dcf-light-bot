@@ -14,7 +14,8 @@ const viewState = {
   timeRange: '1h',
   trace: '',
   keyword: '',
-  expandedRowKeys: new Set()
+  expandedRowKeys: new Set(),
+  currentView: 'list'
 };
 
 function renderFatalError(message, detail = '') {
@@ -333,6 +334,8 @@ function summarizeAction(event) {
     'auth.role.created': `创建角色 ${firstNonEmpty([payload.role, '-'])}`,
     'auth.role.updated': `更新角色 ${firstNonEmpty([payload.role, '-'])} 权限`,
     'auth.role.deleted': `删除角色 ${firstNonEmpty([payload.role, '-'])}`,
+    'auth.user.deleted': `删除账号 ${firstNonEmpty([payload.username, payload.userId, '-'])}`,
+    'auth.user.status.changed': `账号 ${firstNonEmpty([payload.username, '-'])} 状态变更为 ${firstNonEmpty([payload.status, '-'])}`,
     'instance.provisioning': `实例创建中 ${firstNonEmpty([payload.instanceId, '-'])}`,
     'instance.provisioned': `实例创建成功 ${firstNonEmpty([payload.instanceId, '-'])}`,
     'instance.provision.failed': `实例创建失败 ${firstNonEmpty([payload.instanceId, '-'])}`,
@@ -773,6 +776,7 @@ async function load() {
         : filterLogsByOperation(scoped, viewState.operation);
 
     const rows = filtered;
+    viewState._lastFilteredRows = rows;
     const rowKeySet = new Set(rows.map((event) => logRowKey(event)));
     for (const rowKey of [...viewState.expandedRowKeys]) {
       if (!rowKeySet.has(rowKey)) viewState.expandedRowKeys.delete(rowKey);
@@ -796,6 +800,39 @@ async function load() {
   } catch (error) {
     renderEmpty(`加载失败：${error.message}`);
   }
+}
+
+function exportFilteredLogs(format) {
+  const rows = viewState._lastFilteredRows || [];
+  if (!rows.length) { alert('当前无数据可导出'); return; }
+
+  if (format === 'csv') {
+    const header = '时间,模块,事件类型,行为摘要,关联对象';
+    const csvRows = rows.map(event => {
+      const at = event.at ? new Date(event.at).toLocaleString() : '-';
+      const module = moduleLabelByKey(eventModuleKey(event));
+      const type = String(event.type || '-');
+      const summary = summarizeAction(event).replace(/"/g, '""');
+      const object = relatedObject(event).replace(/"/g, '""');
+      return `"${at}","${module}","${type}","${summary}","${object}"`;
+    });
+    const blob = new Blob(['\uFEFF' + header + '\n' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    downloadBlob(blob, `logs-${viewState.scope}-${new Date().toISOString().slice(0,10)}.csv`);
+  } else {
+    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `logs-${viewState.scope}-${new Date().toISOString().slice(0,10)}.json`);
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 (async () => {
@@ -822,6 +859,11 @@ async function load() {
     viewState.keyword = '';
   }
   bindControls();
+  bindViewToggle();
+  const btnExportCsv = document.getElementById('btnExportCsv');
+  const btnExportJson = document.getElementById('btnExportJson');
+  if (btnExportCsv) btnExportCsv.addEventListener('click', () => exportFilteredLogs('csv'));
+  if (btnExportJson) btnExportJson.addEventListener('click', () => exportFilteredLogs('json'));
   persistViewState();
   await load();
 

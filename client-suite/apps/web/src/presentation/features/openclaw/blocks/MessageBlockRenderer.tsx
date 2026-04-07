@@ -134,13 +134,13 @@ export function MessageBlockRenderer({
                 key={`decision-${block.decisionId}-${i}`}
                 decision={decision}
                 onAccept={() => {
-                  useOpenClawStore.getState().respondToDecision(block.decisionId, (d) => d.accept());
+                  useOpenClawStore.getState().respondDecision(block.decisionId, 'accept');
                 }}
                 onViewDetail={() => {
                   onOpenDrawer({ type: 'decision-detail', title: block.title, data: { decisionId: block.decisionId } });
                 }}
                 onDefer={() => {
-                  useOpenClawStore.getState().respondToDecision(block.decisionId, (d) => d.defer(Date.now() + 3_600_000));
+                  useOpenClawStore.getState().respondDecision(block.decisionId, 'defer', { deferUntil: Date.now() + 3_600_000 });
                 }}
               />
             );

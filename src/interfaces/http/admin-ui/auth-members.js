@@ -539,9 +539,10 @@ async function reload() {
     if (current) openRoleEditPanel(current);
     else closeRoleEditDrawer(true);
   }
-  const healthOk = health && health.healthy;
-  if (!healthOk) setNotice(`鉴权健康异常（source=${health ? health.userSource : 'unknown'}）`);
+  const healthOk = health && health.ok;
+  if (!healthOk) setNotice(`鉴权健康异常（users=${health ? health.users : 'unknown'}, roles=${health ? health.roles : 'unknown'}）`);
   else setNotice('');
+  loadAuthAuditLogs();
 }
 
 function collectCreateUserForm() {
@@ -897,6 +898,7 @@ function resolveDefaultTab() {
     setWriteControls(canWrite);
     bindTabs();
     bindActions();
+    bindAuditFilter();
     applyTab(resolveDefaultTab());
     await reload();
   } catch (error) {

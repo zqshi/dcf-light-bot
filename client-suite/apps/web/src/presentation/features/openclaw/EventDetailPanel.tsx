@@ -251,11 +251,6 @@ export function EventDetailPanel() {
     useToastStore.getState().addToast('已授权 Agent 自动处理', 'success');
   };
 
-  /** 和 Agent 讨论：切到 C 栏 + 自动滚动 */
-  const handleDiscuss = () => {
-    useOpenClawStore.getState().setDiscussingNotificationId(notification.id);
-  };
-
   /** 快速回复：直接发送到外部渠道，不走 Agent */
   const handleQuickSend = async () => {
     if (!quickReply.trim()) return;
@@ -457,18 +452,6 @@ export function EventDetailPanel() {
               </div>
             </div>
           )}
-
-          {/* 和 Agent 讨论 (所有类型都显示) */}
-          <div className="px-4 py-2.5">
-            <button
-              type="button"
-              onClick={handleDiscuss}
-              className="w-full flex items-center justify-center gap-1.5 h-7 rounded-lg border border-primary/20 text-[10px] text-primary hover:bg-primary/[0.06] transition-colors"
-            >
-              <Icon name="smart_toy" size={12} />
-              和 Agent 讨论
-            </button>
-          </div>
         </div>
     </div>
   );

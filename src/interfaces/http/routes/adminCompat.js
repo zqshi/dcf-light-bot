@@ -1,9 +1,9 @@
 const express = require('express');
 const crypto = require('crypto');
 const { ROLE_PERMISSIONS } = require('../../../contexts/identity-access/application/AuthService');
-const { buildPromptStrategyCompatRouter } = require('./adminCompatPromptStrategy');
 const { registerAdminCompatInstanceRoutes } = require('./adminCompatInstances');
 const { registerAdminCompatAssetRoutes } = require('./adminCompatAssets');
+const { registerAdminCompatAIGatewayRoutes } = require('./adminCompatAIGateway');
 
 function parseCookies(headerValue) {
   const out = {};
@@ -227,6 +227,8 @@ function buildAdminCompatRouter(context) {
     updatedAt: nowIso(),
     updatedBy: 'system'
   };
+  const configSnapshots = [];
+  const MAX_SNAPSHOTS = 30;
   let openclawConfigHydrated = false;
   let openclawConfigHydrating = null;
 
@@ -253,11 +255,13 @@ function buildAdminCompatRouter(context) {
       { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/shared-agents.html', label: '共享Agent', permission: 'admin.employees.page.overview.read' },
-      { path: '/admin/openclaw-config.html', label: 'OpenClaw 配置', permission: 'admin.runtime.page.openclaw-config.read' },
+      { path: '/admin/openclaw-monitor.html', label: '平台运营', permission: 'admin.runtime.page.openclaw-config.read' },
+      { path: '/admin/openclaw-statistics.html', label: '数据统计', permission: 'admin.runtime.page.openclaw-config.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
+      { path: '/admin/ai-gateway.html', label: 'AI Gateway', permission: 'admin.ai-gateway.page.read' },
       { path: '/admin/notifications.html', label: '通知中心', permission: 'admin.logs.page.behavior.read' },
-      { path: '/admin/logs.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
+      { path: '/admin/logs-service.html', label: '行为日志', permission: 'admin.logs.page.behavior.read' },
       { path: '/admin/auth-members.html', label: '成员管理', permission: 'admin.auth.page.members.read' }
     ];
   }
@@ -1036,7 +1040,8 @@ function buildAdminCompatRouter(context) {
       /^\/notifications$/,
       /^\/logs$/,
       /^\/tools(\/|$)/,
-      /^\/auth(\/|$)/
+      /^\/auth(\/|$)/,
+      /^\/ai-gateway(\/|$)/
     ].some((rule) => rule.test(path));
     if (!allowed) {
       res.status(404).json({ error: 'endpoint disabled in pure admin mode' });
@@ -1193,6 +1198,24 @@ function buildAdminCompatRouter(context) {
 
   router.post('/api/admin/runtime/openclaw-config', async (req, res) => {
     await ensureOpenclawConfigHydrated();
+
+    // ── 保存前自动创建快照 ──
+    const snapshotId = 'snap-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    configSnapshots.unshift({
+      id: snapshotId,
+      timestamp: nowIso(),
+      author: String((req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin'),
+      config: {
+        runtime: safeJson(openclawConfigState.runtime, {}),
+        providers: safeJson(openclawConfigState.providers, {}),
+        permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {})
+      },
+      label: 'auto-save'
+    });
+    if (configSnapshots.length > MAX_SNAPSHOTS) {
+      configSnapshots.length = MAX_SNAPSHOTS;
+    }
+
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const runtime = body.runtime && typeof body.runtime === 'object' ? body.runtime : {};
     const providers = body.providers && typeof body.providers === 'object' ? body.providers : {};
@@ -1269,6 +1292,74 @@ function buildAdminCompatRouter(context) {
     res.json(buildOpenclawConfigView());
   });
 
+  // ── 快照列表 ──
+  router.get('/api/admin/runtime/openclaw-config/snapshots', async (_req, res) => {
+    await ensureOpenclawConfigHydrated();
+    res.json({ snapshots: configSnapshots });
+  });
+
+  // ── 从快照恢复 ──
+  router.post('/api/admin/runtime/openclaw-config/snapshots/:id/restore', async (req, res) => {
+    await ensureOpenclawConfigHydrated();
+    const snap = configSnapshots.find((s) => s.id === req.params.id);
+    if (!snap) {
+      return res.status(404).json({ error: '快照不存在' });
+    }
+    applyPersistedOpenclawConfig({
+      runtime: safeJson(snap.config.runtime, {}),
+      providers: safeJson(snap.config.providers, {}),
+      permissionTemplate: safeJson(snap.config.permissionTemplate, {}),
+      updatedAt: nowIso(),
+      updatedBy: String((req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin')
+    });
+    if (context.repo && typeof context.repo.setPlatformConfig === 'function') {
+      await context.repo.setPlatformConfig('openclawConfig', {
+        runtime: safeJson(openclawConfigState.runtime, {}),
+        providers: {
+          deepseek: safeJson(openclawConfigState.providers.deepseek, {}),
+          minimax: safeJson(openclawConfigState.providers.minimax, {})
+        },
+        permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {}),
+        updatedAt: openclawConfigState.updatedAt,
+        updatedBy: openclawConfigState.updatedBy
+      });
+    }
+    await context.auditService.log('admin.runtime.openclaw_config.restored', {
+      actor: openclawConfigState.updatedBy,
+      snapshotId: snap.id,
+      snapshotTimestamp: snap.timestamp
+    });
+    res.json(buildOpenclawConfigView());
+  });
+
+  // ── 对比两个快照 ──
+  router.get('/api/admin/runtime/openclaw-config/snapshots/:id1/diff/:id2', async (_req, res) => {
+    await ensureOpenclawConfigHydrated();
+    const snap1 = configSnapshots.find((s) => s.id === _req.params.id1);
+    const snap2 = configSnapshots.find((s) => s.id === _req.params.id2);
+    if (!snap1 || !snap2) {
+      return res.status(404).json({ error: '快照不存在' });
+    }
+    const flat1 = {
+      runtime: JSON.stringify(snap1.config.runtime),
+      providers: JSON.stringify(snap1.config.providers),
+      permissionTemplate: JSON.stringify(snap1.config.permissionTemplate)
+    };
+    const flat2 = {
+      runtime: JSON.stringify(snap2.config.runtime),
+      providers: JSON.stringify(snap2.config.providers),
+      permissionTemplate: JSON.stringify(snap2.config.permissionTemplate)
+    };
+    const changes = [];
+    const allKeys = new Set([...Object.keys(flat1), ...Object.keys(flat2)]);
+    for (const key of allKeys) {
+      if (flat1[key] !== flat2[key]) {
+        changes.push({ field: key, before: JSON.parse(flat1[key] || '{}'), after: JSON.parse(flat2[key] || '{}') });
+      }
+    }
+    res.json({ changes, snapshot1: snap1.id, snapshot2: snap2.id });
+  });
+
   router.get('/api/admin/bootstrap-status', async (_req, res) => {
     const reports = await (context.assetService || context.skillService).listReportsByStatus('pending_review');
     res.json({
@@ -1291,6 +1382,8 @@ function buildAdminCompatRouter(context) {
     hydrateToolServices,
     ossCaseState
   });
+
+  registerAdminCompatAIGatewayRoutes(router, context, { requireSession });
 
   function resolveAuditRoomId(row) {
     const payload = row && row.payload && typeof row.payload === 'object' ? row.payload : {};
@@ -1535,6 +1628,77 @@ function buildAdminCompatRouter(context) {
         low: items.filter((x) => x.severity === 'low').length
       }
     });
+  });
+
+  // ── Push Channels ──
+  const pushChannelStore = new Map();
+  // Seed data
+  const seedChannel = {
+    id: newId('push_ch'),
+    name: '运维告警 Webhook',
+    type: 'webhook',
+    url: 'https://hooks.example.com/alert',
+    secret: '',
+    enabled: true,
+    levels: ['critical', 'warning'],
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  pushChannelStore.set(seedChannel.id, seedChannel);
+
+  router.get('/api/admin/push-channels', (_req, res) => {
+    const items = Array.from(pushChannelStore.values());
+    res.json({ items });
+  });
+
+  router.post('/api/admin/push-channels', (req, res) => {
+    const body = req.body || {};
+    const name = String(body.name || '').trim();
+    const type = String(body.type || '').trim();
+    const url = String(body.url || '').trim();
+    if (!name || !type || !url) {
+      return res.status(400).json({ error: 'name, type, url are required' });
+    }
+    const validTypes = ['webhook', 'dingtalk', 'wecom', 'slack', 'email'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: `type must be one of: ${validTypes.join(', ')}` });
+    }
+    const validLevels = ['critical', 'warning', 'info'];
+    const levels = Array.isArray(body.levels)
+      ? body.levels.filter((l) => validLevels.includes(l))
+      : [];
+    const id = body.id && pushChannelStore.has(body.id) ? body.id : newId('push_ch');
+    const existing = pushChannelStore.get(id);
+    const channel = {
+      id,
+      name,
+      type,
+      url,
+      secret: String(body.secret || '').trim(),
+      enabled: body.enabled !== false,
+      levels,
+      createdAt: existing ? existing.createdAt : nowIso(),
+      updatedAt: nowIso()
+    };
+    pushChannelStore.set(id, channel);
+    res.json({ ok: true, channel });
+  });
+
+  router.post('/api/admin/push-channels/:id/delete', (req, res) => {
+    const id = String(req.params.id || '').trim();
+    if (!pushChannelStore.has(id)) {
+      return res.status(404).json({ error: 'channel not found' });
+    }
+    pushChannelStore.delete(id);
+    res.json({ ok: true });
+  });
+
+  router.post('/api/admin/push-channels/:id/test', (req, res) => {
+    const id = String(req.params.id || '').trim();
+    if (!pushChannelStore.has(id)) {
+      return res.status(404).json({ error: 'channel not found' });
+    }
+    res.json({ success: true, message: '推送测试成功' });
   });
 
   router.post('/api/admin/matrix/channels/:roomId/bind-instance', async (req, res) => {
@@ -1870,8 +2034,6 @@ function buildAdminCompatRouter(context) {
     res.json(skillPolicyState);
   });
 
-  router.use(buildPromptStrategyCompatRouter(context));
-
   router.get('/api/admin/logs', async (_req, res) => {
     const rows = await context.auditService.list(1000);
     res.json(rows);
@@ -2066,7 +2228,7 @@ function buildAdminCompatRouter(context) {
     res.json(Array.from(userStore.values()).map(userPayload));
   });
 
-  router.post('/api/admin/auth/users', (req, res) => {
+  router.post('/api/admin/auth/users', async (req, res) => {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const username = String(body.username || '').trim();
     if (!username) {
@@ -2085,10 +2247,15 @@ function buildAdminCompatRouter(context) {
     next.disabled = Boolean(body.disabled);
     next.updatedAt = nowIso();
     userStore.set(username, next);
+    await context.auditService.log('auth.user.created', {
+      username,
+      role,
+      displayName: next.displayName
+    });
     res.json(userPayload(next));
   });
 
-  router.post('/api/admin/auth/users/:userId', (req, res) => {
+  router.post('/api/admin/auth/users/:userId', async (req, res) => {
     const userId = String(req.params.userId || '').trim();
     const row = userStore.get(userId);
     if (!row) {
@@ -2096,17 +2263,32 @@ function buildAdminCompatRouter(context) {
       return;
     }
     const body = req.body && typeof req.body === 'object' ? req.body : {};
-    row.displayName = String(body.displayName || row.displayName || row.username);
-    row.role = String(body.role || row.role || 'ops_admin');
-    row.disabled = Boolean(body.disabled);
+    const changes = [];
+    const newDisplayName = String(body.displayName || row.displayName || row.username);
+    const newRole = String(body.role || row.role || 'ops_admin');
+    const newDisabled = Boolean(body.disabled);
+    if (newDisplayName !== row.displayName) changes.push('displayName');
+    if (newRole !== row.role) changes.push('role');
+    if (newDisabled !== row.disabled) changes.push('disabled');
+    row.displayName = newDisplayName;
+    row.role = newRole;
+    row.disabled = newDisabled;
     row.updatedAt = nowIso();
     userStore.set(userId, row);
+    await context.auditService.log('auth.user.updated', {
+      userId,
+      username: row.username,
+      changes
+    });
     res.json(userPayload(row));
   });
 
-  router.post('/api/admin/auth/users/:userId/delete', (req, res) => {
+  router.post('/api/admin/auth/users/:userId/delete', async (req, res) => {
     const userId = String(req.params.userId || '').trim();
+    const row = userStore.get(userId);
+    const username = row ? row.username : userId;
     userStore.delete(userId);
+    await context.auditService.log('auth.user.deleted', { userId, username });
     res.json({ success: true, userId });
   });
 
@@ -2114,7 +2296,7 @@ function buildAdminCompatRouter(context) {
     res.json(Array.from(roleStore.values()).map(rolePayload));
   });
 
-  router.post('/api/admin/auth/roles', (req, res) => {
+  router.post('/api/admin/auth/roles', async (req, res) => {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const role = String(body.role || '').trim();
     if (!role) {
@@ -2127,10 +2309,14 @@ function buildAdminCompatRouter(context) {
       updatedAt: nowIso()
     };
     roleStore.set(role, row);
+    await context.auditService.log('auth.role.created', {
+      role,
+      permissions: row.permissions
+    });
     res.json(rolePayload(row));
   });
 
-  router.post('/api/admin/auth/roles/:role', (req, res) => {
+  router.post('/api/admin/auth/roles/:role', async (req, res) => {
     const role = String(req.params.role || '').trim();
     const existed = roleStore.get(role);
     if (!existed) {
@@ -2138,15 +2324,22 @@ function buildAdminCompatRouter(context) {
       return;
     }
     const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const previousPermissions = Array.isArray(existed.permissions) ? [...existed.permissions] : [];
     existed.permissions = Array.isArray(body.permissions) ? body.permissions.map((x) => String(x)) : existed.permissions;
     existed.updatedAt = nowIso();
     roleStore.set(role, existed);
+    await context.auditService.log('auth.role.updated', {
+      role,
+      permissions: existed.permissions,
+      previousPermissions
+    });
     res.json(rolePayload(existed));
   });
 
-  router.post('/api/admin/auth/roles/:role/delete', (req, res) => {
+  router.post('/api/admin/auth/roles/:role/delete', async (req, res) => {
     const role = String(req.params.role || '').trim();
     roleStore.delete(role);
+    await context.auditService.log('auth.role.deleted', { role });
     res.json({ success: true, role });
   });
 

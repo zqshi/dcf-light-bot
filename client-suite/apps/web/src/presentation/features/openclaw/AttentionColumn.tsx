@@ -13,6 +13,7 @@ import { Icon } from '../../components/ui/Icon';
 import { TaskAttentionCard } from './TaskAttentionCard';
 import { GoalAttentionCard } from './GoalAttentionCard';
 import { DecisionAttentionCard } from './DecisionAttentionCard';
+import { ConversationHistoryList } from './ConversationHistoryList';
 
 const CHANNEL_COLORS: Record<string, string> = {
   lark: '#34C759',
@@ -127,6 +128,8 @@ export function AttentionColumn({ collapsed, onToggleCollapse }: AttentionColumn
   const setDiscussingGoalId = useOpenClawStore((s) => s.setDiscussingGoalId);
   const decisionRequests = useOpenClawStore((s) => s.decisionRequests);
   const goals = useOpenClawStore((s) => s.goals);
+  const aColumnTab = useOpenClawStore((s) => s.aColumnTab);
+  const setAColumnTab = useOpenClawStore((s) => s.setAColumnTab);
 
   // Split attentionItems by kind
   const goalItems = useMemo(() => attentionItems.filter((i) => i.kind === 'goal'), [attentionItems]);
@@ -209,39 +212,60 @@ export function AttentionColumn({ collapsed, onToggleCollapse }: AttentionColumn
       className="shrink-0 border-r border-white/10 flex flex-col bg-glass-sidebar backdrop-blur-[20px] overflow-hidden relative"
       style={{ width }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 pt-3 pb-2 border-b border-white/10">
-        <div className="flex items-center gap-1.5">
-          <Icon name="radar" size={14} className="text-primary" />
-          <h3 className="text-xs font-semibold text-slate-100">决策中心</h3>
-          {totalBadge > 0 && (
-            <span className="min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-              {totalBadge}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          {needsHumanCount > 0 && (
+      {/* Header with Tabs */}
+      <div className="border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-3 pt-3 pb-0">
+          <div className="flex items-center gap-0">
             <button
               type="button"
-              onClick={markAllAsRead}
-              className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+              onClick={() => setAColumnTab('attention')}
+              className={`flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium border-b-2 transition-colors ${
+                aColumnTab === 'attention'
+                  ? 'text-slate-100 border-primary'
+                  : 'text-slate-500 border-transparent hover:text-slate-300'
+              }`}
             >
-              全部已读
+              <Icon name="radar" size={13} />
+              决策中心
+              {totalBadge > 0 && (
+                <span className="min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {totalBadge}
+                </span>
+              )}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="w-5 h-5 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/[0.06] transition-colors"
-            title="收起"
-          >
-            <Icon name="chevron_left" size={14} />
-          </button>
+            <button
+              type="button"
+              onClick={() => setAColumnTab('history')}
+              className={`flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium border-b-2 transition-colors ${
+                aColumnTab === 'history'
+                  ? 'text-slate-100 border-primary'
+                  : 'text-slate-500 border-transparent hover:text-slate-300'
+              }`}
+            >
+              <Icon name="history" size={13} />
+              对话历史
+            </button>
+          </div>
+          <div className="flex items-center gap-1 pb-1.5">
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="w-5 h-5 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/[0.06] transition-colors"
+              title="收起"
+            >
+              <Icon name="chevron_left" size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Grouped list */}
+      {/* Tab content */}
+      {aColumnTab === 'history' ? (
+        <div className="flex-1 overflow-y-auto dcf-scrollbar">
+          <ConversationHistoryList />
+        </div>
+      ) : (
+      /* Grouped list */
       <div className="flex-1 overflow-y-auto dcf-scrollbar">
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
@@ -250,6 +274,18 @@ export function AttentionColumn({ collapsed, onToggleCollapse }: AttentionColumn
           </div>
         ) : (
           <div className="p-2 space-y-3">
+            {/* Mark all as read */}
+            {needsHumanCount > 0 && (
+              <div className="flex justify-end px-1">
+                <button
+                  type="button"
+                  onClick={markAllAsRead}
+                  className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  全部已读
+                </button>
+              </div>
+            )}
             {/* Strategic goals section */}
             {goalItems.length > 0 && (
               <div>
@@ -385,6 +421,7 @@ export function AttentionColumn({ collapsed, onToggleCollapse }: AttentionColumn
           </div>
         )}
       </div>
+      )}
 
       {/* Resize handle */}
       <div

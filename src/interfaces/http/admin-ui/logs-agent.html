@@ -8,18 +8,20 @@
   </head>
   <body data-required-permission="admin.logs.page.agent.read">
     <div class="admin-shell">
-      <aside class="sidebar">
+            <aside class="sidebar">
         <h2>管理后台</h2>
         <a href="/admin/index.html">总览</a>
         <a href="/admin/employees.html">员工管理</a>
-        <a href="/admin/openclaw-config.html">配置中心</a>
+        <a href="/admin/shared-agents.html">共享 Agent</a>
         <a href="/admin/openclaw-monitor.html">平台运营</a>
         <a href="/admin/openclaw-statistics.html">数据统计</a>
         <a href="/admin/skills.html">技能管理</a>
         <a href="/admin/tools.html">工具管理</a>
-        <a class="active" href="/admin/logs-agent.html">Agent 行为日志</a>
+        <a href="/admin/ai-gateway.html">AI Gateway</a>
+        <a class="active" href="/admin/logs-service.html">行为日志</a>
         <a href="/admin/auth-members.html">成员管理</a>
       </aside>
+
       <main class="content">
         <section class="page-head">
           <h1 class="page-title">Agent 行为日志</h1>
@@ -36,7 +38,14 @@
           </div>
         </section>
 
-        <section class="card">
+        <section class="card" style="padding:12px 16px;margin-bottom:0;border-bottom:none;border-radius:14px 14px 0 0">
+          <div style="display:flex;gap:6px">
+            <button class="log-view-btn active" data-log-view="list" style="font-size:13px;padding:5px 16px;border:1px solid #e5e5ea;border-radius:6px;background:#007AFF;color:#fff;cursor:pointer">列表</button>
+            <button class="log-view-btn" data-log-view="stats" style="font-size:13px;padding:5px 16px;border:1px solid #e5e5ea;border-radius:6px;background:#fff;color:#333;cursor:pointer">统计</button>
+          </div>
+        </section>
+
+        <section class="card log-list-panel" style="border-radius:0 0 14px 14px">
           <div class="toolbar filter-toolbar">
             <div class="toolbar-group">
               <label for="logOperationFilter">操作</label>
@@ -45,7 +54,11 @@
               </select>
             </div>
           </div>
-          <p class="toolbar-note">按 Agent 实际发生的行为操作筛选，点击“查看原始数据”可展开完整 JSON。</p>
+          <div class=”toolbar” style=”justify-content:flex-end;padding-top:0;margin-top:-4px”>
+            <button type=”button” class=”btn-secondary” id=”btnExportCsv” style=”font-size:12px;padding:5px 14px;border:1px solid #e5e5ea;border-radius:6px;background:#fff;cursor:pointer”>导出 CSV</button>
+            <button type=”button” class=”btn-secondary” id=”btnExportJson” style=”font-size:12px;padding:5px 14px;border:1px solid #e5e5ea;border-radius:6px;background:#fff;cursor:pointer”>导出 JSON</button>
+          </div>
+          <p class=”toolbar-note”>按 Agent 实际发生的行为操作筛选，点击”查看原始数据”可展开完整 JSON。</p>
           <div class="table-wrap">
             <table>
               <thead>
@@ -63,12 +76,17 @@
             </table>
           </div>
         </section>
+
+        <section class="card log-stats-panel" style="display:none">
+          <div id="logStatsContent">加载中...</div>
+        </section>
       </main>
     </div>
-    <script src="/admin/auth.js"></script>
+    <script src="/admin/auth-core.js"></script>
     <script>
       document.body.setAttribute('data-log-scope', 'agent');
     </script>
+    <script src="/admin/logs-stats.js"></script>
     <script src="/admin/logs.js"></script>
   </body>
 </html>

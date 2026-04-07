@@ -4,7 +4,7 @@
 
 // ── Mock Data ──
 
-const DAU_MSG_TREND = [
+let DAU_MSG_TREND = [
   { day: '03-26', dau: 52, msg: 890 },
   { day: '03-27', dau: 61, msg: 1024 },
   { day: '03-28', dau: 58, msg: 956 },
@@ -24,7 +24,7 @@ const RETENTION_TREND = [
   { day: '04-01', day1: 80, day7: 54 },
 ];
 
-const DEPT_TOKEN_RANK = [
+let DEPT_TOKEN_RANK = [
   { name: '技术研发部', value: 2340, color: '#0071e3' },
   { name: '安全运维部', value: 1560, color: '#34c759' },
   { name: '产品运营部', value: 1120, color: '#af52de' },
@@ -33,7 +33,7 @@ const DEPT_TOKEN_RANK = [
   { name: '市场营销部', value: 490,  color: '#5ac8fa' },
 ];
 
-const USER_SPEND_TOP20 = [
+let USER_SPEND_TOP20 = [
   { name: '张伟', value: 456 }, { name: '李娜', value: 423 }, { name: '王强', value: 398 },
   { name: '刘洋', value: 367 }, { name: '陈静', value: 341 }, { name: '杨磊', value: 312 },
   { name: '赵敏', value: 289 }, { name: '黄海', value: 267 }, { name: '周涛', value: 245 },
@@ -43,7 +43,7 @@ const USER_SPEND_TOP20 = [
   { name: '罗琳', value: 109 }, { name: '梁博', value: 98 },
 ];
 
-const ACTIVE_USER_TOP20 = [
+let ACTIVE_USER_TOP20 = [
   { name: '张伟', value: 186 }, { name: '李娜', value: 172 }, { name: '王强', value: 158 },
   { name: '陈静', value: 145 }, { name: '杨磊', value: 134 }, { name: '赵敏', value: 128 },
   { name: '黄海', value: 119 }, { name: '周涛', value: 112 }, { name: '刘洋', value: 105 },
@@ -53,7 +53,7 @@ const ACTIVE_USER_TOP20 = [
   { name: '罗琳', value: 51 },  { name: '梁博', value: 47 },
 ];
 
-const LATENCY_TREND = [
+let LATENCY_TREND = [
   { day: '03-26', p50: 1.2, p95: 3.8, avg: 1.8 },
   { day: '03-27', p50: 1.1, p95: 3.5, avg: 1.7 },
   { day: '03-28', p50: 1.3, p95: 4.1, avg: 2.0 },
@@ -63,7 +63,7 @@ const LATENCY_TREND = [
   { day: '04-01', p50: 1.2, p95: 3.6, avg: 1.8 },
 ];
 
-const ERROR_TREND = [
+let ERROR_TREND = [
   { day: '03-26', err: 1.2, timeout: 0.5 },
   { day: '03-27', err: 0.8, timeout: 0.3 },
   { day: '03-28', err: 1.5, timeout: 0.7 },
@@ -73,7 +73,7 @@ const ERROR_TREND = [
   { day: '04-01', err: 1.0, timeout: 0.3 },
 ];
 
-const TOKEN_TREND = [
+let TOKEN_TREND = [
   { day: '03-26', value: 980 },
   { day: '03-27', value: 1120 },
   { day: '03-28', value: 1050 },
@@ -364,12 +364,98 @@ function initPeriodSelector() {
   });
 }
 
+// ── Fetch AI Gateway cost data (shared data source with monitor) ──
+
+const MODEL_COLORS = ['#0071e3', '#34c759', '#af52de', '#ff9500', '#ff3b30', '#5ac8fa', '#007aff', '#ff2d55'];
+
+async function loadAICosts() {
+  try {
+    const res = await fetch('/api/admin/ai-gateway/costs');
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Update hero cards with real aggregated data
+    const totalTokensEl = document.getElementById('totalTokensValue');
+    if (totalTokensEl && data.totalTokens) {
+      const k = data.totalTokens >= 1000 ? (data.totalTokens / 1000).toFixed(1) + '<span class="stats-hero-unit">K</span>' : String(data.totalTokens);
+      totalTokensEl.innerHTML = k;
+    }
+
+    if (data.dailyTrend && data.dailyTrend.length > 0) {
+      TOKEN_TREND = data.dailyTrend.map(d => ({
+        day: d.day.slice(5),
+        value: d.totalTokens
+      }));
+    }
+
+    if (data.userSummary && data.userSummary.length > 0) {
+      USER_SPEND_TOP20 = data.userSummary.slice(0, 20).map(u => ({
+        name: u.userId,
+        value: u.totalTokens
+      }));
+    }
+
+    if (data.modelSummary && data.modelSummary.length > 0) {
+      DEPT_TOKEN_RANK = data.modelSummary.map((m, i) => ({
+        name: m.model,
+        value: m.totalTokens,
+        color: MODEL_COLORS[i % MODEL_COLORS.length]
+      }));
+    }
+  } catch (_) {
+    // fallback to mock data
+  }
+}
+
+async function loadDauTrend() {
+  try {
+    const res = await fetch('/api/admin/analytics/dau-trend');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.rows && data.rows.length > 0) {
+      DAU_MSG_TREND = data.rows.map(r => ({
+        day: r.day,
+        dau: r.dau,
+        msg: r.msg
+      }));
+      // Derive active user ranking from per-day actors
+      ACTIVE_USER_TOP20 = data.rows
+        .sort((a, b) => b.dau - a.dau)
+        .slice(0, 20)
+        .map(r => ({ name: r.day, value: r.dau }));
+    }
+  } catch (_) {}
+}
+
+async function loadLatencyTrend() {
+  try {
+    const res = await fetch('/api/admin/analytics/latency-trend');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.rows && data.rows.length > 0) {
+      LATENCY_TREND = data.rows.map(r => ({
+        day: r.day,
+        p50: r.p50,
+        p95: r.p95,
+        avg: r.avg
+      }));
+      ERROR_TREND = data.rows.map(r => ({
+        day: r.day,
+        err: r.err,
+        timeout: r.timeout || 0
+      }));
+    }
+  } catch (_) {}
+}
+
 // ── Init ──
 
 (async () => {
   try {
     if (window.__adminReady) await window.__adminReady;
   } catch (_) { /* auth optional */ }
+
+  await Promise.all([loadAICosts(), loadDauTrend(), loadLatencyTrend()]);
 
   // 趋势 & 留存
   renderDualAxisAreaLine(

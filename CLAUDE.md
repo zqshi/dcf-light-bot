@@ -1,48 +1,263 @@
-# DCF Light Bot — 开发规范
+# DCF Light Bot — 工程宪章 v2
 
-## 核心开发范式
+> 本文档是所有 Agent、大模型、开发者在本项目中的**强制执行标准**。
+> 每次会话自动注入，任何代码变更必须遵守以下原则。违反即回退。
 
-### DDD（Domain-Driven Design）
-- 严格分层：domain/ → infrastructure/ → application/ → presentation/
-- domain 层零外部依赖，纯业务逻辑
-- infrastructure 层封装所有外部接口（Matrix SDK、API 等）
-- application 层编排用例，不含 UI 逻辑
-- presentation 层只做渲染和用户交互
+---
 
-### TDD（Test-Driven Development）
-- 新功能先写测试，再写实现
-- 测试覆盖：domain 层 100%，infrastructure 适配器层关键路径覆盖
-- 使用 vitest 作为测试框架
-- 测试文件与源文件同目录，命名 `*.test.ts` / `*.test.tsx`
+## 一、架构纪律：DDD 严格分层
 
-### 工程实践
-- 每个文件 < 1000 行，超出必须拆分
-- 代码整洁优雅，功能边界清晰
-- 接口定义先行，实现跟随
-- 每次修改评估影响范围，确保所有相关文件（接口、文档、脚本）同步更新
-- 项目文档结构组织清晰，便于未来迭代维护
-
-### Speckit 代码生成
-- 遵循 Speckit 规范做代码生成
-- 生成代码需通过 lint + type check + 测试三重验证
-
-## 技术栈
-
-- **前端**: React + TypeScript + Tailwind CSS 3.4 + zustand
-- **设计系统**: Apple HIG glass morphism，主色 `#007AFF`
-- **暗色模式**: OpenClaw 通过 `[data-mode="openclaw"]` CSS 变量覆盖
-- **测试**: vitest
-- **包管理**: npm workspaces (client-suite/)
-
-## 文件组织
+### 1.1 层级定义与依赖方向
 
 ```
-client-suite/
-  apps/web/src/
-    domain/          # 纯业务逻辑，零依赖
-    infrastructure/  # 外部适配器
-    application/     # 用例编排 + zustand stores
-    presentation/    # React 组件 + 路由
-  packages/
-    ui-tokens/       # 设计 token（colors, shadows, typography）
+domain/  →  infrastructure/  →  application/  →  presentation/
+（纯逻辑）   （外部适配器）       （用例编排）       （渲染/交互）
 ```
+
+- **依赖方向单向向右**，禁止反向引用。
+- domain 层**零外部依赖**：不引入 HTTP 客户端、SDK、数据库驱动、UI 框架。
+- infrastructure 层通过**接口适配**连接外部世界，domain 只依赖接口定义。
+- application 层编排用例，调用 domain + infrastructure，不含渲染逻辑。
+- presentation 层只做 UI 渲染和用户交互，业务判断下沉到 application/domain。
+
+### 1.2 违规判定
+
+| 违规行为 | 判定标准 |
+|---------|---------|
+| domain 引入外部包 | import 路径包含 node_modules 或 infrastructure/ |
+| presentation 直接调用 infrastructure | 跳过 application 层 |
+| application 包含 DOM 操作 | 出现 document/window/React.createElement |
+| 循环依赖 | 任意两个模块互相 import |
+
+### 1.3 后端分层（Node.js 管理后台）
+
+```
+src/
+  domain/              # 业务实体、值对象、领域服务
+  infrastructure/      # 数据存储、外部API适配
+  interfaces/http/     # 路由层（薄层，只做参数校验+转发）
+    routes/            # API 路由注册
+    admin-ui/          # 静态前端页面
+  app/                 # 启动入口、依赖组装
+```
+
+- 路由文件只做：参数提取 → 校验 → 调用服务 → 返回结果。
+- 业务逻辑禁止写在路由处理函数中，必须抽到 domain 或 service 层。
+
+---
+
+## 二、质量纪律：TDD 强制执行
+
+### 2.1 测试优先级
+
+| 层级 | 覆盖要求 | 测试类型 |
+|------|---------|---------|
+| domain | **100%** | 纯单元测试，无 mock |
+| infrastructure 适配器 | 关键路径 | 集成测试，可 mock 外部 |
+| application 用例 | 核心流程 | 用例级测试 |
+| presentation | 交互逻辑 | 组件测试（非快照） |
+
+### 2.2 测试规范
+
+- 框架：**vitest**
+- 文件位置：与源文件同目录，命名 `*.test.ts` / `*.test.tsx`
+- 新功能：**先写失败测试 → 实现至通过 → 重构**
+- 修 bug：**先写复现测试 → 修复至通过**
+- 禁止：测试中硬编码时间戳、随机数种子未固定、依赖执行顺序
+
+### 2.3 质量门禁（提交前必须全过）
+
+```bash
+# 三重验证，任一失败则禁止提交
+lint       → eslint / tsc --noEmit
+type-check → tsc --strict（client-suite）
+test       → vitest run
+```
+
+---
+
+## 三、文件纪律：1000 行红线
+
+### 3.1 硬性约束
+
+- 单文件**不超过 1000 行**（含注释和空行）。
+- 接近 800 行时必须主动评估拆分策略。
+- 拆分原则：按**职责边界**拆，不按行数机械切割。
+
+### 3.2 拆分策略
+
+| 场景 | 拆分方式 |
+|------|---------|
+| 路由文件过长 | 按资源域拆分：`modelRoutes.js` / `traceRoutes.js` / `riskRoutes.js` |
+| 组件文件过长 | 提取子组件、hooks、工具函数 |
+| 服务文件过长 | 按聚合根拆分子服务 |
+| CSS 过长 | 按功能模块拆分：`layout-base.css` / `layout-drawer.css` |
+
+### 3.3 命名规范
+
+- 文件名：kebab-case（`model-management.js`）
+- 组件名：PascalCase（`ModelCard.tsx`）
+- 函数/变量：camelCase
+- 常量：UPPER_SNAKE_CASE
+- 接口：`I` 前缀（`IMatrixClient`）
+
+---
+
+## 四、变更纪律：影响范围评估
+
+### 4.1 变更前必做
+
+每次修改代码前，回答以下问题：
+
+1. **接口影响**：是否改变了函数签名、API 契约、数据结构？→ 所有调用方必须同步更新。
+2. **文档影响**：是否影响 CLAUDE.md、README、MEMORY.md、API 文档？→ 同步更新。
+3. **配置影响**：是否需要更新 ALLOWED_FILES、路由注册、环境变量？→ 同步更新。
+4. **测试影响**：是否有测试覆盖了被修改的逻辑？→ 更新测试，不删测试。
+5. **删除影响**：删除文件前确认无其他文件引用（grep 确认）。
+
+### 4.2 变更清单模板
+
+每次非平凡变更，脑中或注释中过一遍：
+
+```
+变更：[描述]
+影响文件：[列表]
+接口变化：[有/无，描述]
+需同步：[文档/配置/测试]
+回滚方案：[git revert / 手动步骤]
+```
+
+### 4.3 禁止行为
+
+- 禁止"顺手"改不相关的代码（scope creep）。
+- 禁止添加未使用的导入、未调用的函数、注释掉的代码块。
+- 禁止引入新依赖而不说明理由。
+
+---
+
+## 五、清理纪律：持续整洁
+
+### 5.1 死代码清理
+
+- 删除的功能：文件直接删除，不注释保留（git 有历史）。
+- 未使用的变量/函数/导入：当场清理，不留 `_unused` 前缀。
+- 废弃的页面/路由：从 ALLOWED_FILES、侧栏导航、文档中同步移除。
+
+### 5.2 冗余判定标准
+
+| 判定维度 | 冗余标准 |
+|---------|---------|
+| 无入口 | 无侧栏链接 + 不在 ALLOWED_FILES |
+| 功能重叠 | 与另一页面 >70% 功能重合 |
+| 跳转桩 | 只含 `location.href` 重定向，无独立逻辑 |
+| 不完整原型 | 有 HTML 无对应 JS，或 JS 中全是 TODO |
+
+### 5.3 清理流程
+
+```
+1. grep 确认无引用
+2. 从配置/导航中移除
+3. 删除文件
+4. 更新文档
+5. 验证启动无报错
+```
+
+---
+
+## 六、文档纪律：代码与文档同步
+
+### 6.1 必须维护的文档
+
+| 文档 | 职责 | 更新时机 |
+|------|------|---------|
+| `CLAUDE.md`（本文件） | 工程宪章，Agent 强制执行标准 | 规范变化时 |
+| `memory/MEMORY.md` | 项目记忆索引 | 学到新信息时 |
+| `README.md` | 项目说明、启动指南 | 功能/架构变化时 |
+
+### 6.2 文档原则
+
+- 文档是**给未来的自己和新成员看的**，不是给当前对话看的。
+- 只记录**不能从代码推断的信息**：决策原因、架构约束、外部依赖关系。
+- 禁止在文档中写过程性内容（"今天修了 xxx"）——这是 git log 的事。
+
+---
+
+## 七、技术栈约束
+
+### 7.1 前端（client-suite/）
+
+| 项 | 选型 | 约束 |
+|----|------|------|
+| 框架 | React + TypeScript | 严格模式，no any |
+| 样式 | Tailwind CSS 3.4 | 通过 `@dcf/ui-tokens` preset |
+| 状态 | zustand | 一个 store 一个文件 |
+| 设计语言 | Apple HIG glass morphism | 主色 `#007AFF` |
+| 暗色模式 | `[data-mode="openclaw"]` CSS 变量覆盖 | — |
+| 测试 | vitest | — |
+| 包管理 | npm workspaces | — |
+
+### 7.2 后端（src/）
+
+| 项 | 选型 | 约束 |
+|----|------|------|
+| 运行时 | Node.js | CommonJS（现有约束） |
+| 框架 | Express | 路由薄层 |
+| 存储 | In-memory Map | 演示级，接口预留持久化扩展 |
+| 管理后台 UI | Vanilla HTML/CSS/JS | 不引入前端框架 |
+| 管理后台样式 | `layout-base.css` + `layout-extra.css` | 复用已有类名 |
+
+### 7.3 管理后台 UI 规范
+
+- 列表：`section.card > div.table-wrap > table` + `table-pager`
+- 详情：`employee-drawer` + `employee-drawer-mask`（右侧抽屉）
+- 表单：`.drawer-form` 内 label + input/select
+- 工具栏：`.toolbar` 内放搜索/筛选/操作按钮
+- 卡片网格：自定义 grid，单卡遵循 `border-radius:14px; border:1px solid #ededf2`
+
+---
+
+## 八、文件组织
+
+```
+dcf-light-bot/
+  src/
+    app/                          # 启动入口
+    domain/                       # 业务实体
+    infrastructure/               # 外部适配
+    interfaces/http/
+      routes/                     # API 路由
+        adminCompatAIGateway.js   # AI Gateway 全链路 API
+      admin-ui/                   # 管理后台页面
+        layout-base.css           # 基础布局样式
+        layout-extra.css          # 扩展样式
+        ai-gateway.html/js        # AI Gateway（4-Tab 合并页）
+        employees.html/js         # 员工管理
+        skills.html/js            # 技能管理
+        tools.html/js             # 工具管理
+        ...
+  client-suite/
+    apps/web/src/
+      domain/                     # 纯业务逻辑，零依赖
+      infrastructure/             # 外部适配器
+      application/                # 用例编排 + zustand stores
+      presentation/               # React 组件 + 路由
+    packages/
+      ui-tokens/                  # 设计 token
+```
+
+---
+
+## 九、Agent/LLM 行为约束
+
+以下规则在每次会话中自动生效：
+
+1. **先读后改**：修改任何文件前必须先 Read，理解上下文。
+2. **先查后删**：删除任何文件/函数前必须 Grep 确认无引用。
+3. **先测后交**：功能完成后必须验证（启动/测试/手动检查）。
+4. **单一职责**：一次变更只做一件事，不夹带"顺手优化"。
+5. **影响评估**：每次变更前列出影响范围，不遗漏配置/文档/测试。
+6. **1000 行红线**：写入文件后检查行数，超出立即拆分。
+7. **不造轮子**：已有类名/模式/组件能复用的，不重新发明。
+8. **不留垃圾**：删除即彻底删除，不注释保留，不留 TODO 桩。
+9. **中文回复**：所有对话输出使用中文。
+10. **专业审视**：不谄媚，发现问题直说，给出专业建议。

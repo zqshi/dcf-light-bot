@@ -15,6 +15,7 @@ const { buildStorageRouter } = require('./routes/storage');
 const { buildUploadRouter } = require('./routes/uploads');
 const { buildWeKnoraProxyRouter } = require('./routes/weknora');
 const { buildAdminCompatRouter } = require('./routes/adminCompat');
+const { buildAdminAnalyticsRouter } = require('./routes/adminAnalytics');
 const { buildControlAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
 const { buildRequestContextMiddleware } = require('./middleware/requestContext');
 
@@ -24,6 +25,7 @@ function buildApiRouter(context) {
 
   router.use(buildHealthRouter(context));
   router.use(buildAdminCompatRouter(context));
+  router.use(buildAdminAnalyticsRouter(context));
   router.use('/api/integrations/matrix', buildMatrixRouter(context.matrixBot, context.authService));
   router.use('/api/control/auth', buildAuthRouter(context.authService, context.auditService));
 

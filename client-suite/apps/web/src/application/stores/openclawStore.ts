@@ -385,6 +385,15 @@ export interface ProactiveInsight {
   urgency: 'info' | 'warning' | 'success';
 }
 
+export interface ConversationSession {
+  id: string;
+  title: string;
+  createdAt: number;
+  lastMessageAt: number;
+  messageCount: number;
+  type: 'primary' | 'discussion' | 'shared';
+}
+
 interface OpenClawState {
   runtimes: AgentRuntime[];
   tasks: AgentTask[];
@@ -428,6 +437,10 @@ interface OpenClawState {
   bColumnDecisionId: string | null;
   /** 中栏需要滚动到的消息 ID */
   scrollToMessageId: string | null;
+  /** 所有对话会话列表 */
+  conversationSessions: ConversationSession[];
+  /** A 栏当前 Tab */
+  aColumnTab: 'attention' | 'history';
   _cleanup: (() => void) | null;
 
   openDrawer(content: OpenClawDrawerContent): void;
@@ -459,6 +472,17 @@ interface OpenClawState {
   cancelTask(taskId: string): void;
   addDecisionRequest(request: DecisionRequest): void;
   respondToDecision(decisionId: string, updater: (d: DecisionRequest) => DecisionRequest): void;
+  /**
+   * 响应决策请求 - 便捷方法
+   */
+  respondDecision(decisionId: string, action: 'accept' | 'modify' | 'decline' | 'defer', params?: {
+    /** 修改/拒绝时的反馈文本 */
+    feedback?: string;
+    /** 修改时选择的方案 ID */
+    optionId?: string;
+    /** 延后到的时间戳 */
+    deferUntil?: number;
+  }): void;
   addGoal(goal: UserGoal): void;
   updateGoal(goalId: string, updater: (g: UserGoal) => UserGoal): void;
   setActiveGoal(goalId: string | null): void;
@@ -469,6 +493,10 @@ interface OpenClawState {
   setDiscussingDecisionId(id: string | null): void;
   setDiscussingTaskId(id: string | null): void;
   setDiscussingGoalId(id: string | null): void;
+  returnToHome(): void;
+  setAColumnTab(tab: 'attention' | 'history'): void;
+  createNewConversation(title?: string): void;
+  switchToSession(sessionId: string): void;
   initConversation(): void;
   initialize(): Promise<void>;
   reset(): void;
@@ -506,6 +534,8 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
   bColumnGoalId: null,
   bColumnDecisionId: null,
   scrollToMessageId: null,
+  conversationSessions: [],
+  aColumnTab: 'attention' as const,
   _cleanup: null,
 
   openDrawer(content) {
@@ -749,11 +779,54 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
 
   appendMessage(msg) {
     const id = get().activeConversationId;
+    const now = Date.now();
+    const sessions = get().conversationSessions;
+    const hasSession = sessions.some((s) => s.id === id);
+
+    let updatedSessions: ConversationSession[];
+    if (hasSession) {
+      updatedSessions = sessions.map((s) =>
+        s.id === id ? { ...s, lastMessageAt: now, messageCount: s.messageCount + 1 } : s,
+      );
+    } else {
+      // Lazy-create session on first real user message
+      let title = '对话';
+      if (id.startsWith('discuss-decision-')) {
+        const decId = id.replace('discuss-decision-', '');
+        const dec = get().decisionRequests.find((d) => d.id === decId);
+        title = dec ? `决策 · ${dec.title}` : '决策讨论';
+      } else if (id.startsWith('discuss-')) {
+        const notifId = id.replace('discuss-', '');
+        const notif = useNotificationStore.getState().notifications.find((n) => n.id === notifId);
+        title = notif ? `${notif.sender.name}: ${notif.title}` : '消息讨论';
+      } else if (id.startsWith('task-')) {
+        const taskId = id.replace('task-', '');
+        const task = get().tasks.find((t) => t.id === taskId);
+        title = task ? `任务 · ${task.name}` : '任务讨论';
+      } else if (id.startsWith('goal-')) {
+        const goalId = id.replace('goal-', '');
+        const goal = get().goals.find((g) => g.id === goalId);
+        title = goal ? `目标 · ${goal.title}` : '目标讨论';
+      } else if (id === 'primary') {
+        title = '主对话';
+      }
+      const newSession: ConversationSession = {
+        id,
+        title,
+        createdAt: now,
+        lastMessageAt: now,
+        messageCount: 1,
+        type: id === 'primary' ? 'primary' : id.startsWith('shared-') ? 'shared' : 'discussion',
+      };
+      updatedSessions = [newSession, ...sessions];
+    }
+
     set({
       conversations: {
         ...get().conversations,
         [id]: [...(get().conversations[id] ?? []), msg],
       },
+      conversationSessions: updatedSessions,
     });
     get().rebuildAttentionItems();
   },
@@ -836,6 +909,82 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
       appEvents.emit('decision:responded', { decisionId, response: updated.responseStatus });
     }
     get().rebuildAttentionItems();
+  },
+
+  /**
+   * 响应决策请求 - 便捷方法
+   */
+  respondDecision(decisionId: string, action: 'accept' | 'modify' | 'decline' | 'defer', params?: {
+    /** 修改/拒绝时的反馈文本 */
+    feedback?: string;
+    /** 修改时选择的方案 ID */
+    optionId?: string;
+    /** 延后到的时间戳 */
+    deferUntil?: number;
+  }) {
+    const decision = get().decisionRequests.find((d) => d.id === decisionId);
+    if (!decision) {
+      console.error(`[OpenClawStore] Decision not found: ${decisionId}`);
+      return;
+    }
+
+    let updatedDecision = decision;
+
+    switch (action) {
+      case 'accept':
+        updatedDecision = decision.accept();
+        break;
+      case 'modify':
+        updatedDecision = decision.modify(
+          params?.optionId ?? decision.recommendation.id,
+          params?.feedback ?? ''
+        );
+        break;
+      case 'decline':
+        updatedDecision = decision.decline(params?.feedback ?? '');
+        break;
+      case 'defer':
+        updatedDecision = decision.defer(
+          params?.deferUntil ?? Date.now() + 2 * 60 * 60 * 1000 // 默认延后 2 小时
+        );
+        break;
+    }
+
+    // 更新 store 中的决策请求
+    set({
+      decisionRequests: get().decisionRequests.map((d) =>
+        d.id === decisionId ? updatedDecision : d,
+      ),
+    });
+
+    // 发布事件
+    appEvents.emit('decision:responded', { decisionId, response: updatedDecision.responseStatus });
+
+    // 如果决策有关联目标 ID（从 extra 中提取），更新目标
+    const extra = (updatedDecision as any).extra as Record<string, unknown> | undefined;
+    if (extra?.goalId) {
+      const goal = get().goals.find((g) => g.id === extra.goalId);
+      if (goal) {
+        const updatedGoal = goal.linkDecision(decisionId);
+        set({
+          goals: get().goals.map((g) =>
+            g.id === extra.goalId ? updatedGoal : g
+          ),
+        });
+      }
+    }
+
+    get().rebuildAttentionItems();
+
+    // 显示 toast 通知
+    const toastStore = useToastStore.getState();
+    const actionLabels: Record<string, string> = {
+      accept: '已采纳',
+      modify: '已修改',
+      decline: '已拒绝',
+      defer: '已延后'
+    };
+    toastStore.addToast(`${actionLabels[action]}: ${decision.title}`, 'success');
   },
 
   // ── Goals ──
@@ -1281,10 +1430,90 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
     get().rebuildAttentionItems();
   },
 
+  returnToHome() {
+    set({
+      discussingNotificationId: null,
+      discussingDecisionId: null,
+      discussingTaskId: null,
+      discussingGoalId: null,
+      activeSharedAgentId: null,
+      bColumnTaskId: null,
+      bColumnGoalId: null,
+      bColumnDecisionId: null,
+      composerPrefill: null,
+      activeConversationId: 'primary',
+    });
+    useNotificationStore.getState().selectNotification(null);
+  },
+
+  setAColumnTab(tab) {
+    set({ aColumnTab: tab });
+  },
+
+  createNewConversation(title) {
+    const now = Date.now();
+    const id = `conv-${now}`;
+    const session: ConversationSession = {
+      id,
+      title: title || `对话 ${new Date(now).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
+      createdAt: now,
+      lastMessageAt: now,
+      messageCount: 0,
+      type: 'primary',
+    };
+    set({
+      conversations: { ...get().conversations, [id]: [] },
+      conversationSessions: [session, ...get().conversationSessions],
+      activeConversationId: id,
+      discussingNotificationId: null,
+      discussingDecisionId: null,
+      discussingTaskId: null,
+      discussingGoalId: null,
+      activeSharedAgentId: null,
+      bColumnTaskId: null,
+      bColumnGoalId: null,
+      bColumnDecisionId: null,
+      composerPrefill: null,
+    });
+    useNotificationStore.getState().selectNotification(null);
+  },
+
+  switchToSession(sessionId) {
+    const session = get().conversationSessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    set({
+      activeConversationId: sessionId,
+      discussingNotificationId: null,
+      discussingDecisionId: null,
+      discussingTaskId: null,
+      discussingGoalId: null,
+      activeSharedAgentId: null,
+      bColumnTaskId: null,
+      bColumnGoalId: null,
+      bColumnDecisionId: null,
+      composerPrefill: null,
+    });
+    useNotificationStore.getState().selectNotification(null);
+  },
+
   initConversation() {
     if (get().sessionId) return;
     const sessionId = `session-${Date.now()}`;
-    set({ sessionId, conversations: { primary: [] }, activeConversationId: 'primary' });
+    const now = Date.now();
+    const primarySession: ConversationSession = {
+      id: 'primary',
+      title: '主对话',
+      createdAt: now,
+      lastMessageAt: now,
+      messageCount: 0,
+      type: 'primary',
+    };
+    set({
+      sessionId,
+      conversations: { primary: [] },
+      activeConversationId: 'primary',
+      conversationSessions: [primarySession],
+    });
   },
 
   async initialize() {
@@ -1402,6 +1631,8 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
       bColumnGoalId: null,
       bColumnDecisionId: null,
       scrollToMessageId: null,
+      conversationSessions: [],
+      aColumnTab: 'attention' as const,
       _cleanup: null,
     });
   },

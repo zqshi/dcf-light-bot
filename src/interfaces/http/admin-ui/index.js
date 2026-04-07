@@ -41,7 +41,7 @@ async function checkAdminCompleteness() {
     { key: 'tools', label: '工具管理接口', call: () => checkEndpoint('/api/admin/assets/tool') },
     { key: 'logs', label: '行为日志接口', call: () => checkEndpoint('/api/admin/logs') },
     { key: 'auth', label: '权限管理接口', call: () => checkEndpoint('/api/admin/auth/users') },
-    { key: 'openclaw', label: 'OpenClaw 配置接口', call: () => checkEndpoint('/api/admin/runtime/openclaw-config') },
+    { key: 'openclaw', label: '运行时配置接口', call: () => checkEndpoint('/api/admin/runtime/openclaw-config') },
     { key: 'matrix', label: 'Matrix 渠道状态接口', call: () => checkEndpoint('/api/admin/matrix/status') },
     { key: 'sso', label: 'SSO 能力接口', call: () => checkEndpoint('/api/auth/sso/capabilities') }
   ];
@@ -232,13 +232,216 @@ function renderCompleteness(result) {
   renderList('completenessList', list);
 }
 
+// ═══════════════════════════════════════
+// 仪表板视角切换
+// ═══════════════════════════════════════
+
+const VIEW_STORAGE_KEY = 'dcf.admin.dashboard.view';
+const VALID_VIEWS = ['ops', 'mgmt', 'audit'];
+let mgmtLoaded = false;
+let auditLoaded = false;
+
+function initDashboardViews() {
+  const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+  const initial = VALID_VIEWS.includes(saved) ? saved : 'ops';
+
+  const btns = document.querySelectorAll('.dash-view');
+  btns.forEach((btn) => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  switchView(initial);
+}
+
+function switchView(view) {
+  if (!VALID_VIEWS.includes(view)) return;
+
+  document.querySelectorAll('.dash-view').forEach((b) => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  document.querySelectorAll('.dash-panel').forEach((p) => {
+    const panelView = p.id.replace('view', '').toLowerCase();
+    p.classList.toggle('active', panelView === view);
+    p.style.display = panelView === view ? 'block' : 'none';
+  });
+
+  localStorage.setItem(VIEW_STORAGE_KEY, view);
+
+  if (view === 'mgmt' && !mgmtLoaded) loadMgmtView();
+  if (view === 'audit' && !auditLoaded) loadAuditView();
+}
+
+// ═══════════════════════════════════════
+// 管理视角
+// ═══════════════════════════════════════
+
+function fmtNum(n) {
+  return Number(n || 0).toLocaleString('zh-CN');
+}
+function fmtCost(n) {
+  return Number(n || 0).toFixed(4);
+}
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = String(str || '');
+  return d.innerHTML;
+}
+
+async function loadMgmtView() {
+  mgmtLoaded = true;
+  try {
+    const [costsData, budgetData, overviewData] = await Promise.all([
+      api('/api/admin/ai-gateway/costs').catch(() => null),
+      api('/api/admin/ai-gateway/budget-status').catch(() => null),
+      loadOverview().catch(() => null)
+    ]);
+
+    // Token 消耗概览
+    if (costsData) {
+      setText('mgmtPromptTokens', fmtNum(costsData.totalPromptTokens));
+      setText('mgmtCompletionTokens', fmtNum(costsData.totalCompletionTokens));
+      setText('mgmtTotalCost', fmtCost(costsData.totalEstimatedCost));
+    }
+
+    // 共享资产总数
+    if (overviewData && overviewData.overview) {
+      const assets = overviewData.overview.assets || {};
+      setText('mgmtAssetsTotal', fmtNum(assets.sharedTotal));
+    }
+
+    // 部门成本 Top 5
+    const deptTbody = document.querySelector('#mgmtDeptTable tbody');
+    if (deptTbody && costsData && Array.isArray(costsData.deptSummary)) {
+      const top5 = costsData.deptSummary
+        .sort((a, b) => (b.estimatedCost || 0) - (a.estimatedCost || 0))
+        .slice(0, 5);
+      if (top5.length === 0) {
+        deptTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8e8e93">暂无数据</td></tr>';
+      } else {
+        deptTbody.innerHTML = top5.map((d) =>
+          `<tr><td>${esc(d.department)}</td><td>${fmtNum(d.count)}</td><td>${fmtNum(d.totalTokens)}</td><td>${fmtCost(d.estimatedCost)}</td></tr>`
+        ).join('');
+      }
+    }
+
+    // 预算使用概况
+    const budgetList = document.getElementById('mgmtBudgetList');
+    if (budgetList && budgetData && Array.isArray(budgetData.items)) {
+      if (budgetData.items.length === 0) {
+        budgetList.innerHTML = '<div class="overview-item">暂未配置预算</div>';
+      } else {
+        budgetList.innerHTML = budgetData.items.map((b) => {
+          const pctStr = (b.pct * 100).toFixed(1);
+          const color = b.pct >= 1 ? '#d70015' : b.pct >= 0.8 ? '#ff9500' : '#34c759';
+          return `<div class="overview-item">${esc(b.name)}（${b.scope}）：已用 $${fmtCost(b.used)} / $${fmtCost(b.monthlyBudget)} <span style="color:${color};font-weight:600">${pctStr}%</span></div>`;
+        }).join('');
+      }
+    }
+
+    // 成员活跃度
+    const userTbody = document.querySelector('#mgmtUserTable tbody');
+    if (userTbody && costsData && Array.isArray(costsData.userSummary)) {
+      const top10 = costsData.userSummary
+        .sort((a, b) => (b.count || 0) - (a.count || 0))
+        .slice(0, 10);
+      if (top10.length === 0) {
+        userTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8e8e93">暂无数据</td></tr>';
+      } else {
+        userTbody.innerHTML = top10.map((u) =>
+          `<tr><td>${esc(u.userId)}</td><td>${esc(u.department)}</td><td>${fmtNum(u.count)}</td><td>${fmtNum(u.totalTokens)}</td><td>${fmtCost(u.estimatedCost)}</td></tr>`
+        ).join('');
+      }
+    }
+  } catch {
+    mgmtLoaded = false;
+  }
+}
+
+// ═══════════════════════════════════════
+// 审计视角
+// ═══════════════════════════════════════
+
+function summarizePayload(payload) {
+  if (!payload || typeof payload !== 'object') return '-';
+  const keys = Object.keys(payload);
+  if (keys.length === 0) return '-';
+  const parts = keys.slice(0, 3).map((k) => `${k}:${String(payload[k]).slice(0, 20)}`);
+  return parts.join(', ') + (keys.length > 3 ? '...' : '');
+}
+
+async function loadAuditView() {
+  auditLoaded = true;
+  try {
+    const logs = await api('/api/admin/logs').catch(() => []);
+    const events = Array.isArray(logs) ? logs : [];
+
+    // 按类型聚合
+    const typeMap = {};
+    let authCount = 0;
+    let securityCount = 0;
+    events.forEach((e) => {
+      const t = String(e.type || 'unknown');
+      typeMap[t] = (typeMap[t] || 0) + 1;
+      if (t.includes('auth') || t.includes('permission') || t.includes('role')) authCount++;
+      if (t.includes('security') || t.includes('risk') || t.includes('alert')) securityCount++;
+    });
+
+    // 概览
+    setText('auditTotalCount', fmtNum(events.length));
+    setText('auditTypeCount', String(Object.keys(typeMap).length));
+    setText('auditAuthCount', fmtNum(authCount));
+    setText('auditSecurityCount', fmtNum(securityCount));
+
+    // 按类型分布表格
+    const typeTbody = document.querySelector('#auditTypeTable tbody');
+    if (typeTbody) {
+      const sorted = Object.entries(typeMap).sort((a, b) => b[1] - a[1]);
+      if (sorted.length === 0) {
+        typeTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#8e8e93">暂无数据</td></tr>';
+      } else {
+        typeTbody.innerHTML = sorted.map(([type, count]) => {
+          const pct = events.length ? ((count / events.length) * 100).toFixed(1) : '0.0';
+          return `<tr><td>${esc(type)}</td><td>${count}</td><td>${pct}%</td></tr>`;
+        }).join('');
+      }
+    }
+
+    // 最近 10 条
+    const recentTbody = document.querySelector('#auditRecentTable tbody');
+    if (recentTbody) {
+      const recent = events.slice(0, 10);
+      if (recent.length === 0) {
+        recentTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8e8e93">暂无数据</td></tr>';
+      } else {
+        recentTbody.innerHTML = recent.map((e) => {
+          const time = e.at ? new Date(e.at).toLocaleString('zh-CN') : '-';
+          const actor = e.actor ? (e.actor.username || '-') : '-';
+          const detail = summarizePayload(e.payload);
+          return `<tr><td style="white-space:nowrap">${esc(time)}</td><td>${esc(e.type || '-')}</td><td>${esc(actor)}</td><td>${esc(detail)}</td></tr>`;
+        }).join('');
+      }
+    }
+  } catch {
+    auditLoaded = false;
+  }
+}
+
 (async () => {
   try {
     if (window.__adminReady) await window.__adminReady;
+    initDashboardViews();
     const overview = await loadOverview();
     renderPage(overview);
     const completeness = await checkAdminCompleteness();
     renderCompleteness(completeness);
+
+    // Auto-refresh every 30s
+    setInterval(async () => {
+      try {
+        const fresh = await loadOverview();
+        renderPage(fresh);
+      } catch {}
+    }, 30000);
   } catch (error) {
     setText('summary', '数据加载失败，请检查登录状态或权限配置。');
     setText('statusHeadline', String(error && error.message ? error.message : '加载失败'));

@@ -39,7 +39,7 @@ interface Props {
 
 export function DecisionDetailContent({ data }: Props) {
   const decisionRequests = useOpenClawStore((s) => s.decisionRequests);
-  const respondToDecision = useOpenClawStore((s) => s.respondToDecision);
+  const respondDecision = useOpenClawStore((s) => s.respondDecision);
   const closeDrawer = useOpenClawStore((s) => s.closeDrawer);
   const decisionId = data.decisionId as string;
   const decision = decisionRequests.find((d) => d.id === decisionId);
@@ -58,22 +58,22 @@ export function DecisionDetailContent({ data }: Props) {
   const isResolved = decision.responseStatus !== 'pending';
 
   const handleAccept = () => {
-    respondToDecision(decision.id, (d) => d.accept());
+    respondDecision(decision.id, 'accept');
     closeDrawer();
   };
 
   const handleSelectOption = (optionId: string) => {
-    respondToDecision(decision.id, (d) => d.modify(optionId, feedback || `选择方案: ${optionId}`));
+    respondDecision(decision.id, 'modify', { optionId, feedback: feedback || `选择方案: ${optionId}` });
     closeDrawer();
   };
 
   const handleDecline = () => {
-    respondToDecision(decision.id, (d) => d.decline(feedback || '用户拒绝'));
+    respondDecision(decision.id, 'decline', { feedback: feedback || '用户拒绝' });
     closeDrawer();
   };
 
   const handleDefer = () => {
-    respondToDecision(decision.id, (d) => d.defer(Date.now() + 3_600_000));
+    respondDecision(decision.id, 'defer', { deferUntil: Date.now() + 3_600_000 });
     closeDrawer();
   };
 

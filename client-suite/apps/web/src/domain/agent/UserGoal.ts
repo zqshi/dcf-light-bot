@@ -4,6 +4,10 @@
  * 管理者模式下，用户设定的高层目标。
  * Agent 在执行过程中推进里程碑、追加进展，驱动自主完成。
  */
+
+import { DecisionHub, type DecisionTrigger } from './DecisionHub';
+import { MilestoneTrigger, type MilestoneContext } from '../../application/decision-triggers/MilestoneTrigger';
+
 export type GoalStatus = 'active' | 'paused' | 'completed' | 'archived' | 'cancelled';
 export type GoalPriority = 'critical' | 'high' | 'normal' | 'low';
 export type MilestoneStatus = 'pending' | 'active' | 'completed';
@@ -85,7 +89,17 @@ export class UserGoal {
     });
   }
 
-  completeMilestone(milestoneId: string): UserGoal {
+  completeMilestone(
+    milestoneId: string,
+    options?: {
+      /** 是否触发决策请求 */
+      triggerDecision?: boolean;
+      /** 是否有阻塞问题 */
+      hasBlockingIssue?: boolean;
+      /** 预计剩余时间（毫秒） */
+      estimatedTimeToComplete?: number;
+    }
+  ): UserGoal {
     const updatedMilestones = this.milestones.map((m) =>
       m.id === milestoneId
         ? { ...m, status: 'completed' as const, completedAt: Date.now() }
@@ -102,12 +116,44 @@ export class UserGoal {
     }
     // Auto-complete goal if all milestones done
     const allDone = updatedMilestones.every((m) => m.status === 'completed');
-    return new UserGoal({
+    const newStatus = allDone ? 'completed' : this.status;
+
+    const updatedGoal = new UserGoal({
       ...this.toProps(),
       milestones: updatedMilestones,
-      status: allDone ? 'completed' : this.status,
+      status: newStatus,
       updatedAt: Date.now(),
     });
+
+    // 触发决策请求（如果启用）
+    if (options?.triggerDecision && DecisionHub.hasHandler('milestone-arrival')) {
+      const completedCount = updatedMilestones.filter((m) => m.status === 'completed').length;
+
+      // 构建里程碑上下文
+      const milestoneContext: MilestoneContext = {
+        goalId: this.id,
+        goalTitle: this.title,
+        milestoneId: milestoneId,
+        milestoneName: milestone.name,
+        milestoneIndex: completedIdx,
+        totalMilestones: this.milestones.length,
+        completedMilestones: completedCount,
+        hasBlockingIssue: options.hasBlockingIssue ?? false,
+        estimatedTimeToComplete: options.estimatedTimeToComplete ?? 0,
+      };
+
+      // 创建决策触发器
+      const trigger: DecisionTrigger = MilestoneTrigger.createFromMilestone(milestoneContext, {
+        taskId: this.relatedTaskIds[0],
+      });
+
+      // 异步触发决策请求
+      DecisionHub.trigger(trigger).catch((error) => {
+        console.error('[UserGoal] Failed to trigger milestone decision:', error);
+      });
+    }
+
+    return updatedGoal;
   }
 
   updateStatus(status: GoalStatus): UserGoal {

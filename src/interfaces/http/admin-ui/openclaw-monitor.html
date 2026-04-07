@@ -295,18 +295,20 @@
   </head>
   <body data-required-permission="admin.runtime.page.openclaw-config.read">
     <div class="admin-shell">
-      <aside class="sidebar">
+            <aside class="sidebar">
         <h2>管理后台</h2>
         <a href="/admin/index.html">总览</a>
         <a href="/admin/employees.html">员工管理</a>
-        <a href="/admin/openclaw-config.html">配置中心</a>
+        <a href="/admin/shared-agents.html">共享 Agent</a>
         <a class="active" href="/admin/openclaw-monitor.html">平台运营</a>
         <a href="/admin/openclaw-statistics.html">数据统计</a>
         <a href="/admin/skills.html">技能管理</a>
         <a href="/admin/tools.html">工具管理</a>
-        <a href="/admin/logs.html">行为日志</a>
+        <a href="/admin/ai-gateway.html">AI Gateway</a>
+        <a href="/admin/logs-service.html">行为日志</a>
         <a href="/admin/auth-members.html">成员管理</a>
       </aside>
+
       <main class="content">
         <!-- Page Head -->
         <section class="page-head">
@@ -406,15 +408,79 @@
             <div id="agentUsage"></div>
           </div>
           <div class="ops-panel">
-            <div class="ops-panel-title">部门使用分布</div>
-            <div class="ops-panel-note">各部门今日活跃度分布</div>
+            <div class="ops-panel-title">模型调用分布</div>
+            <div class="ops-panel-note">AI Gateway 各模型今日调用量分布</div>
             <div id="deptUsage"></div>
           </div>
         </div>
+
+        <!-- 运行时配置 & 权限模板（原配置中心内容） -->
+        <div class="ops-section ops-grid-2col">
+          <div class="ops-panel">
+            <div class="ops-panel-title">运行时配置</div>
+            <div class="ops-panel-note">OpenClaw 运行镜像、版本与源码路径</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+              <div>
+                <label style="display:block;font-size:12px;color:#8e8e93;margin-bottom:4px">OpenClaw 镜像</label>
+                <input id="cfgImage" type="text" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #e5e5ea;border-radius:8px;background:#fafafa;box-sizing:border-box" />
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;color:#8e8e93;margin-bottom:4px">OpenClaw 版本</label>
+                <input id="cfgVersion" type="text" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #e5e5ea;border-radius:8px;background:#fafafa;box-sizing:border-box" />
+              </div>
+              <div style="grid-column:1/-1">
+                <label style="display:block;font-size:12px;color:#8e8e93;margin-bottom:4px">锁定源码路径</label>
+                <input id="cfgSourcePath" type="text" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #e5e5ea;border-radius:8px;background:#fafafa;box-sizing:border-box" />
+              </div>
+            </div>
+          </div>
+          <div class="ops-panel">
+            <div class="ops-panel-title">默认权限模板</div>
+            <div class="ops-panel-note">新建实例时应用的命令白名单和审批策略</div>
+            <div style="margin-top:12px">
+              <label style="display:block;font-size:12px;color:#8e8e93;margin-bottom:4px">默认命令白名单（每行一个）</label>
+              <textarea id="cfgAllowlist" rows="4" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #e5e5ea;border-radius:8px;background:#fafafa;font-family:monospace;resize:vertical;box-sizing:border-box"></textarea>
+              <label style="display:block;font-size:12px;color:#8e8e93;margin:10px 0 4px">默认审批模板（JSON）</label>
+              <textarea id="cfgApproval" rows="4" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #e5e5ea;border-radius:8px;background:#fafafa;font-family:monospace;resize:vertical;box-sizing:border-box"></textarea>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+          <button id="btnSaveConfig" type="button" style="font-size:13px;padding:8px 20px;border:none;border-radius:8px;background:#0071e3;color:#fff;font-weight:600;cursor:pointer" data-required-permission="admin.runtime.action.openclaw-config.write">保存配置</button>
+          <button id="btnReloadConfig" type="button" style="font-size:13px;padding:8px 20px;border:1px solid #e5e5ea;border-radius:8px;background:#fff;color:#1d1d1f;cursor:pointer">重新加载</button>
+          <button id="btnConfigHistory" type="button" style="font-size:13px;padding:8px 20px;border:1px solid #e5e5ea;border-radius:8px;background:#fff;color:#1d1d1f;cursor:pointer">版本历史</button>
+          <span id="cfgStatus" style="font-size:12px;color:#8e8e93"></span>
+        </div>
+
+        <!-- 配置版本历史 -->
+        <section class="card config-history-panel" id="configHistoryPanel" style="display:none;margin-bottom:16px">
+          <div style="padding:16px 18px 0">
+            <div style="font-size:13px;font-weight:600;color:#1d1d1f;margin-bottom:12px">配置版本历史</div>
+          </div>
+          <div class="table-wrap" style="padding:0 18px 16px">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead>
+                <tr style="border-bottom:1px solid #ededf2">
+                  <th style="text-align:left;padding:8px 6px;color:#8e8e93;font-weight:500;font-size:12px">版本</th>
+                  <th style="text-align:left;padding:8px 6px;color:#8e8e93;font-weight:500;font-size:12px">时间</th>
+                  <th style="text-align:left;padding:8px 6px;color:#8e8e93;font-weight:500;font-size:12px">操作人</th>
+                  <th style="text-align:right;padding:8px 6px;color:#8e8e93;font-weight:500;font-size:12px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="configHistoryRows">
+                <tr><td colspan="4" style="text-align:center;padding:20px;color:#aeaeb2;font-size:12px">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="configDiffResult" style="display:none;padding:0 18px 16px">
+            <div style="font-size:12px;font-weight:600;color:#1d1d1f;margin-bottom:8px">配置差异</div>
+            <pre id="configDiffContent" style="font-size:12px;color:#3a3a3c;background:#f8f8fa;border:1px solid #ededf2;border-radius:8px;padding:12px;margin:0;white-space:pre-wrap;max-height:300px;overflow:auto"></pre>
+          </div>
+        </section>
       </main>
     </div>
 
-    <script src="/admin/auth.js"></script>
+    <script src="/admin/auth-core.js"></script>
     <script src="/admin/openclaw-monitor.js"></script>
   </body>
 </html>
