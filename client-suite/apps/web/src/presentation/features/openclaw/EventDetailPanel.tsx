@@ -389,7 +389,7 @@ export function EventDetailPanel() {
             <div className="flex gap-1.5">
               <button type="button" onClick={handleAccept} disabled={!draft || isAccepting}
                 className="flex-1 h-6 rounded-md bg-primary text-[10px] text-white font-medium hover:bg-primary-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-1">
-                <Icon name="check" size={12} />采纳 Agent 建议
+                <Icon name={isAccepting ? 'hourglass_top' : 'check'} size={12} />{isAccepting ? '发送中' : '采纳 Agent 建议'}
               </button>
               {draft && (
                 <button type="button" onClick={handleEdit}
@@ -397,9 +397,10 @@ export function EventDetailPanel() {
                   <Icon name="edit" size={12} />修改后回复
                 </button>
               )}
-              <button type="button" onClick={handleDiscuss}
-                className="h-6 px-2 rounded-md border border-orange-500/30 text-[10px] text-orange-400 hover:bg-orange-500/10 transition-colors flex items-center justify-center gap-1">
-                <Icon name="forum" size={12} />与 Agent 讨论
+              <button type="button" onClick={handleDelegate}
+                className="h-6 px-2 rounded-md border border-white/10 text-[10px] text-slate-400 hover:bg-white/5 transition-colors flex items-center justify-center gap-1"
+                title="委托 Agent 自动处理">
+                <Icon name="smart_toy" size={12} />委托
               </button>
             </div>
           </div>
