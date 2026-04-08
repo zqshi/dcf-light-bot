@@ -32,7 +32,6 @@ export class ChatService {
 
   /**
    * Classify room type based on the DM partner's userId.
-   * Mirrors im-platform matrix.js logic.
    */
   static classifyRoomType(dmUserId: UserId | undefined): RoomType {
     if (!dmUserId) return 'group';

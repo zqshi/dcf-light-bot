@@ -2,9 +2,7 @@ function actorOf(req) {
   return (req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin';
 }
 
-function nowIso() {
-  return new Date().toISOString();
-}
+const { nowIso } = require('../../../shared/time');
 
 function normalizeType(raw) {
   const type = String(raw || '').trim().toLowerCase();

@@ -1,7 +1,6 @@
 /**
  * LoginPage — 登录页
  * 支持 Matrix 账密登录、企业 SSO、Demo 模式
- * 参考 im-platform login.js + app.css lines 131-206
  */
 import { useState } from 'react';
 import { Button } from '../components/ui/Button';

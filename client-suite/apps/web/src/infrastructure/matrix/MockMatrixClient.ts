@@ -1,6 +1,5 @@
 /**
- * MockMatrixClient — Demo 模式实现
- * 源自 im-platform/src/lib/mock-matrix.js，适配 IMatrixClient 接口
+ * MockMatrixClient — Demo 模式实现，适配 IMatrixClient 接口
  */
 import type {
   IMatrixClient,

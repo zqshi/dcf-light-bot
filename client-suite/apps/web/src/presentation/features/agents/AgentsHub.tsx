@@ -1,6 +1,5 @@
 /**
  * AgentsHub — 共享 Agent 大厅
- * 参考 im-platform agents.js
  */
 import { useState, useEffect, useCallback } from 'react';
 import { SearchInput } from '../../components/ui/SearchInput';

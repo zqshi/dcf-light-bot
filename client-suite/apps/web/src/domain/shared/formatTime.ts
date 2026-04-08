@@ -1,6 +1,5 @@
 /**
  * formatRelativeTime — 中文相对时间格式化
- * 参考 im-platform chat.js:412-417
  */
 export function formatRelativeTime(ts: number | undefined): string {
   if (!ts) return '';

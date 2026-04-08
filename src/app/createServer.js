@@ -49,7 +49,9 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'layout-base.css',
   'layout-drawer-a.css',
   'layout-drawer-b.css',
-  'layout-extra.css'
+  'layout-extra.css',
+  'tools-approvals.html',
+  'tools-approvals.js'
 ]);
 
 

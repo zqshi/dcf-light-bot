@@ -1,48 +1,40 @@
 {
-  "stitch_base": "../../stitch_enterprise_im_portal_with_document_drawer",
-  "stitch_serve_port": 8090,
   "app_url": "http://127.0.0.1:5176/client-suite/",
   "viewport": { "width": 1440, "height": 900 },
   "pages": [
     {
       "name": "login",
       "priority": "P0",
-      "stitch_path": null,
       "app_route": "/",
-      "notes": "Login page — compare with im-platform CSS login style"
+      "notes": "Login page"
     },
     {
       "name": "chat-main",
       "priority": "P0",
-      "stitch_path": "enterprise_im_portal_with_document_drawer_1/code.html",
       "app_route": "/?demo=1",
       "notes": "Four-column layout with chat, sidebar, dock"
     },
     {
       "name": "chat-with-drawer",
       "priority": "P0",
-      "stitch_path": "enterprise_im_portal_with_document_drawer_2/code.html",
       "app_route": "/?demo=1&drawer=doc",
       "notes": "Chat with right-side drawer open"
     },
     {
       "name": "agent-hub",
       "priority": "P1",
-      "stitch_path": "enterprise_im_portal_with_document_drawer_7/code.html",
       "app_route": "/?demo=1&dock=agents",
       "notes": "Shared agent hub grid"
     },
     {
       "name": "apps-workspace",
       "priority": "P1",
-      "stitch_path": "enterprise_im_portal_with_document_drawer_20/code.html",
       "app_route": "/?demo=1&dock=apps",
       "notes": "Light apps grid"
     },
     {
       "name": "factory-wizard",
       "priority": "P2",
-      "stitch_path": "enterprise_im_portal_with_document_drawer_13/code.html",
       "app_route": "/?demo=1&dock=factory",
       "notes": "Digital employee creation wizard"
     }
