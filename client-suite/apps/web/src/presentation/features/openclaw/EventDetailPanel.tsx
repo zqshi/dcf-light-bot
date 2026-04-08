@@ -190,6 +190,7 @@ export function EventDetailPanel() {
   const reasoningSteps = notification.agentReaction?.reasoningSteps ?? [];
   const suggestedActions = notification.agentReaction?.suggestedActions ?? [];
   const isEmail = notification.channel === 'email';
+  const needsHuman = notification.isNeedsHuman;
 
   const close = () => selectNotification(null);
 
@@ -243,6 +244,11 @@ export function EventDetailPanel() {
   /** 忽略 Agent 建议 */
   const handleDismiss = () => {
     useToastStore.getState().addToast('已忽略建议', 'info');
+  };
+
+  /** 与 Agent 讨论：切换到 C 栏讨论模式 */
+  const handleDiscuss = () => {
+    useOpenClawStore.getState().setDiscussingNotificationId(notification.id);
   };
 
   /** 全权委托 Agent */
@@ -345,8 +351,62 @@ export function EventDetailPanel() {
 
       {/* Fixed bottom */}
       <div className="border-t border-white/10 shrink-0">
-        {/* Agent suggestion block (仅非邮件类型) */}
-        {!isEmail && notification.agentReaction && (
+        {/* Escalation banner — when Agent needs human intervention */}
+        {needsHuman && (
+          <div className="px-4 py-2.5 border-b border-white/[0.06]" style={{ backgroundColor: 'rgba(255,149,0,0.06)' }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              <span className="text-[11px] font-semibold text-orange-400">需要人工介入</span>
+              {confidence && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{
+                  color: CONFIDENCE_CONFIG[confidence].color,
+                  backgroundColor: CONFIDENCE_CONFIG[confidence].bgColor,
+                }}>
+                  Agent 置信度: {CONFIDENCE_CONFIG[confidence].label}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 leading-relaxed mb-2">
+              Agent 已完成初步分析但无法独立做出决策。请审阅下方推理过程后选择操作。
+            </p>
+            {reasoningSteps.length > 0 && (
+              <div className="rounded-lg border border-orange-500/20 bg-orange-500/[0.03] p-2 mb-2">
+                <div className="text-[9px] font-semibold text-orange-400 mb-1.5">Agent 执行过程</div>
+                {reasoningSteps.map((step, i) => (
+                  <div key={i} className="flex items-start gap-2 mb-1 last:mb-0">
+                    <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5" style={{
+                      backgroundColor: 'rgba(52,199,89,0.15)',
+                      color: '#34C759',
+                    }}>{i + 1}</div>
+                    <div>
+                      <div className="text-[10px] text-slate-300">{step.label}</div>
+                      {step.detail && <div className="text-[9px] text-slate-500">{step.detail}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-1.5">
+              <button type="button" onClick={handleAccept} disabled={!draft || isAccepting}
+                className="flex-1 h-6 rounded-md bg-primary text-[10px] text-white font-medium hover:bg-primary-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-1">
+                <Icon name="check" size={12} />采纳 Agent 建议
+              </button>
+              {draft && (
+                <button type="button" onClick={handleEdit}
+                  className="flex-1 h-6 rounded-md border border-primary/30 text-[10px] text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-1">
+                  <Icon name="edit" size={12} />修改后回复
+                </button>
+              )}
+              <button type="button" onClick={handleDiscuss}
+                className="h-6 px-2 rounded-md border border-orange-500/30 text-[10px] text-orange-400 hover:bg-orange-500/10 transition-colors flex items-center justify-center gap-1">
+                <Icon name="forum" size={12} />与 Agent 讨论
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Agent suggestion block (仅非邮件 & 非 needs-human 类型，needs-human 已在上方 banner 显示) */}
+        {!isEmail && !needsHuman && notification.agentReaction && (
             <div className="px-4 py-2.5 border-b border-white/[0.06]">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">

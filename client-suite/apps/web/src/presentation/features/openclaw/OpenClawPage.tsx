@@ -24,6 +24,7 @@ import { EventDetailPanel } from './EventDetailPanel';
 import { TaskInitPage } from './TaskInitPage';
 import { GoalInitPage } from './GoalInitPage';
 import { DecisionInitPage } from './DecisionInitPage';
+import { DiscussionInitPage } from './DiscussionInitPage';
 import { OpenClawWelcomePage } from './OpenClawWelcomePage';
 
 function formatTime(ts: number): string {
@@ -218,7 +219,8 @@ export function OpenClawPage() {
 
         {/* Scrollable area — data-driven content */}
         <div ref={scrollAreaRef} className="flex-1 overflow-y-auto dcf-scrollbar px-6 py-4 space-y-4">
-          {/* Discussion mode: context anchors (decision/task/goal in C column) */}
+          {/* Discussion mode: context anchors (notification/decision/task/goal in C column) */}
+          {discussingNotificationId && <DiscussionInitPage />}
           {discussingDecisionId && <DecisionInitPage />}
           {discussingTaskId && <TaskInitPage onOpenDrawer={openDrawer} />}
           {discussingGoalId && <GoalInitPage onOpenDrawer={openDrawer} />}

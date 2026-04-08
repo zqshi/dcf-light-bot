@@ -85,12 +85,17 @@ function InboxEventCard({ item, isSelected, onClick }: { item: AttentionItem; is
           ? 'border-primary/40 bg-primary/[0.08]'
           : item.resolved
             ? 'border-white/[0.06] bg-white/[0.01] opacity-60 hover:opacity-80'
-            : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
+            : item.isNeedsHuman
+              ? 'border-orange-500/30 bg-orange-500/[0.04] hover:bg-orange-500/[0.08]'
+              : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
       }`}
     >
       {/* Source row */}
       <div className="flex items-center gap-2 mb-1">
-        {!item.resolved && (
+        {!item.resolved && item.isNeedsHuman && (
+          <span className="w-2 h-2 rounded-full shrink-0 bg-orange-500 animate-pulse" title="需要人工介入" />
+        )}
+        {!item.resolved && !item.isNeedsHuman && (
           <span className="w-2 h-2 rounded-full shrink-0 bg-red-500 animate-pulse" />
         )}
         <span
@@ -141,7 +146,15 @@ export function AttentionColumn({ collapsed, onToggleCollapse }: AttentionColumn
     () => attentionItems.filter((i) => i.kind === 'notification' && i.channel && i.channel !== 'system'),
     [attentionItems],
   );
-  const pendingNotifications = useMemo(() => notificationItems.filter((i) => !i.resolved), [notificationItems]);
+  const pendingNotifications = useMemo(() => {
+    const pending = notificationItems.filter((i) => !i.resolved);
+    return pending.sort((a, b) => {
+      const aHuman = a.isNeedsHuman ? 1 : 0;
+      const bHuman = b.isNeedsHuman ? 1 : 0;
+      if (aHuman !== bHuman) return bHuman - aHuman;
+      return (b.timestamp ?? 0) - (a.timestamp ?? 0);
+    });
+  }, [notificationItems]);
   const resolvedNotifications = useMemo(() => notificationItems.filter((i) => i.resolved), [notificationItems]);
 
   const [handledExpanded, setHandledExpanded] = useState(false);

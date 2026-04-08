@@ -64,6 +64,7 @@ export function useAgentChat() {
     store.updateLastMessage((m) => m.appendBlock(block));
 
     // Start progress simulation for this new task
+    let lastCompletedSubtask = '';
     const cleanup = MockOpenClawDataSource.simulateTaskProgress((taskId, progress) => {
       if (taskId !== task.id) return;
       const s = useOpenClawStore.getState();
@@ -71,7 +72,46 @@ export function useAgentChat() {
       if (!t) return;
       s.updateTask(taskId, (existing) => {
         const updated = existing.withProgress(progress);
+
+        // --- Gap 1: 追加子任务完成消息到 C 栏 ---
+        const completedSubs = (updated.subtasks ?? []).filter((st) => st.status === 'success');
+        const latestDone = completedSubs[completedSubs.length - 1];
+        if (latestDone && latestDone.name !== lastCompletedSubtask) {
+          lastCompletedSubtask = latestDone.name;
+          const progressMsg = CoTMessage.create({
+            id: `progress-${taskId}-${Date.now()}`,
+            agentId: 'primary',
+            sessionId: useOpenClawStore.getState().sessionId ?? '',
+            role: 'agent',
+            text: `**${latestDone.name}** 已完成（整体进度 ${Math.round(progress)}%）`,
+            timestamp: Date.now(),
+            cotSteps: [{
+              id: `ps-${Date.now()}`,
+              label: `子任务完成: ${latestDone.name}`,
+              status: 'done',
+              detail: `任务 "${task.name}" 进度 ${Math.round(progress)}%`,
+            }],
+          }).appendBlock({ type: 'task-card', taskId: task.id } as MessageBlock);
+          useOpenClawStore.getState().appendMessage(progressMsg);
+        }
+
+        // --- 任务完成时追加总结消息 ---
         if (progress >= 100 && existing.progress < 100) {
+          const doneMsg = CoTMessage.create({
+            id: `done-${taskId}-${Date.now()}`,
+            agentId: 'primary',
+            sessionId: useOpenClawStore.getState().sessionId ?? '',
+            role: 'agent',
+            text: `任务 **${existing.name}** 已全部完成！所有子任务均已通过，可在右侧抽屉查看完整执行报告。`,
+            timestamp: Date.now(),
+            cotSteps: [
+              { id: `ds-1-${Date.now()}`, label: '任务执行', status: 'done', detail: `共 ${(existing.subtasks ?? []).length} 个子任务` },
+              { id: `ds-2-${Date.now()}`, label: '质量检查', status: 'done', detail: '所有子任务通过验证' },
+              { id: `ds-3-${Date.now()}`, label: '报告生成', status: 'done', detail: '执行报告已生成' },
+            ],
+          }).appendBlock({ type: 'task-card', taskId: task.id } as MessageBlock);
+          useOpenClawStore.getState().appendMessage(doneMsg);
+
           import('../stores/notificationStore').then(({ useNotificationStore }) => {
             useNotificationStore.getState().addCompletionNotification(taskId, existing.name);
           });
@@ -174,6 +214,23 @@ export function useAgentChat() {
       attachments,
     });
     appendMessage(userMsg);
+
+    // --- Gap 3: Agent 路由可视化 — 插入路由系统消息 ---
+    if (routedCapName) {
+      const routingMsg = CoTMessage.create({
+        id: `routing-${Date.now()}`,
+        agentId: 'primary',
+        sessionId,
+        role: 'agent',
+        text: `🔀 正在调用 **${routedCapName}** 处理您的请求...`,
+        timestamp: Date.now(),
+        cotSteps: [
+          { id: `rt-${Date.now()}`, label: '意图识别', status: 'done', detail: `检测到 "${routedCapName}" 相关意图` },
+          { id: `rt2-${Date.now()}`, label: `路由到 ${routedCapName}`, status: 'running', detail: '正在调度能力 Agent...' },
+        ],
+      });
+      appendMessage(routingMsg);
+    }
 
     // Detect goal intent from user message
     detectAndCreateGoal(text);

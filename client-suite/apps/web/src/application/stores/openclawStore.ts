@@ -738,6 +738,8 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
         channel: n.channel,
         priority: priority++,
         resolved: n.isAutoHandled,
+        isNeedsHuman: n.isNeedsHuman,
+        timestamp: n.timestamp ? new Date(n.timestamp).getTime() : 0,
       });
     }
 

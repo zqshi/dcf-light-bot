@@ -66,4 +66,8 @@ export interface AttentionItem {
   goalProgress?: number;
   /** 目标优先级 */
   goalPriority?: string;
+  /** 是否需要人工介入 */
+  isNeedsHuman?: boolean;
+  /** 时间戳 */
+  timestamp?: number;
 }
