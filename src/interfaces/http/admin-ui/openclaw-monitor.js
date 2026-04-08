@@ -109,9 +109,14 @@ function fmtNum(n) { return Number(n || 0).toLocaleString(); }
 
 // ── Renderers ──
 
+function emptyHint(text) {
+  return `<div style="font-size:12px;color:#aeaeb2;text-align:center;padding:20px">${text}</div>`;
+}
+
 function renderAgentPerf() {
   const container = document.getElementById('agentPerfList');
   if (!container) return;
+  if (AGENT_PERF.length === 0) { container.innerHTML = emptyHint('暂无 Agent 效能数据'); return; }
   container.innerHTML = AGENT_PERF.map(a => `
     <div class="agent-perf-item">
       <div class="agent-perf-avatar" style="background:${a.color}15;color:${a.color}">${a.icon}</div>
@@ -152,6 +157,7 @@ function renderDecisions() {
 function renderHealth() {
   const container = document.getElementById('healthMetrics');
   if (!container) return;
+  if (HEALTH_METRICS.length === 0) { container.innerHTML = emptyHint('暂无健康指标数据'); return; }
   container.innerHTML = HEALTH_METRICS.map(m => `
     <div class="health-card">
       <div class="health-card-val ${m.status}">${m.value}</div>
@@ -163,6 +169,7 @@ function renderHealth() {
 function renderAlerts() {
   const container = document.getElementById('alertList');
   if (!container) return;
+  if (ALERTS.length === 0) { container.innerHTML = emptyHint('当前无活跃告警'); return; }
   container.innerHTML = ALERTS.map(a => `
     <div class="alert-item">
       <div class="alert-badge ${a.level}"></div>
@@ -178,6 +185,7 @@ function renderAlerts() {
 function renderUsageBars(containerId, data) {
   const container = document.getElementById(containerId);
   if (!container) return;
+  if (!data || data.length === 0) { container.innerHTML = emptyHint('暂无使用分布数据'); return; }
   container.innerHTML = data.map(d => `
     <div class="usage-bar-wrap">
       <div class="usage-bar-head">
@@ -213,6 +221,61 @@ function renderUsageBars(containerId, data) {
     if (el) el.textContent = fmtNum(gwStats.totalTraces);
     const descEl = el && el.nextElementSibling;
     if (descEl) descEl.textContent = `完成 ${gwStats.completed} · 拦截 ${gwStats.blocked} · 失败 ${gwStats.failed}`;
+  }
+
+  // Update active users from agent performance data
+  const activeUsersEl = document.getElementById('activeUsers');
+  if (activeUsersEl) {
+    activeUsersEl.textContent = AGENT_PERF.length > 0 ? String(AGENT_PERF.length) : '0';
+    const descEl = activeUsersEl.nextElementSibling;
+    const totalSessions = AGENT_PERF.reduce((s, a) => s + a.sessions, 0);
+    if (descEl) descEl.textContent = totalSessions > 0 ? `共 ${fmtNum(totalSessions)} 次会话` : '暂无数据';
+  }
+
+  // Update avg rounds from gateway stats
+  const avgRoundsEl = document.getElementById('avgRounds');
+  if (avgRoundsEl) {
+    if (gwStats && gwStats.totalTraces > 0 && AGENT_PERF.length > 0) {
+      const totalSessions = AGENT_PERF.reduce((s, a) => s + a.sessions, 0);
+      const avg = totalSessions > 0 ? (gwStats.totalTraces / totalSessions).toFixed(1) : '-';
+      avgRoundsEl.textContent = avg;
+    } else {
+      avgRoundsEl.textContent = '-';
+    }
+  }
+
+  // Update pending decisions count
+  const pendingDecisionsEl = document.getElementById('pendingDecisions');
+  if (pendingDecisionsEl) {
+    pendingDecisionsEl.textContent = String(DECISIONS.length);
+    const descEl = pendingDecisionsEl.nextElementSibling;
+    if (descEl) {
+      const critical = DECISIONS.filter(d => d.urgency === 'critical').length;
+      const high = DECISIONS.filter(d => d.urgency === 'high').length;
+      const normal = DECISIONS.filter(d => d.urgency === 'normal').length;
+      const parts = [];
+      if (critical > 0) parts.push(`${critical} 紧急`);
+      if (high > 0) parts.push(`${high} 重要`);
+      if (normal > 0) parts.push(`${normal} 一般`);
+      descEl.textContent = parts.length > 0 ? parts.join(' · ') : '无待处理';
+    }
+  }
+
+  // Update alert count
+  const alertCountEl = document.getElementById('alertCount');
+  if (alertCountEl) {
+    alertCountEl.textContent = String(ALERTS.length);
+    const descEl = alertCountEl.nextElementSibling;
+    if (descEl) {
+      const critical = ALERTS.filter(a => a.level === 'critical').length;
+      const warning = ALERTS.filter(a => a.level === 'warning').length;
+      const info = ALERTS.filter(a => a.level === 'info').length;
+      const parts = [];
+      if (critical > 0) parts.push(`${critical} 严重`);
+      if (warning > 0) parts.push(`${warning} 警告`);
+      if (info > 0) parts.push(`${info} 信息`);
+      descEl.textContent = parts.length > 0 ? parts.join(' · ') : '系统正常';
+    }
   }
 
   renderAgentPerf();
