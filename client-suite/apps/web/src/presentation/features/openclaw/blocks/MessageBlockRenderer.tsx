@@ -9,6 +9,8 @@ import { CodeResultBlockComponent } from './CodeResultBlock';
 import { CollaborationChainBlockComponent } from './CollaborationChainBlockComponent';
 import { SuggestedActionsBlockComponent } from './SuggestedActionsBlock';
 import { EmailDraftBlockComponent } from './EmailDraftBlock';
+import { AppPreviewBlockComponent } from './AppPreviewBlock';
+import { DocEditorBlockComponent } from './DocEditorBlock';
 import { useOpenClawStore } from '../../../../application/stores/openclawStore';
 import { DecisionRequestCard } from '../DecisionRequestCard';
 
@@ -201,6 +203,29 @@ export function MessageBlockRenderer({
                 subject={block.subject}
                 date={block.date}
                 body={block.body}
+              />
+            );
+
+          case 'app-preview':
+            return (
+              <AppPreviewBlockComponent
+                key={`app-${block.appId}-${i}`}
+                appId={block.appId}
+                appName={block.appName}
+                stage={block.stage}
+                onOpen={onOpenDrawer}
+              />
+            );
+
+          case 'doc-editor':
+            return (
+              <DocEditorBlockComponent
+                key={`doc-${block.docId}-${i}`}
+                docId={block.docId}
+                docTitle={block.docTitle}
+                sectionsReady={block.sectionsReady}
+                totalSections={block.totalSections}
+                onOpen={onOpenDrawer}
               />
             );
 

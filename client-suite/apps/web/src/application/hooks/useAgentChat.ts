@@ -157,6 +157,93 @@ export function useAgentChat() {
     store.updateLastMessage((m) => m.appendBlock(block));
   }, []);
 
+  /** Detect app-building intent and create AppPreviewBlock */
+  const detectAndCreateApp = useCallback((responseText: string, userText: string) => {
+    const intent = MockOpenClawDataSource.detectAppIntent(responseText);
+    if (!intent) return;
+
+    const app = MockOpenClawDataSource.createAppFromIntent(intent, userText || responseText);
+    const store = useOpenClawStore.getState();
+    store.addApp(app);
+
+    const block: MessageBlock = { type: 'app-preview', appId: app.id, appName: app.name, stage: 'designing' };
+    store.updateLastMessage((m) => m.appendBlock(block));
+    store.openDrawer({ type: 'app-preview', title: `${app.name} - 构建预览`, data: { appId: app.id } });
+
+    const cleanup = MockOpenClawDataSource.simulateAppProgress(app.id, userText || responseText, (appId, stage, snapshot) => {
+      useOpenClawStore.getState().updateApp(appId, (a) => ({
+        ...a,
+        stage: stage as typeof a.stage,
+        codeSnapshots: [...a.codeSnapshots, snapshot],
+        updatedAt: Date.now(),
+      }));
+      if (stage === 'done') {
+        const doneMsg = CoTMessage.create({
+          id: `app-done-${appId}-${Date.now()}`,
+          agentId: 'primary',
+          sessionId: useOpenClawStore.getState().sessionId ?? '',
+          role: 'agent',
+          text: `应用 **${app.name}** 构建完成！点击卡片可在右侧面板预览和交互。`,
+          timestamp: Date.now(),
+          cotSteps: [
+            { id: `as-1-${Date.now()}`, label: '需求分析', status: 'done', detail: '解析用户意图' },
+            { id: `as-2-${Date.now()}`, label: 'UI 设计', status: 'done', detail: '生成界面布局' },
+            { id: `as-3-${Date.now()}`, label: '代码生成', status: 'done', detail: 'HTML + CSS + JS' },
+          ],
+        }).appendBlock({ type: 'app-preview', appId, appName: app.name, stage: 'done' } as MessageBlock);
+        useOpenClawStore.getState().appendMessage(doneMsg);
+      }
+    });
+
+    const existingCleanup = store._cleanup;
+    useOpenClawStore.setState({ _cleanup: () => { cleanup(); existingCleanup?.(); } });
+  }, []);
+
+  /** Detect document-writing intent and create DocEditorBlock */
+  const detectAndCreateDoc = useCallback((responseText: string, userText: string) => {
+    const intent = MockOpenClawDataSource.detectDocIntent(responseText);
+    if (!intent) return;
+
+    const doc = MockOpenClawDataSource.createDocFromIntent(intent, userText || responseText);
+    const store = useOpenClawStore.getState();
+    store.addDocument(doc);
+
+    const block: MessageBlock = { type: 'doc-editor', docId: doc.id, docTitle: doc.title, sectionsReady: 0, totalSections: doc.sections.length };
+    store.updateLastMessage((m) => m.appendBlock(block));
+    store.openDrawer({ type: 'doc-editor', title: doc.title, data: { docId: doc.id } });
+
+    const sections = MockOpenClawDataSource.getDocSectionContents(userText || responseText);
+    const cleanup = MockOpenClawDataSource.simulateDocProgress(doc.id, sections, (docId, sectionIndex, content) => {
+      useOpenClawStore.getState().updateDocument(docId, (d) => ({
+        ...d,
+        content,
+        sections: d.sections.map((s, i) => ({
+          ...s,
+          status: (i <= sectionIndex ? 'done' : i === sectionIndex + 1 ? 'writing' : 'pending') as typeof s.status,
+        })),
+        updatedAt: Date.now(),
+      }));
+      if (sectionIndex === sections.length - 1) {
+        const doneMsg = CoTMessage.create({
+          id: `doc-done-${docId}-${Date.now()}`,
+          agentId: 'primary',
+          sessionId: useOpenClawStore.getState().sessionId ?? '',
+          role: 'agent',
+          text: `文档 **${doc.title}** 已生成完毕（共 ${doc.sections.length} 个章节）。点击卡片可在右侧面板中编辑。`,
+          timestamp: Date.now(),
+          cotSteps: [
+            { id: `ds-1-${Date.now()}`, label: '文档规划', status: 'done', detail: `${doc.sections.length} 个章节` },
+            { id: `ds-2-${Date.now()}`, label: '内容生成', status: 'done', detail: '全部章节完成' },
+          ],
+        }).appendBlock({ type: 'doc-editor', docId, docTitle: doc.title, sectionsReady: doc.sections.length, totalSections: doc.sections.length } as MessageBlock);
+        useOpenClawStore.getState().appendMessage(doneMsg);
+      }
+    });
+
+    const existingCleanup = store._cleanup;
+    useOpenClawStore.setState({ _cleanup: () => { cleanup(); existingCleanup?.(); } });
+  }, []);
+
   const sendMessage = useCallback(async (text: string, attachments?: Attachment[]) => {
     if (!sessionId || isSending) return;
 
@@ -300,6 +387,8 @@ export function useAgentChat() {
             m.withSteps((m.cotSteps ?? []).map((s) => s.status === 'running' ? { ...s, status: 'done' as const, detail: '完成' } : s)),
           );
           detectAndCreateTask(accumulated);
+          detectAndCreateApp(accumulated, text);
+          detectAndCreateDoc(accumulated, text);
         },
         onError: (err) => {
           console.warn('[useAgentChat] SSE error, trying fallback:', err.message);
@@ -322,6 +411,8 @@ export function useAgentChat() {
             ]),
           );
           detectAndCreateTask(result.answer);
+          detectAndCreateApp(result.answer, text);
+          detectAndCreateDoc(result.answer, text);
         } catch {
           // Both stream and non-stream failed — use mock fallback
           const mockResp = MockOpenClawDataSource.getMockChatResponse(text);
@@ -334,6 +425,8 @@ export function useAgentChat() {
               .withBlocks(mockResp.blocks ?? []),
           );
           detectAndCreateTask(mockResp.text);
+          detectAndCreateApp(mockResp.text, text);
+          detectAndCreateDoc(mockResp.text, text);
         }
       }
     } catch (err: any) {
@@ -349,11 +442,13 @@ export function useAgentChat() {
             .withBlocks(mockResp.blocks ?? []),
         );
         detectAndCreateTask(mockResp.text);
+        detectAndCreateApp(mockResp.text, text);
+        detectAndCreateDoc(mockResp.text, text);
       }
     } finally {
       setIsSending(false);
     }
-  }, [sessionId, isSending, appendMessage, updateLastMessage, setIsSending, detectAndCreateTask, detectAndCreateGoal]);
+  }, [sessionId, isSending, appendMessage, updateLastMessage, setIsSending, detectAndCreateTask, detectAndCreateGoal, detectAndCreateApp, detectAndCreateDoc]);
 
   const abort = useCallback(() => {
     abortRef.current?.abort();

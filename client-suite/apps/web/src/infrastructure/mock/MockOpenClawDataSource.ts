@@ -18,6 +18,8 @@ import {
 import type { NotificationProps } from '../../domain/notification/Notification';
 import type { SharedAgent } from '../../application/stores/agentStore';
 import type { CapabilityTemplate } from '../../domain/agent/CapabilityTemplate';
+import { APP_TEMPLATES, matchAppTemplate } from './MockAppTemplates';
+import { DOC_TEMPLATES, matchDocTemplate } from './MockDocTemplates';
 import type { AgentRuntimeStatus } from '../../domain/shared/types';
 import { DecisionTree } from '../../domain/agent/DecisionTree';
 import { CollaborationChain } from '../../domain/agent/CollaborationChain';
@@ -1018,5 +1020,103 @@ export class MockOpenClawDataSource {
         updatedAt: now - 12 * 60_000,
       }),
     ];
+  }
+
+  // ── App Builder ──────────────────────────────────────────────────
+
+  static readonly APP_KEYWORDS = ['创建应用', '做个应用', '建一个应用', '开发应用', '写个应用',
+    '天气应用', '计算器', '待办应用', 'todo应用', '日历应用', '小工具'];
+
+  private static appCounter = 0;
+
+  static detectAppIntent(text: string): string | null {
+    if (this.APP_KEYWORDS.some((kw) => text.includes(kw))) return text;
+    if (/(?:创建|做|写|开发|搭建).*(?:应用|工具|页面|APP|app|小程序)/.test(text)) return text;
+    return null;
+  }
+
+  static createAppFromIntent(intent: string, userText: string) {
+    this.appCounter++;
+    const now = Date.now();
+    const key = matchAppTemplate(userText);
+    const tpl = APP_TEMPLATES[key];
+    return {
+      id: `app-${now}-${this.appCounter}`,
+      name: tpl.name,
+      description: tpl.description,
+      stage: 'designing' as const,
+      codeSnapshots: [{ ...tpl.skeleton, timestamp: now }],
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  static simulateAppProgress(
+    appId: string,
+    userText: string,
+    onUpdate: (appId: string, stage: string, snapshot: { html: string; css: string; js: string; timestamp: number }) => void,
+  ): () => void {
+    const key = matchAppTemplate(userText);
+    const tpl = APP_TEMPLATES[key];
+    const stages: Array<{ delay: number; stage: string; snap: { html: string; css: string; js: string } }> = [
+      { delay: 2500, stage: 'building', snap: tpl.building },
+      { delay: 6000, stage: 'preview', snap: tpl.final },
+      { delay: 8000, stage: 'done', snap: tpl.final },
+    ];
+    const timers = stages.map(({ delay, stage, snap }) =>
+      setTimeout(() => onUpdate(appId, stage, { ...snap, timestamp: Date.now() }), delay),
+    );
+    return () => timers.forEach(clearTimeout);
+  }
+
+  // ── Document Writer ──────────────────────────────────────────────
+
+  static readonly DOC_KEYWORDS = ['写文档', '写一篇', '生成文档', '撰写', '帮我写',
+    '技术文档', '设计文档', '需求文档', 'API文档', '操作手册', '用户指南'];
+
+  private static docCounter = 0;
+
+  static detectDocIntent(text: string): string | null {
+    if (this.DOC_KEYWORDS.some((kw) => text.includes(kw))) return text;
+    if (/(?:写|撰写|生成|起草).*(?:文档|报告|手册|指南|说明书)/.test(text)) return text;
+    return null;
+  }
+
+  static createDocFromIntent(intent: string, userText: string) {
+    this.docCounter++;
+    const now = Date.now();
+    const key = matchDocTemplate(userText);
+    const tpl = DOC_TEMPLATES[key];
+    return {
+      id: `doc-${now}-${this.docCounter}`,
+      title: tpl.title,
+      content: '',
+      sections: tpl.sections.map((s: { title: string }, i: number) => ({
+        title: s.title,
+        status: i === 0 ? 'writing' as const : 'pending' as const,
+      })),
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  static getDocSectionContents(userText: string): Array<{ title: string; html: string }> {
+    const key = matchDocTemplate(userText);
+    return DOC_TEMPLATES[key].sections;
+  }
+
+  static simulateDocProgress(
+    docId: string,
+    sections: Array<{ title: string; html: string }>,
+    onUpdate: (docId: string, sectionIndex: number, accumulatedContent: string) => void,
+  ): () => void {
+    let accumulated = '';
+    const timers = sections.map((section, i) =>
+      setTimeout(() => {
+        accumulated += section.html;
+        onUpdate(docId, i, accumulated);
+      }, (i + 1) * 2500),
+    );
+    return () => timers.forEach(clearTimeout);
   }
 }

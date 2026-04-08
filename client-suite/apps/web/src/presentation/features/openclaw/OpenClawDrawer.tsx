@@ -19,6 +19,8 @@ import { CollaborationChainGraph } from './CollaborationChainGraph';
 import { DecisionTreeCard } from './DecisionTreeCard';
 import { DecisionDetailContent } from './DecisionDetailContent';
 import { GoalTrackerContent } from './GoalTrackerContent';
+import { AppPreviewContent } from './AppPreviewContent';
+import { DocEditorContent } from './DocEditorContent';
 
 /* ─── helpers ─── */
 
@@ -525,6 +527,8 @@ const CONTENT_RENDERERS: Record<
   'goal-tracker': GoalTrackerContent,
   'cot-detail': CoTDetailContent,
   'inbox-thread': NotificationDetailContent,
+  'app-preview': AppPreviewContent,
+  'doc-editor': DocEditorContent,
 };
 
 /* ─── Main component ─── */

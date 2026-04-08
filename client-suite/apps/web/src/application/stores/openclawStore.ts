@@ -18,6 +18,25 @@ import { useToastStore } from './toastStore';
 import type { Notification } from '../../domain/notification/Notification';
 import type { CoTStep } from '../../domain/agent/CoTMessage';
 
+export interface MockApp {
+  id: string;
+  name: string;
+  description: string;
+  stage: 'designing' | 'building' | 'preview' | 'done';
+  codeSnapshots: Array<{ html: string; css: string; js: string; timestamp: number }>;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MockDocument {
+  id: string;
+  title: string;
+  content: string;
+  sections: Array<{ title: string; status: 'pending' | 'writing' | 'done' }>;
+  createdAt: number;
+  updatedAt: number;
+}
+
 // ── 深度讨论分析：综合通知上下文 + 进行中任务生成 Agent 回复 ──
 
 interface DiscussionResponse {
@@ -414,6 +433,8 @@ interface OpenClawState {
   decisionRequests: DecisionRequest[];
   goals: UserGoal[];
   activeGoalId: string | null;
+  apps: MockApp[];
+  documents: MockDocument[];
   drawerContent: OpenClawDrawerContent | null;
   drawerWidth: number;
   activeSharedAgentId: string | null;
@@ -486,6 +507,10 @@ interface OpenClawState {
   addGoal(goal: UserGoal): void;
   updateGoal(goalId: string, updater: (g: UserGoal) => UserGoal): void;
   setActiveGoal(goalId: string | null): void;
+  addApp(app: MockApp): void;
+  updateApp(appId: string, updater: (a: MockApp) => MockApp): void;
+  addDocument(doc: MockDocument): void;
+  updateDocument(docId: string, updater: (d: MockDocument) => MockDocument): void;
   startSharedAgentChat(agentId: string): void;
   returnToPrimaryAgent(): void;
   setComposerPrefill(text: string | null): void;
@@ -520,6 +545,8 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
   decisionRequests: [],
   goals: [],
   activeGoalId: null,
+  apps: [],
+  documents: [],
   drawerContent: null,
   drawerWidth: 360,
   activeSharedAgentId: null,
@@ -1005,6 +1032,19 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
 
   setActiveGoal(goalId) {
     set({ activeGoalId: goalId });
+  },
+
+  addApp(app) {
+    set({ apps: [...get().apps, app] });
+  },
+  updateApp(appId, updater) {
+    set({ apps: get().apps.map((a) => a.id === appId ? updater(a) : a) });
+  },
+  addDocument(doc) {
+    set({ documents: [...get().documents, doc] });
+  },
+  updateDocument(docId, updater) {
+    set({ documents: get().documents.map((d) => d.id === docId ? updater(d) : d) });
   },
 
   // ── Shared Agent direct chat ──
@@ -1619,6 +1659,8 @@ export const useOpenClawStore = create<OpenClawState>((set, get) => ({
       collaborationChains: [],
       goals: [],
       activeGoalId: null,
+      apps: [],
+      documents: [],
       drawerContent: null,
       drawerWidth: 360,
       activeSharedAgentId: null,

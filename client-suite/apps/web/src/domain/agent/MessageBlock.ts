@@ -99,6 +99,21 @@ export interface EmailDraftBlock {
   body: string;
 }
 
+export interface AppPreviewBlock {
+  type: 'app-preview';
+  appId: string;
+  appName: string;
+  stage: string;
+}
+
+export interface DocEditorBlock {
+  type: 'doc-editor';
+  docId: string;
+  docTitle: string;
+  sectionsReady: number;
+  totalSections: number;
+}
+
 export type MessageBlock =
   | TaskCardBlock
   | SourceRefBlock
@@ -111,4 +126,6 @@ export type MessageBlock =
   | DecisionRequestBlock
   | GoalProgressBlock
   | SuggestedActionsBlock
-  | EmailDraftBlock;
+  | EmailDraftBlock
+  | AppPreviewBlock
+  | DocEditorBlock;

@@ -15,7 +15,9 @@ export type OpenClawDrawerType =
   | 'decision-detail'
   | 'goal-tracker'
   | 'cot-detail'
-  | 'inbox-thread';
+  | 'inbox-thread'
+  | 'app-preview'
+  | 'doc-editor';
 
 export interface OpenClawDrawerContent {
   type: OpenClawDrawerType;
