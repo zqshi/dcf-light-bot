@@ -1,5 +1,5 @@
 const { nowIso } = require('../../../shared/time');
-const { safeJson, maskSecret, summarizeInstanceStates, summarizeAuditWindow, buildDefaultApprovalPolicy } = require('./adminCompatUtils');
+const { safeJson, summarizeInstanceStates } = require('./adminCompatUtils');
 
 function registerAdminCompatRuntimeRoutes(router, context, deps) {
   const listInstances = deps.listInstances;
@@ -16,114 +16,61 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
   const roleStore = deps.roleStore;
 
   router.get('/api/admin/overview', async (_req, res) => {
-    const [instances, dashboard, audits, sharedSkills, sharedTools, sharedKnowledge, skillBindings, toolBindings, knowledgeBindings, sharedAgents] = await Promise.all([
+    const [instances, dashboard] = await Promise.all([
       listInstances(),
-      (context.assetService || context.skillService).getReviewDashboard({ reviewer: '' }),
-      context.auditService.list(1000),
-      listSharedAssets('skill'),
-      listSharedAssets('tool'),
-      listSharedAssets('knowledge'),
-      (context.assetService || context.skillService).listAssetBindings('skill'),
-      (context.assetService || context.skillService).listAssetBindings('tool'),
-      (context.assetService || context.skillService).listAssetBindings('knowledge'),
-      listSharedAgents()
+      (context.assetService || context.skillService).getReviewDashboard({ reviewer: '' })
     ]);
     const instanceSummary = summarizeInstanceStates(instances);
-    const totalTasks = audits.filter((x) => {
-      const type = String(x.type || '');
-      return type.startsWith('instance.') || type.startsWith('admin.instance.');
-    }).length;
-    const succeededTasks = audits.filter((x) => {
-      const type = String(x.type || '');
-      return type === 'instance.provisioned' || type === 'admin.instance.started';
-    }).length;
-    const failedTasks = audits.filter((x) => String(x.type).includes('failed')).length;
-    const inProgressTasks = Math.max(0, totalTasks - succeededTasks - failedTasks);
-    const successRate = totalTasks ? Math.round((succeededTasks / totalTasks) * 100) : 100;
-    const now = Date.now();
-    const window24h = summarizeAuditWindow(audits, now - (24 * 60 * 60 * 1000));
-    const tenants = new Set(instances.map((x) => String((x && x.tenantId) || '').trim()).filter(Boolean));
-    const bindingsTotal = (Array.isArray(skillBindings) ? skillBindings.length : 0)
-      + (Array.isArray(toolBindings) ? toolBindings.length : 0)
-      + (Array.isArray(knowledgeBindings) ? knowledgeBindings.length : 0);
     const disabledUsers = Array.from(userStore.values()).filter((x) => x && x.disabled).length;
     const pendingReviews = Number(dashboard.pendingTotal || 0);
     const overdueReviews = Number(dashboard.overdueTotal || 0);
     const healthLevel = instanceSummary.abnormal > 0 || overdueReviews > 0 ? 'degraded' : 'healthy';
-    const sharedTotal = sharedSkills.length + sharedTools.length + sharedKnowledge.length + sharedAgents.length;
+
+    const tips = [];
+    const providers = (openclawConfigState && openclawConfigState.providers) || {};
+    const dsOk = providers.deepseek && providers.deepseek.enabled && String(providers.deepseek.apiKey || '').trim();
+    const mmOk = providers.minimax && providers.minimax.enabled && String(providers.minimax.apiKey || '').trim();
+    if (!dsOk && !mmOk) {
+      tips.push('DeepSeek 和 MiniMax 均未启用或缺少 API Key，AI 能力不可用，请前往运行时配置页面完成接入。');
+    } else if (!dsOk) {
+      tips.push('DeepSeek 未启用或缺少 API Key，建议在运行时配置中补齐。');
+    } else if (!mmOk) {
+      tips.push('MiniMax 未启用或缺少 API Key，安全模型通道不可用。');
+    }
+    const gwStores = context.gwStores || {};
+    if (gwStores.riskRuleStore) {
+      const disabledHigh = [];
+      for (const rule of gwStores.riskRuleStore.values()) {
+        if (!rule.isEnabled && rule.severity === 'high') disabledHigh.push(rule.displayName || rule.ruleId);
+      }
+      if (disabledHigh.length) {
+        tips.push(`${disabledHigh.length} 条高危风控规则已禁用（${disabledHigh.slice(0, 3).join('、')}），存在安全风险。`);
+      }
+    }
+    if (instanceSummary.abnormal > 0) {
+      tips.push(`${instanceSummary.abnormal} 个实例处于异常状态，建议立即排查。`);
+    }
+    if (overdueReviews > 0) {
+      tips.push(`${overdueReviews} 项资产审批已逾期，建议优先处理。`);
+    } else if (pendingReviews > 3) {
+      tips.push(`待审批资产 ${pendingReviews} 项，建议及时清理积压。`);
+    }
+    if (tips.length === 0) {
+      tips.push('系统运行正常，各项指标无异常。');
+    }
+
     res.json({
       overview: {
         platform: {
           instancesTotal: instanceSummary.total,
           runningInstances: instanceSummary.running,
           abnormalInstances: instanceSummary.abnormal,
-          tenantsTotal: tenants.size,
-          matrixBoundInstances: instanceSummary.matrixBound,
-          stateBreakdown: instanceSummary.byState,
           healthLevel
         },
-        assets: {
-          sharedSkills: sharedSkills.length,
-          sharedTools: sharedTools.length,
-          sharedKnowledge: sharedKnowledge.length,
-          sharedAgents: sharedAgents.length,
-          sharedTotal,
-          bindingsTotal,
-          pendingReviews,
-          overdueReviews
-        },
-        operations: {
-          auditEvents24h: window24h.total,
-          adminEvents24h: window24h.admin,
-          instanceEvents24h: window24h.instance,
-          assetEvents24h: window24h.asset,
-          latestEventAt: window24h.latestAt || ''
-        },
-        security: {
-          usersTotal: userStore.size,
-          disabledUsers,
-          rolesTotal: roleStore.size
-        }
+        assets: { pendingReviews, overdueReviews },
+        security: { disabledUsers }
       },
-      delivery: {
-        employeesTotal: instanceSummary.total,
-        totalTasks,
-        succeededTasks,
-        failedTasks,
-        inProgressTasks,
-        successRate
-      },
-      governance: {
-        waitingApprovalTasks: pendingReviews,
-        compensationPendingTasks: 0,
-        rollbackTasks: 0,
-        p1Incidents: 0
-      },
-      assets: {
-        skillsTotal: sharedSkills.length,
-        findingsTotal: sharedKnowledge.length,
-        toolsTotal: sharedTools.length,
-        sharedAgents: sharedAgents.length,
-        sharedTotal,
-        bindingsTotal,
-        skillReused: 0,
-        recurrenceErrors: 0
-      },
-      runtime: {
-        runtimeEnabled: true,
-        dialogueEnabled: true,
-        queueQueued: 0,
-        queueDone: 0,
-        backlog: 0,
-        phase: healthLevel,
-        cycleCount: Math.max(1, Math.floor(totalTasks / 10)),
-        manualReviewRequired: overdueReviews > 0
-      },
-      focus: [
-        `当前运行实例 ${instanceSummary.running}/${instanceSummary.total}，异常 ${instanceSummary.abnormal}。`,
-        `资产待审批 ${pendingReviews} 项，逾期 ${overdueReviews} 项，建议优先清理积压。`,
-        `共享资产 ${sharedTotal} 项（含共享Agent ${sharedAgents.length}），已绑定 ${bindingsTotal} 次，建议持续推动高频能力复用。`
-      ]
+      focus: tips
     });
   });
 

@@ -66,7 +66,7 @@ function resolvePermissionGroup(item) {
   const actions = Array.isArray(item && item.actions) ? item.actions : [];
   if (pages.length > 0) {
     const first = String((pages[0] && pages[0].path) || '').trim();
-    if (first.startsWith('/admin/runtime') || first === '/admin/index.html') return '运行管理';
+    if (first.startsWith('/admin/runtime')) return '运行管理';
     if (first.startsWith('/admin/tasks')) return '任务管理';
     if (first.startsWith('/admin/employees')) return '员工管理';
     if (first.startsWith('/admin/matrix')) return '渠道健康';

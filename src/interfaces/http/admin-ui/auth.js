@@ -1,10 +1,9 @@
 (function () {
   const DEFAULT_NAV_ITEMS = [
-    { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
+    { path: '/admin/openclaw-statistics.html', label: '数据统计', permission: 'admin.runtime.page.openclaw-config.read' },
+    { path: '/admin/openclaw-monitor.html', label: '平台运营', permission: 'admin.runtime.page.openclaw-config.read' },
     { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
     { path: '/admin/shared-agents.html', label: '共享Agent', permission: 'admin.employees.page.overview.read' },
-    { path: '/admin/openclaw-monitor.html', label: '平台运营', permission: 'admin.runtime.page.openclaw-config.read' },
-    { path: '/admin/openclaw-statistics.html', label: '数据统计', permission: 'admin.runtime.page.openclaw-config.read' },
     { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
     { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
     { path: '/admin/ai-gateway.html', label: 'AI Gateway', permission: 'admin.ai-gateway.page.read' },
@@ -577,7 +576,7 @@
     const required = getRequiredPermission();
     const allowed = !required || canAccess(session.user, required);
     if (!allowed) {
-      document.body.innerHTML = '<div style="padding:24px;font-family:IBM Plex Sans,PingFang SC,sans-serif;"><h2>无权限访问</h2><p>当前账号没有该页面权限，请联系管理员分配角色。</p><a href="/admin/index.html">返回后台首页</a></div>';
+      document.body.innerHTML = '<div style="padding:24px;font-family:IBM Plex Sans,PingFang SC,sans-serif;"><h2>无权限访问</h2><p>当前账号没有该页面权限，请联系管理员分配角色。</p><a href="/admin/openclaw-statistics.html">返回后台首页</a></div>';
       throw new Error('无权限访问');
     }
     window.__adminSession = session;

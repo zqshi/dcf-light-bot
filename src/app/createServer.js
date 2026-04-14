@@ -7,18 +7,16 @@ const path = require('path');
 const { buildApiRouter } = require('../interfaces/http/router');
 
 const PURE_ADMIN_ALLOWED_FILES = new Set([
-  'index.html',
-  'index.js',
   'login.html',
   'login.js',
   'employees.html',
   'employees.js',
   'shared-agents.html',
   'shared-agents.js',
-  'openclaw-monitor.html',
-  'openclaw-monitor.js',
   'openclaw-statistics.html',
   'openclaw-statistics.js',
+  'openclaw-monitor.html',
+  'openclaw-monitor.js',
   'notifications.html',
   'notifications.js',
   'employee-detail-renderer.js',
@@ -63,7 +61,19 @@ function isLoopbackAddress(ip) {
 function createServer(context) {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        fontSrc: ["'self'", "data:"],
+        mediaSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+      },
+    },
+  }));
   app.use(cors({ origin: '*', credentials: true }));
   app.use(compression());
   app.use(express.json({ limit: '2mb' }));
@@ -78,10 +88,15 @@ function createServer(context) {
     skip: (req) => isLoopbackAddress(req.ip) || isLoopbackAddress(req.socket && req.socket.remoteAddress)
   });
 
+  // Favicon — return 204 to silence browser 404
+  app.get('/favicon.ico', (req, res) => res.status(204).end());
+
   const adminUiDir = path.join(__dirname, '../interfaces/http/admin-ui');
   app.use('/admin', (req, res, next) => {
     const target = String(req.path || '/');
-    if (target === '/' || target === '') return next();
+    if (target === '/' || target === '') return res.redirect('/admin/openclaw-statistics.html');
+    // Redirect legacy index.html to new landing page
+    if (target === '/index.html') return res.redirect('/admin/openclaw-statistics.html');
     const fileName = target.startsWith('/') ? target.slice(1) : target;
     if (!fileName || fileName.includes('..')) {
       res.status(404).send('Not Found');
@@ -100,7 +115,8 @@ function createServer(context) {
       res.setHeader('Cache-Control', 'no-store');
     }
   }));
-  app.get('/', (req, res) => res.redirect('/admin'));
+  app.get('/', (req, res) => res.redirect('/admin/openclaw-statistics.html'));
+  app.get('/admin', (req, res) => res.redirect('/admin/openclaw-statistics.html'));
   app.use('/api', apiLimiter);
   app.use(buildApiRouter(context));
 

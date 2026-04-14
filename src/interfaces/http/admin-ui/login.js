@@ -27,7 +27,7 @@
   const ssoAuthorizeBtn = document.getElementById('ssoAuthorizeBtn');
   const capsNode = document.getElementById('ssoCapabilities');
   const errorEl = document.getElementById('error');
-  const next = new URLSearchParams(window.location.search).get('next') || '/admin/index.html';
+  const next = new URLSearchParams(window.location.search).get('next') || '/admin/openclaw-statistics.html';
   let mode = 'bridge';
 
   function showError(message) {

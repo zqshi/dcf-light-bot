@@ -111,11 +111,10 @@ function buildAdminCompatRouter(context) {
   // ── Navigation ──
   function buildNavItems() {
     return [
-      { path: '/admin/index.html', label: '总览', permission: 'admin.runtime.page.platform-overview.read' },
+      { path: '/admin/openclaw-statistics.html', label: '数据统计', permission: 'admin.runtime.page.openclaw-config.read' },
+      { path: '/admin/openclaw-monitor.html', label: '平台运营', permission: 'admin.runtime.page.openclaw-config.read' },
       { path: '/admin/employees.html', label: '员工管理', permission: 'admin.employees.page.overview.read' },
       { path: '/admin/shared-agents.html', label: '共享Agent', permission: 'admin.employees.page.overview.read' },
-      { path: '/admin/openclaw-monitor.html', label: '平台运营', permission: 'admin.runtime.page.openclaw-config.read' },
-      { path: '/admin/openclaw-statistics.html', label: '数据统计', permission: 'admin.runtime.page.openclaw-config.read' },
       { path: '/admin/skills.html', label: '技能管理', permission: 'admin.skills.page.management.read' },
       { path: '/admin/tools.html', label: '工具管理', permission: 'admin.tools.page.assets.read' },
       { path: '/admin/ai-gateway.html', label: 'AI Gateway', permission: 'admin.ai-gateway.page.read' },
@@ -687,14 +686,14 @@ function buildAdminCompatRouter(context) {
       const permissions = resolveSessionPermissions(existingSession);
       res.json({
         showAdminEntry: hasAdminConsoleAccess(permissions),
-        adminUrl: '/admin/index.html'
+        adminUrl: '/admin/openclaw-statistics.html'
       });
       return;
     }
 
     const matrixUserId = normalizeMatrixUserId((req.query && req.query.matrixUserId) || '');
     if (!matrixUserId) {
-      res.json({ showAdminEntry: false, adminUrl: '/admin/index.html' });
+      res.json({ showAdminEntry: false, adminUrl: '/admin/openclaw-statistics.html' });
       return;
     }
 
@@ -714,13 +713,13 @@ function buildAdminCompatRouter(context) {
       }
     }
     if (!username) {
-      res.json({ showAdminEntry: false, adminUrl: '/admin/index.html' });
+      res.json({ showAdminEntry: false, adminUrl: '/admin/openclaw-statistics.html' });
       return;
     }
 
     const row = userStore.get(username);
     if (!row || row.disabled) {
-      res.json({ showAdminEntry: false, adminUrl: '/admin/index.html' });
+      res.json({ showAdminEntry: false, adminUrl: '/admin/openclaw-statistics.html' });
       return;
     }
 
@@ -731,7 +730,7 @@ function buildAdminCompatRouter(context) {
       : (Array.isArray(row.permissions) ? row.permissions : []);
     res.json({
       showAdminEntry: hasAdminConsoleAccess(permissions),
-      adminUrl: '/admin/index.html'
+      adminUrl: '/admin/openclaw-statistics.html'
     });
   });
 
