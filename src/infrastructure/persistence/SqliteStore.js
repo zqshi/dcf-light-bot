@@ -4,38 +4,37 @@
  */
 
 const sqlite3 = require('sqlite3').verbose();
-const { promisify } = require('util');
 const { ALL_TABLES_SQL, DEFAULT_USERS, DEFAULT_ROLES, DEFAULT_RISK_RULES, DEFAULT_SYSTEM_CONFIGS } = require('./DatabaseSchema');
 
 const mkdirp = require('mkdirp').mkdirp;
 const path = require('path');
 
-const dbRunAsync = promisify((...args) => {
+function dbRunAsync(db, ...args) {
   return new Promise((resolve, reject) => {
-    args[0].run(...args.slice(1), (err) => {
+    db.run(...args, (err) => {
       if (err) reject(err);
       else resolve();
     });
   });
-});
+}
 
-const dbGetAsync = promisify((...args) => {
+function dbGetAsync(db, ...args) {
   return new Promise((resolve, reject) => {
-    args[0].get(...args.slice(1), (err, row) => {
+    db.get(...args, (err, row) => {
       if (err) reject(err);
       else resolve(row);
     });
   });
-});
+}
 
-const dbAllAsync = promisify((...args) => {
+function dbAllAsync(db, ...args) {
   return new Promise((resolve, reject) => {
-    args[0].all(...args.slice(1), (err, rows) => {
+    db.all(...args, (err, rows) => {
       if (err) reject(err);
       else resolve(rows);
     });
   });
-});
+}
 
 class SqliteStore {
   constructor(dbPath) {
@@ -68,8 +67,13 @@ class SqliteStore {
     await dbRunAsync(this.db, 'PRAGMA synchronous = NORMAL');
     await dbRunAsync(this.db, 'PRAGMA foreign_keys = ON');
 
-    // 创建所有表
-    await dbRunAsync(this.db, ALL_TABLES_SQL);
+    // 创建所有表（exec 支持多条语句）
+    await new Promise((resolve, reject) => {
+      this.db.exec(ALL_TABLES_SQL, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
     // 初始化默认数据
     await this.seedDefaultData();
@@ -931,6 +935,33 @@ class SqliteStore {
       this.db,
       'SELECT * FROM system_configs'
     );
+  }
+
+  // ============================================
+  // FileStore 兼容接口（ControlPlaneRepository 依赖）
+  // ============================================
+
+  async read() {
+    const raw = await this.getSystemConfig('_control_plane_doc');
+    if (!raw) {
+      return {
+        instances: [],
+        provisioningJobs: [],
+        identityMappings: [],
+        skillReports: [],
+        skills: [],
+        skillBindings: [],
+        audits: []
+      };
+    }
+    try { return JSON.parse(raw); } catch { return {}; }
+  }
+
+  async update(mutator) {
+    const doc = await this.read();
+    const next = await mutator(doc);
+    await this.setSystemConfig('_control_plane_doc', JSON.stringify(next));
+    return next;
   }
 }
 

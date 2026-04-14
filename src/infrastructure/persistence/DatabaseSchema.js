@@ -284,7 +284,7 @@ const EXCHANGE_RATES_TABLE = `
     to_currency TEXT NOT NULL DEFAULT 'CNY',
     rate REAL NOT NULL DEFAULT 1.0,
     fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(from_currency, to_currency, date(fetched_at))
+    UNIQUE(from_currency, to_currency, fetched_at)
   );
 
   CREATE INDEX IF NOT EXISTS idx_exchange_rates_from_to ON exchange_rates(from_currency, to_currency);
@@ -380,8 +380,6 @@ const ALL_TABLES_SQL = `
   ${COST_RECORDS_TABLE}
 
   ${EXCHANGE_RATES_TABLE}
-
-  ${OPENCLAW_CONFIGS_TABLE}
 
   ${OPENCLAW_CONFIGS_TABLE}
 

@@ -1,7 +1,7 @@
 const { AppError } = require('../../shared/errors');
 const { FileStore } = require('./FileStore');
 const { PostgresStore } = require('./PostgresStore');
-const { SqliteStore } = require('./SqliteStore');
+const SqliteStore = require('./SqliteStore');
 
 function createStore(config) {
   const backend = String(config.persistenceBackend || 'sqlite').trim().toLowerCase();
@@ -9,7 +9,7 @@ function createStore(config) {
     return new FileStore(config.storeFile);
   }
   if (backend === 'sqlite') {
-    return new SqliteStore(config.storeFile);
+    return new SqliteStore(config.dbFile || config.storeFile);
   }
   if (backend === 'postgres') {
     return new PostgresStore({
