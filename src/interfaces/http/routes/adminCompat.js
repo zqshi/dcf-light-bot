@@ -84,7 +84,8 @@ function buildAdminCompatRouter(context) {
       approvalByRisk: buildDefaultApprovalPolicy().byRisk
     },
     updatedAt: nowIso(),
-    updatedBy: 'system'
+    updatedBy: 'system',
+    retention: { auditLogTtlDays: 90, auditLogMaxRows: 100000, archiveEnabled: true, archiveRingSize: 3 }
   };
   const configSnapshots = [];
   const MAX_SNAPSHOTS = 30;
@@ -147,6 +148,7 @@ function buildAdminCompatRouter(context) {
         }
       },
       permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {}),
+      retention: safeJson(openclawConfigState.retention, {}),
       updatedAt: openclawConfigState.updatedAt,
       updatedBy: openclawConfigState.updatedBy
     };
@@ -211,6 +213,17 @@ function buildAdminCompatRouter(context) {
 
     if (permissionTemplate) {
       openclawConfigState.permissionTemplate = safeJson(permissionTemplate, openclawConfigState.permissionTemplate);
+    }
+    const retention = input.retention && typeof input.retention === 'object' ? input.retention : null;
+    if (retention) {
+      const prev = openclawConfigState.retention || {};
+      const ttl = Number(retention.auditLogTtlDays), maxRows = Number(retention.auditLogMaxRows), ringSize = Number(retention.archiveRingSize);
+      openclawConfigState.retention = {
+        auditLogTtlDays: Number.isFinite(ttl) && ttl > 0 ? Math.round(ttl) : (prev.auditLogTtlDays || 90),
+        auditLogMaxRows: Number.isFinite(maxRows) && maxRows > 0 ? Math.round(maxRows) : (prev.auditLogMaxRows || 100000),
+        archiveEnabled: retention.archiveEnabled !== false,
+        archiveRingSize: Number.isFinite(ringSize) && ringSize > 0 ? Math.round(ringSize) : (prev.archiveRingSize || 3)
+      };
     }
     openclawConfigState.updatedAt = String(input.updatedAt || openclawConfigState.updatedAt || nowIso());
     openclawConfigState.updatedBy = String(input.updatedBy || openclawConfigState.updatedBy || 'system');

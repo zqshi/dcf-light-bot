@@ -119,7 +119,8 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
       config: {
         runtime: safeJson(openclawConfigState.runtime, {}),
         providers: safeJson(openclawConfigState.providers, {}),
-        permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {})
+        permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {}),
+        retention: safeJson(openclawConfigState.retention, {})
       },
       label: 'auto-save'
     });
@@ -167,6 +168,20 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
       );
     }
 
+    const retentionInput = body.retention && typeof body.retention === 'object' ? body.retention : null;
+    if (retentionInput) {
+      const prev = openclawConfigState.retention || {};
+      const ttl = Number(retentionInput.auditLogTtlDays);
+      const maxRows = Number(retentionInput.auditLogMaxRows);
+      const ringSize = Number(retentionInput.archiveRingSize);
+      openclawConfigState.retention = {
+        auditLogTtlDays: Number.isFinite(ttl) && ttl > 0 ? Math.round(ttl) : (prev.auditLogTtlDays || 90),
+        auditLogMaxRows: Number.isFinite(maxRows) && maxRows > 0 ? Math.round(maxRows) : (prev.auditLogMaxRows || 100000),
+        archiveEnabled: retentionInput.archiveEnabled !== false,
+        archiveRingSize: Number.isFinite(ringSize) && ringSize > 0 ? Math.round(ringSize) : (prev.archiveRingSize || 3)
+      };
+    }
+
     openclawConfigState.updatedAt = nowIso();
     openclawConfigState.updatedBy = String((req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin');
     syncContextWithOpenclawConfig();
@@ -178,6 +193,7 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
           minimax: safeJson(openclawConfigState.providers.minimax, {})
         },
         permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {}),
+        retention: safeJson(openclawConfigState.retention, {}),
         updatedAt: openclawConfigState.updatedAt,
         updatedBy: openclawConfigState.updatedBy
       });
@@ -218,6 +234,7 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
       runtime: safeJson(snap.config.runtime, {}),
       providers: safeJson(snap.config.providers, {}),
       permissionTemplate: safeJson(snap.config.permissionTemplate, {}),
+      retention: safeJson(snap.config.retention, {}),
       updatedAt: nowIso(),
       updatedBy: String((req.adminSession && req.adminSession.user && req.adminSession.user.username) || 'admin')
     });
@@ -229,6 +246,7 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
           minimax: safeJson(openclawConfigState.providers.minimax, {})
         },
         permissionTemplate: safeJson(openclawConfigState.permissionTemplate, {}),
+        retention: safeJson(openclawConfigState.retention, {}),
         updatedAt: openclawConfigState.updatedAt,
         updatedBy: openclawConfigState.updatedBy
       });

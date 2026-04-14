@@ -286,6 +286,12 @@ async function loadOpsConfig() {
     if ($('cfgSourcePath')) $('cfgSourcePath').value = rt.openclawSourcePath || '';
     if ($('cfgAllowlist')) $('cfgAllowlist').value = (Array.isArray(tpl.commandAllowlist) ? tpl.commandAllowlist : []).join('\n');
     if ($('cfgApproval')) $('cfgApproval').value = JSON.stringify(tpl.approvalByRisk || {}, null, 2);
+
+    const ret = data.retention || {};
+    if ($('cfgRetentionTtl')) $('cfgRetentionTtl').value = String(ret.auditLogTtlDays || 90);
+    if ($('cfgRetentionMaxRows')) $('cfgRetentionMaxRows').value = String(ret.auditLogMaxRows || 100000);
+    if ($('cfgRetentionRingSize')) $('cfgRetentionRingSize').value = String(ret.archiveRingSize || 3);
+    if ($('cfgRetentionArchive')) $('cfgRetentionArchive').checked = ret.archiveEnabled !== false;
   } catch (e) {
     cfgStatus('加载失败: ' + e.message, true);
   }
@@ -308,6 +314,12 @@ async function saveOpsConfig() {
       permissionTemplate: {
         commandAllowlist: ($('cfgAllowlist') && $('cfgAllowlist').value || '').split('\n').map(s => s.trim()).filter(Boolean),
         approvalByRisk
+      },
+      retention: {
+        auditLogTtlDays: Number($('cfgRetentionTtl') && $('cfgRetentionTtl').value) || 90,
+        auditLogMaxRows: Number($('cfgRetentionMaxRows') && $('cfgRetentionMaxRows').value) || 100000,
+        archiveEnabled: $('cfgRetentionArchive') ? $('cfgRetentionArchive').checked : true,
+        archiveRingSize: Number($('cfgRetentionRingSize') && $('cfgRetentionRingSize').value) || 3
       }
     };
     const apiCall = window.adminApi || (async (path, opts) => {

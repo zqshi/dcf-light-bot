@@ -524,9 +524,16 @@ function skillStatusTone(status) {
   return '';
 }
 
+const SKILL_ACTIONS = [['report','上报'],['approve','审核通过'],['reject','驳回'],['publish','发布'],['bind','绑定租户'],['rollback','回滚']];
+function skillActionBtns(id) { return SKILL_ACTIONS.map(([a,l]) => `<button type="button" data-skill-id="${escapeHtml(id)}" data-skill-action="${a}" data-required-permission="admin.skills.write">${l}</button>`).join(''); }
+
 async function performSkillAssetAction(skillId, action) {
   const id = encodeURIComponent(String(skillId || ''));
   const op = String(action || '').trim().toLowerCase();
+  if (op === 'report') {
+    const skill = currentSkillMap.get(String(skillId || ''));
+    return api('/api/admin/assets/skill/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: skill && skill.name || skillId, id: skillId, assetType: 'skill', description: skill && skill.description || '' }) });
+  }
   const payload = {};
   if (op === 'bind') {
     const tenantId = window.prompt('请输入目标租户ID（tenantId）', '') || '';
@@ -663,13 +670,7 @@ async function load() {
           <td><span class="badge ${skillStatusTone(s.status)}">${escapeHtml(s.status || '-')}</span></td>
           <td>${s.createdAt ? escapeHtml(new Date(s.createdAt).toLocaleString()) : '-'}</td>
           <td>
-            <div class="row-actions">
-              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="approve" data-required-permission="admin.skills.write">审核通过</button>
-              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="reject" data-required-permission="admin.skills.write">驳回</button>
-              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="publish" data-required-permission="admin.skills.write">发布</button>
-              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="bind" data-required-permission="admin.skills.write">绑定租户</button>
-              <button type="button" data-skill-id="${escapeHtml(s.id || '')}" data-skill-action="rollback" data-required-permission="admin.skills.write">回滚</button>
-            </div>
+            <div class="row-actions">${skillActionBtns(s.id || '')}</div>
           </td>
         </tr>
       `)
@@ -853,7 +854,7 @@ function bindEvents() {
       const skillId = String(button.getAttribute('data-skill-id') || '').trim();
       const action = String(button.getAttribute('data-skill-action') || '').trim().toLowerCase();
       if (!skillId || !action) return;
-      const labels = { approve: '审核通过', reject: '驳回', publish: '发布', bind: '绑定租户', rollback: '回滚' };
+      const labels = { report: '上报', approve: '审核通过', reject: '驳回', publish: '发布', bind: '绑定租户', rollback: '回滚' };
       const label = labels[action] || action;
       try {
         button.setAttribute('disabled', 'disabled');

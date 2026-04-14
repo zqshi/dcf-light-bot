@@ -14,6 +14,7 @@ const viewState = {
   timeRange: '1h',
   trace: '',
   keyword: '',
+  actor: 'all',
   expandedRowKeys: new Set(),
   currentView: 'list'
 };
@@ -218,6 +219,20 @@ function resolveKeywordFilter(scope = 'agent') {
   return String(readStorage(storageKey('keyword', scope)) || '').trim();
 }
 
+function resolveActorFilter(scope = 'agent') {
+  const params = new URLSearchParams(window.location.search || '');
+  if (params.has('actor')) return normalizeFilter(params.get('actor'));
+  return normalizeFilter(readStorage(storageKey('actor', scope)));
+}
+
+function extractEventActor(event) {
+  const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
+  return firstNonEmpty([
+    payload.actor_name, payload.updatedBy, payload.actor,
+    payload.username, payload.creator, payload.sender
+  ]);
+}
+
 function filterLogsByScope(rows = [], scope = 'agent') {
   if (scope === 'admin') return rows.filter((event) => isAdminLogType(event && event.type));
   if (scope === 'service') {
@@ -313,6 +328,11 @@ function filterLogsByKeyword(rows = [], keyword = '') {
     ].join(' ').toLowerCase();
     return haystack.includes(q);
   });
+}
+
+function filterLogsByActor(rows = [], actor = 'all') {
+  if (actor === 'all') return rows;
+  return rows.filter((event) => extractEventActor(event) === actor);
 }
 
 function summarizeAction(event) {
@@ -470,10 +490,12 @@ function updateUrlQuery() {
   params.delete('timeRange');
   params.delete('trace');
   params.delete('keyword');
+  params.delete('actor');
   if (viewState.scope === 'admin' || viewState.scope === 'service') {
     if (viewState.module !== 'all') params.set('module', viewState.module);
     if (viewState.scope === 'admin' && viewState.page !== 'all') params.set('page', viewState.page);
     if (viewState.operation !== 'all') params.set('operation', viewState.operation);
+    if (viewState.actor !== 'all') params.set('actor', viewState.actor);
     if (viewState.scope === 'service') {
       if (viewState.status !== 'all') params.set('status', viewState.status);
       if (viewState.timeRange !== '1h') params.set('timeRange', viewState.timeRange);
@@ -482,6 +504,7 @@ function updateUrlQuery() {
     }
   } else {
     if (viewState.operation !== 'all') params.set('operation', viewState.operation);
+    if (viewState.actor !== 'all') params.set('actor', viewState.actor);
   }
   const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
   window.history.replaceState({}, '', next);
@@ -495,6 +518,7 @@ function persistViewState() {
   writeStorage(storageKey('timeRange', viewState.scope), viewState.timeRange);
   writeStorage(storageKey('trace', viewState.scope), viewState.trace);
   writeStorage(storageKey('keyword', viewState.scope), viewState.keyword);
+  writeStorage(storageKey('actor', viewState.scope), viewState.actor);
   updateUrlQuery();
 }
 
@@ -506,6 +530,7 @@ function bindControls() {
   const timeRangeSelect = document.getElementById('logTimeRangeFilter');
   const traceInput = document.getElementById('logTraceFilter');
   const keywordInput = document.getElementById('logKeywordFilter');
+  const actorSelect = document.getElementById('logActorFilter');
 
   if (moduleSelect) {
     moduleSelect.addEventListener('change', async () => {
@@ -580,6 +605,33 @@ function bindControls() {
       await load();
     });
   }
+
+  if (actorSelect) {
+    actorSelect.addEventListener('change', async () => {
+      viewState.actor = normalizeFilter(actorSelect.value);
+      persistViewState();
+      await load();
+    });
+  }
+}
+
+function syncActorOptions(scopedRows = []) {
+  const actorSelect = document.getElementById('logActorFilter');
+  if (!actorSelect) return;
+  const actorCount = new Map();
+  scopedRows.forEach((event) => {
+    const actor = extractEventActor(event);
+    if (actor) actorCount.set(actor, (actorCount.get(actor) || 0) + 1);
+  });
+  const actorOptions = [...actorCount.entries()].sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return a[0].localeCompare(b[0], 'zh-CN');
+  });
+  if (viewState.actor !== 'all' && !actorOptions.some(([key]) => key === viewState.actor)) viewState.actor = 'all';
+  actorSelect.innerHTML = ['<option value="all">全部</option>', ...actorOptions.map(([key, count]) => (
+    `<option value="${escapeHtml(key)}">${escapeHtml(key)}（${count}）</option>`
+  ))].join('');
+  actorSelect.value = viewState.actor;
 }
 
 function syncAdminFilterOptions(scopedRows = []) {
@@ -634,6 +686,8 @@ function syncAdminFilterOptions(scopedRows = []) {
     `<option value="${escapeHtml(key)}">${escapeHtml(key)}（${count}）</option>`
   ))].join('');
   operationSelect.value = viewState.operation;
+
+  syncActorOptions(scoped);
 }
 
 function syncServiceFilterOptions(scopedRows = []) {
@@ -680,6 +734,8 @@ function syncServiceFilterOptions(scopedRows = []) {
   if (timeRangeSelect) timeRangeSelect.value = viewState.timeRange || '1h';
   if (traceInput) traceInput.value = viewState.trace || '';
   if (keywordInput) keywordInput.value = viewState.keyword || '';
+
+  syncActorOptions(scopedRows);
 }
 
 function syncAgentFilterOptions(scopedRows = []) {
@@ -700,6 +756,8 @@ function syncAgentFilterOptions(scopedRows = []) {
     `<option value="${escapeHtml(key)}">${escapeHtml(key)}（${count}）</option>`
   ))].join('');
   operationSelect.value = viewState.operation;
+
+  syncActorOptions(scopedRows);
 }
 
 function bindDetailsToggleState() {
@@ -749,31 +807,40 @@ async function load() {
     else syncAgentFilterOptions(scoped);
 
     const filtered = viewState.scope === 'admin'
-      ? filterLogsByOperation(
-        filterLogsByPage(
-          filterLogsByModule(scoped, viewState.module),
-          viewState.page
+      ? filterLogsByActor(
+        filterLogsByOperation(
+          filterLogsByPage(
+            filterLogsByModule(scoped, viewState.module),
+            viewState.page
+          ),
+          viewState.operation
         ),
-        viewState.operation
+        viewState.actor
       )
       : viewState.scope === 'service'
-        ? filterLogsByKeyword(
-          filterLogsByTrace(
-            filterLogsByStatus(
-              filterLogsByOperation(
-                filterLogsByModule(
-                  filterLogsByTimeRange(scoped, viewState.timeRange),
-                  viewState.module
+        ? filterLogsByActor(
+          filterLogsByKeyword(
+            filterLogsByTrace(
+              filterLogsByStatus(
+                filterLogsByOperation(
+                  filterLogsByModule(
+                    filterLogsByTimeRange(scoped, viewState.timeRange),
+                    viewState.module
+                  ),
+                  viewState.operation
                 ),
-                viewState.operation
+                viewState.status
               ),
-              viewState.status
+              viewState.trace
             ),
-            viewState.trace
+            viewState.keyword
           ),
-          viewState.keyword
+          viewState.actor
         )
-        : filterLogsByOperation(scoped, viewState.operation);
+        : filterLogsByActor(
+          filterLogsByOperation(scoped, viewState.operation),
+          viewState.actor
+        );
 
     const rows = filtered;
     viewState._lastFilteredRows = rows;
@@ -844,6 +911,7 @@ function downloadBlob(blob, filename) {
   viewState.timeRange = resolveTimeRangeFilter(viewState.scope) || '1h';
   viewState.trace = resolveTraceFilter(viewState.scope);
   viewState.keyword = resolveKeywordFilter(viewState.scope);
+  viewState.actor = resolveActorFilter(viewState.scope);
   if (viewState.scope === 'agent') {
     viewState.module = 'all';
     viewState.page = 'all';

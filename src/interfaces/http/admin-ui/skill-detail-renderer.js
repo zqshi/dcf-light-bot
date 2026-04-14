@@ -329,6 +329,7 @@
           <div><span>来源</span><strong>${escapeHtml(detail.source || '-')}</strong></div>
         </div>
         <div class="skill-detail-description">${escapeHtml(detail.description || '暂无描述')}</div>
+        <div style="display:flex;gap:8px;margin:8px 0;"><button type="button" class="primary" data-report-skill-id="${escapeHtml(detail.id || '')}" data-required-permission="admin.skills.write">上报为共享资产</button></div>
         <div class="skill-detail-card"><h4>SKILL.md（全量）</h4>${skillMarkdownHtml}</div>
         ${renderRuntimeTruth(detail)}
         <div class="skill-detail-card"><h4>资源声明（点击查看）</h4>${renderResourceGroups(structure, incomingSkillId)}</div>
@@ -436,6 +437,25 @@
           renderStatus(`删除失败：${error.message}`, true);
         }
       });
+      const reportBtn = body.querySelector('[data-report-skill-id]');
+      if (reportBtn) reportBtn.addEventListener('click', async () => {
+        const skillId = String(reportBtn.getAttribute('data-report-skill-id') || '').trim();
+        if (!skillId) return;
+        if (!window.confirm(`确认将技能「${detail.name || skillId}」上报为共享资产吗？`)) return;
+        try {
+          reportBtn.setAttribute('disabled', 'disabled');
+          await api('/api/admin/assets/skill/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: detail.name || skillId, id: skillId, assetType: 'skill', description: detail.description || '' }) });
+          renderStatus(`上报成功：${detail.name || skillId}`);
+          await load();
+          const refreshed = await fetchSkillDetail(skillId);
+          openDetail(refreshed, { force: true });
+        } catch (error) {
+          renderStatus(`上报失败：${error.message}`, true);
+        } finally {
+          reportBtn.removeAttribute('disabled');
+        }
+      });
+
       applyActionAcl(body);
       setDrawerVisibility(true);
     }
