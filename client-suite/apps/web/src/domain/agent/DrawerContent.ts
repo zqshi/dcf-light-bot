@@ -17,7 +17,8 @@ export type OpenClawDrawerType =
   | 'cot-detail'
   | 'inbox-thread'
   | 'app-preview'
-  | 'doc-editor';
+  | 'doc-editor'
+  | 'project-board';
 
 export interface OpenClawDrawerContent {
   type: OpenClawDrawerType;

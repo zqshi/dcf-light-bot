@@ -142,32 +142,29 @@ export function useMatrixClient() {
           // Backend unreachable — proceed with direct Matrix login
         }
 
-        // Step 2: Try RealMatrixClient
-        let client: IMatrixClient;
-        try {
-          const real = new RealMatrixClient();
-          const result = await real.login(homeserver, username, password);
-          client = real;
-          clientInstance = client;
-          clientRef.current = client;
-          wireUpCallbacks(real);
-          const profile = real.getUserProfile()!;
-          setAuth(profile, result.accessToken, homeserver, false);
-          persistAuth();
-        } catch (matrixErr) {
-          if (!backendOk) throw matrixErr;
-          // Backend auth succeeded but Matrix unavailable → use MockMatrixClient
+        // Step 2: Use MockMatrixClient for IM layer when backend auth succeeded
+        // (ensures rich demo experience with full room list)
+        if (backendOk) {
           const mock = new MockMatrixClient();
           clientInstance = mock;
           clientRef.current = mock;
           wireUpCallbacks(mock);
           await mock.login('', username, '');
-          client = mock;
           const profile = mock.getUserProfile()!;
           setAuth(profile, 'backend-session', homeserver, false);
           persistAuth();
-          useToastStore.getState().addToast('Matrix 服务不可用，已进入离线 IM 模式', 'info');
+          return;
         }
+
+        // Step 3: No backend — try RealMatrixClient directly
+        const real = new RealMatrixClient();
+        const result = await real.login(homeserver, username, password);
+        clientInstance = real;
+        clientRef.current = real;
+        wireUpCallbacks(real);
+        const profile = real.getUserProfile()!;
+        setAuth(profile, result.accessToken, homeserver, false);
+        persistAuth();
       } finally {
         loginInProgress = false;
       }
@@ -269,8 +266,8 @@ export function useMatrixClient() {
         return;
       }
 
-      if (accessToken === 'backend-session') {
-        // Was using mock because Matrix was unavailable last time
+      // When DCF backend is connected, always use MockMatrixClient for rich demo IM
+      if (accessToken === 'backend-session' || useAuthStore.getState().isBackendConnected) {
         const mock = new MockMatrixClient();
         wireUpCallbacks(mock);
         await mock.login('', userId, '');

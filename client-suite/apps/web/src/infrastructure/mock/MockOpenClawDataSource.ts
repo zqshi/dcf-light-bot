@@ -9,6 +9,7 @@ import { AgentRuntime, type ChannelConnection } from '../../domain/agent/AgentRu
 import { AgentTask, type AgentSubtask, type ExecutionLog } from '../../domain/agent/AgentTask';
 import { DecisionRequest } from '../../domain/agent/DecisionRequest';
 import { UserGoal } from '../../domain/agent/UserGoal';
+import { ProjectBoard, type ProjectBoardCard, type ProjectBoardColumn } from '../../domain/agent/ProjectBoard';
 import { CoTMessage, type CoTStep } from '../../domain/agent/CoTMessage';
 import type { MessageBlock } from '../../domain/agent/MessageBlock';
 import {
@@ -356,9 +357,59 @@ export class MockOpenClawDataSource {
     const greetings: Record<string, () => CoTMessage[]> = {
       'sa-1': () => {
         const cotSteps: CoTStep[] = [
-          { id: 'step-1', label: '扫描仓库', status: 'done', detail: '已扫描 auth-service.js 共 342 行' },
-          { id: 'step-2', label: '检索知识库', status: 'done', detail: '匹配到 OWASP Top 10 规则' },
-          { id: 'step-3', label: '生成建议', status: 'running', detail: '正在分析潜在安全风险...' },
+          {
+            id: 'step-1', label: '扫描仓库', status: 'done',
+            detail: '已扫描 auth-service.js 共 342 行，发现 5 处可疑代码段',
+            toolCalls: [
+              {
+                id: 'tc-1-1', name: '代码扫描器', icon: 'search_code', status: 'done',
+                input: '扫描 auth-service.js — 安全漏洞模式匹配',
+                result: '扫描 342 行，命中 5 处可疑模式：2 处 SQL 拼接、1 处 eval()、1 处未转义输出、1 处硬编码密钥',
+              },
+              {
+                id: 'tc-1-2', name: 'Git 历史分析', icon: 'history', status: 'done',
+                input: '检索 auth-service.js 近 30 天修改记录',
+                result: '最近 3 次提交涉及认证逻辑变更，最后修改者: dev-wang，日期: 2 天前',
+              },
+            ],
+          },
+          {
+            id: 'step-2', label: '检索知识库', status: 'done',
+            detail: '匹配到 OWASP Top 10 规则，3 项高危命中',
+            knowledgeRefs: [
+              {
+                id: 'kr-2-1', name: 'OWASP Top 10', icon: 'menu_book', status: 'done',
+                query: '检索 SQL 注入、XSS、认证绕过防御规则',
+                result: '匹配到 A01:2021-Broken Access Control、A03:2021-Injection、A07:2021-XSS 三项规则',
+                source: 'OWASP 安全知识库 v2021',
+                citations: [
+                  { title: 'A01:2021 — Broken Access Control', type: 'regulation', snippet: '94% 的应用存在某种形式的访问控制缺陷' },
+                  { title: 'A03:2021 — Injection', type: 'regulation', snippet: 'SQL/NoSQL/OS/LDAP 注入，通过参数化查询防御' },
+                  { title: 'A07:2021 — XSS', type: 'regulation', snippet: '反射型/存储型/DOM型 XSS，需输出编码+CSP' },
+                ],
+              },
+              {
+                id: 'kr-2-2', name: '内部安全规范', icon: 'shield', status: 'done',
+                query: '检索公司安全编码规范 — 认证模块',
+                result: '认证模块必须使用参数化查询，禁止 eval()，密钥须走 Vault 管理',
+                source: '内部安全编码规范 v3.2',
+                citations: [
+                  { title: '安全编码规范 v3.2 — 认证模块', type: 'sop', snippet: '所有 SQL 操作必须使用参数化查询，禁止字符串拼接' },
+                  { title: '密钥管理规范', type: 'sop', snippet: '生产环境密钥一律通过 Vault 注入，禁止硬编码' },
+                ],
+              },
+            ],
+          },
+          {
+            id: 'step-3', label: '生成建议', status: 'running',
+            detail: '正在综合扫描结果与安全规范生成修复建议...',
+            toolCalls: [
+              {
+                id: 'tc-3-1', name: 'AI 代码修复', icon: 'auto_fix_high', status: 'running',
+                input: '基于 5 处漏洞 + OWASP 规则生成修复 patch',
+              },
+            ],
+          },
         ];
         const blocks: MessageBlock[] = [
           { type: 'task-card', taskId: 'task-2' },
@@ -821,6 +872,15 @@ export class MockOpenClawDataSource {
     '分析': {
       text: '数据分析任务已启动。我会从以下维度进行分析：\n\n- **流量趋势**: 最近 7 天的 API 调用量变化\n- **性能指标**: P50/P95/P99 延迟分布\n- **错误率**: 各接口 5xx 错误占比\n\n分析完成后会生成可视化报告。',
     },
+    '看板': {
+      text: '好的，已为你创建项目看板。\n\n看板包含 **4 个阶段**：待办 → 进行中 → 评审中 → 已完成。\n\n已分配 **4 个 Agent** 自动编排任务执行：\n- 🔧 代码开发\n- 📊 数据分析\n- 🔒 安全审计\n- ⚙️ 运维助手\n\nAgent 会自动认领待办卡片并推进进度，你可以点击任意 Agent 查看其执行过程和思考链路。',
+    },
+    '项目面板': {
+      text: '好的，已为你创建项目看板。\n\n看板包含 **4 个阶段**：待办 → 进行中 → 评审中 → 已完成。\n\n已分配 **4 个 Agent** 自动编排任务执行：\n- 🔧 代码开发\n- 📊 数据分析\n- 🔒 安全审计\n- ⚙️ 运维助手\n\nAgent 会自动认领待办卡片并推进进度，你可以点击任意 Agent 查看其执行过程和思考链路。',
+    },
+    '项目管理': {
+      text: '好的，已为你创建项目看板。\n\n看板包含 **4 个阶段**：待办 → 进行中 → 评审中 → 已完成。\n\n已分配 **4 个 Agent** 自动编排任务执行：\n- 🔧 代码开发\n- 📊 数据分析\n- 🔒 安全审计\n- ⚙️ 运维助手\n\nAgent 会自动认领待办卡片并推进进度，你可以点击任意 Agent 查看其执行过程和思考链路。',
+    },
   };
 
   static getMockChatResponse(userText: string): { text: string; blocks?: MessageBlock[]; cotSteps?: CoTStep[] } {
@@ -1118,5 +1178,199 @@ export class MockOpenClawDataSource {
       }, (i + 1) * 2500),
     );
     return () => timers.forEach(clearTimeout);
+  }
+
+  // ── Project Board (Kanban) ────────────────────────────────────────
+
+  static readonly BOARD_KEYWORDS = ['看板', '项目板', 'kanban', '项目管理', '任务管理',
+    '项目看板', '任务看板', '敏捷看板', 'sprint', '项目面板', '任务面板'];
+
+  private static boardCounter = 0;
+
+  static detectBoardIntent(text: string): string | null {
+    if (this.BOARD_KEYWORDS.some((kw) => text.includes(kw))) return text;
+    if (/(?:创建|新建|搭建|做个|打开|展示|显示).*(?:看板|board|项目管理|项目面板)/.test(text)) return text;
+    return null;
+  }
+
+  static createBoardFromIntent(userText: string): ProjectBoard {
+    this.boardCounter++;
+    const now = Date.now();
+    const id = `board-${now}-${this.boardCounter}`;
+
+    const columns: ProjectBoardColumn[] = [
+      { id: 'col-backlog', name: '待办', color: '#64748b' },
+      { id: 'col-progress', name: '进行中', color: '#007AFF' },
+      { id: 'col-review', name: '评审中', color: '#FF9500' },
+      { id: 'col-done', name: '已完成', color: '#34C759' },
+    ];
+
+    const agents = [
+      { id: 'sa-dev', name: '代码开发' },
+      { id: 'sa-data', name: '数据分析' },
+      { id: 'sa-security', name: '安全审计' },
+      { id: 'sa-ops', name: '运维助手' },
+    ];
+
+    const cards: ProjectBoardCard[] = [
+      { id: `${id}-c1`, title: 'API 接口文档更新', description: '更新 REST API 文档，补充新增端点', columnId: 'col-backlog', assignedAgentId: null, assignedAgentName: null, priority: 'normal', tags: ['文档', 'API'], executionLogs: [], reasoningSteps: [], status: 'idle', createdAt: now - 3600000, updatedAt: now - 3600000 },
+      { id: `${id}-c2`, title: '移动端响应式适配', description: '修复移动端布局错位和触摸交互问题', columnId: 'col-backlog', assignedAgentId: null, assignedAgentName: null, priority: 'high', tags: ['前端', '移动端'], executionLogs: [], reasoningSteps: [], status: 'idle', createdAt: now - 7200000, updatedAt: now - 7200000 },
+      { id: `${id}-c3`, title: '用户认证模块重构', description: '将 JWT 验证逻辑从路由层下沉到 domain 层', columnId: 'col-progress', assignedAgentId: 'sa-dev', assignedAgentName: '代码开发', priority: 'critical', tags: ['后端', '安全'], executionLogs: [
+        { timestamp: now - 120000, level: 'INFO', message: '开始分析现有认证模块结构' },
+        { timestamp: now - 90000, level: 'INFO', message: '识别出 3 处 JWT 校验逻辑散落在路由层' },
+        { timestamp: now - 60000, level: 'INFO', message: '创建 domain/auth/TokenValidator 实体' },
+      ], reasoningSteps: [
+        { label: '架构分析', detail: '当前 JWT 校验分散在 5 个路由文件中，违反 DDD 分层原则' },
+        { label: '重构策略', detail: '创建 TokenValidator 领域服务，统一校验逻辑，路由层仅调用' },
+        { label: '影响评估', detail: '涉及 5 个路由文件 + 新增 2 个 domain 文件，无接口变更' },
+      ], status: 'working', createdAt: now - 180000, updatedAt: now - 60000 },
+      { id: `${id}-c4`, title: '数据库查询优化', description: '为高频查询添加索引，优化 N+1 问题', columnId: 'col-progress', assignedAgentId: 'sa-data', assignedAgentName: '数据分析', priority: 'high', tags: ['数据库', '性能'], executionLogs: [
+        { timestamp: now - 100000, level: 'INFO', message: '分析慢查询日志，定位 Top 5 瓶颈' },
+        { timestamp: now - 80000, level: 'WARN', message: '发现 users 表缺少 email 字段索引' },
+        { timestamp: now - 50000, level: 'INFO', message: '生成索引迁移脚本 migration_042.sql' },
+      ], reasoningSteps: [
+        { label: '性能剖析', detail: '慢查询日志显示 users 表全表扫描占 40% 查询时间' },
+        { label: '方案设计', detail: '添加 (email, status) 复合索引 + 优化 ORM 预加载策略' },
+      ], status: 'working', createdAt: now - 240000, updatedAt: now - 50000 },
+      { id: `${id}-c5`, title: '前端性能优化', description: '代码分割 + 懒加载关键路由', columnId: 'col-review', assignedAgentId: 'sa-dev', assignedAgentName: '代码开发', priority: 'normal', tags: ['前端', '性能'], executionLogs: [
+        { timestamp: now - 300000, level: 'INFO', message: '分析 bundle 大小，vendors 占 68%' },
+        { timestamp: now - 200000, level: 'INFO', message: '实现 React.lazy 路由级分割' },
+        { timestamp: now - 150000, level: 'INFO', message: 'Lighthouse 得分从 62 提升至 89' },
+      ], reasoningSteps: [
+        { label: '问题诊断', detail: 'Bundle 分析: vendors.js 1.2MB，main.js 800KB' },
+        { label: '优化策略', detail: 'React.lazy + Suspense 路由级分割 + 动态 import 大型库' },
+        { label: '成效验证', detail: 'FCP 从 3.2s 降至 1.4s，Lighthouse 得分 89' },
+      ], status: 'done', createdAt: now - 600000, updatedAt: now - 150000 },
+      { id: `${id}-c6`, title: '安全漏洞扫描修复', description: 'CVE-2024-XXXX 依赖漏洞修复', columnId: 'col-review', assignedAgentId: 'sa-security', assignedAgentName: '安全审计', priority: 'critical', tags: ['安全', 'CVE'], executionLogs: [
+        { timestamp: now - 400000, level: 'WARN', message: '检测到 3 个高危 CVE 漏洞' },
+        { timestamp: now - 350000, level: 'INFO', message: '升级 lodash 4.17.15 → 4.17.21' },
+        { timestamp: now - 280000, level: 'INFO', message: '全部漏洞已修补，等待评审确认' },
+      ], reasoningSteps: [
+        { label: '漏洞扫描', detail: 'npm audit: 3 high, 1 critical in lodash, express-jwt' },
+        { label: '修复方案', detail: '升级受影响依赖至已修补版本，回归测试通过' },
+      ], status: 'done', createdAt: now - 500000, updatedAt: now - 280000 },
+      { id: `${id}-c7`, title: 'CI/CD 流水线配置', description: '配置 GitHub Actions 自动化测试和部署', columnId: 'col-done', assignedAgentId: 'sa-ops', assignedAgentName: '运维助手', priority: 'normal', tags: ['DevOps', 'CI'], executionLogs: [
+        { timestamp: now - 900000, level: 'INFO', message: '创建 .github/workflows/ci.yml' },
+        { timestamp: now - 800000, level: 'INFO', message: '配置 lint + test + build 三阶段' },
+        { timestamp: now - 700000, level: 'INFO', message: '流水线首次运行成功 ✓' },
+      ], reasoningSteps: [
+        { label: '方案选择', detail: 'GitHub Actions 免费额度足够，与仓库天然集成' },
+        { label: '流水线设计', detail: 'lint → test → build → deploy，每阶段独立可重试' },
+      ], status: 'done', createdAt: now - 1000000, updatedAt: now - 700000 },
+      { id: `${id}-c8`, title: '日志监控告警系统', description: '接入 Grafana + Loki 日志采集和告警', columnId: 'col-done', assignedAgentId: 'sa-ops', assignedAgentName: '运维助手', priority: 'high', tags: ['监控', '运维'], executionLogs: [
+        { timestamp: now - 1200000, level: 'INFO', message: '部署 Loki 日志采集器' },
+        { timestamp: now - 1100000, level: 'INFO', message: '创建 Grafana 仪表盘 5 个面板' },
+        { timestamp: now - 1000000, level: 'INFO', message: '配置 P95 延迟 > 500ms 告警规则' },
+      ], reasoningSteps: [
+        { label: '技术选型', detail: 'Grafana + Loki 轻量开源，与 K8s 集成良好' },
+      ], status: 'done', createdAt: now - 1500000, updatedAt: now - 1000000 },
+    ];
+
+    return ProjectBoard.create({
+      id,
+      name: /(?:项目|产品|sprint|迭代)/.test(userText) ? '产品迭代看板' : 'Agent 协作看板',
+      description: 'Agent 自动编排执行，实时跟踪任务进度',
+      columns,
+      cards,
+      agentIds: agents.map((a) => a.id),
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  static simulateBoardProgress(
+    initialBoard: ProjectBoard,
+    onUpdate: (board: ProjectBoard) => void,
+  ): () => void {
+    let board = initialBoard;
+    const agents = [
+      { id: 'sa-dev', name: '代码开发' },
+      { id: 'sa-data', name: '数据分析' },
+      { id: 'sa-security', name: '安全审计' },
+      { id: 'sa-ops', name: '运维助手' },
+    ];
+
+    const LOG_MESSAGES_PROGRESS = [
+      '正在分析任务需求和依赖关系',
+      '开始编写实现代码',
+      '运行单元测试验证逻辑',
+      '代码审查自检完成',
+      '准备提交评审',
+    ];
+    const LOG_MESSAGES_REVIEW = [
+      '评审中：检查代码质量和规范',
+      '评审通过，合并到主分支',
+    ];
+    const REASONING_PROGRESS = [
+      { label: '需求理解', detail: '解析任务描述，确定实现边界' },
+      { label: '方案设计', detail: '设计技术方案，评估影响范围' },
+      { label: '编码实现', detail: '按照方案逐步编写和测试代码' },
+    ];
+
+    const timer = setInterval(() => {
+      const backlog = board.getCardsByColumn('col-backlog');
+      const progress = board.getCardsByColumn('col-progress');
+      const review = board.getCardsByColumn('col-review');
+      const now = Date.now();
+      let changed = false;
+
+      // Pick up a backlog card
+      if (backlog.length > 0 && Math.random() < 0.3) {
+        const card = backlog[0];
+        const agent = agents[Math.floor(Math.random() * agents.length)];
+        board = board
+          .moveCard(card.id, 'col-progress')
+          .assignAgent(card.id, agent.id, agent.name)
+          .updateCard(card.id, {
+            executionLogs: [{ timestamp: now, level: 'INFO', message: `${agent.name} 认领任务，开始执行` }],
+            reasoningSteps: [REASONING_PROGRESS[0]],
+          });
+        changed = true;
+      }
+
+      // Add logs to in-progress cards
+      for (const card of progress.filter((c) => c.status === 'working')) {
+        if (Math.random() < 0.4) {
+          const msgIdx = Math.min(card.executionLogs.length, LOG_MESSAGES_PROGRESS.length - 1);
+          const stepIdx = Math.min(card.reasoningSteps.length, REASONING_PROGRESS.length - 1);
+          board = board.updateCard(card.id, {
+            executionLogs: [...card.executionLogs, { timestamp: now, level: 'INFO', message: LOG_MESSAGES_PROGRESS[msgIdx] }],
+            reasoningSteps: card.reasoningSteps.length < REASONING_PROGRESS.length
+              ? [...card.reasoningSteps, REASONING_PROGRESS[stepIdx]]
+              : card.reasoningSteps,
+          });
+          changed = true;
+        }
+      }
+
+      // Move in-progress to review
+      if (progress.length > 0 && Math.random() < 0.2) {
+        const card = progress.find((c) => c.executionLogs.length >= 3) ?? null;
+        if (card) {
+          board = board
+            .moveCard(card.id, 'col-review')
+            .updateCard(card.id, {
+              executionLogs: [...card.executionLogs, { timestamp: now, level: 'INFO', message: LOG_MESSAGES_REVIEW[0] }],
+            });
+          changed = true;
+        }
+      }
+
+      // Move review to done
+      if (review.length > 0 && Math.random() < 0.15) {
+        const card = review[0];
+        board = board
+          .moveCard(card.id, 'col-done')
+          .updateCard(card.id, {
+            status: 'done',
+            executionLogs: [...card.executionLogs, { timestamp: now, level: 'INFO', message: LOG_MESSAGES_REVIEW[1] }],
+          });
+        changed = true;
+      }
+
+      if (changed) onUpdate(board);
+    }, 4000);
+
+    return () => clearInterval(timer);
   }
 }

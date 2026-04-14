@@ -114,6 +114,14 @@ export interface DocEditorBlock {
   totalSections: number;
 }
 
+export interface ProjectBoardBlock {
+  type: 'project-board';
+  boardId: string;
+  boardName: string;
+  totalCards: number;
+  activeAgents: number;
+}
+
 export type MessageBlock =
   | TaskCardBlock
   | SourceRefBlock
@@ -128,4 +136,5 @@ export type MessageBlock =
   | SuggestedActionsBlock
   | EmailDraftBlock
   | AppPreviewBlock
-  | DocEditorBlock;
+  | DocEditorBlock
+  | ProjectBoardBlock;

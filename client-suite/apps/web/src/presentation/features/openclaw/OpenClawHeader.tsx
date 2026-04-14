@@ -80,7 +80,7 @@ export function OpenClawHeader() {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Icon name="smart_toy" size={20} className="text-primary" />
-          <span className="text-sm font-semibold text-text-primary">OpenClaw</span>
+          <span className="text-sm font-semibold text-text-primary">ClawMate</span>
         </div>
 
         {/* Agent Profile — click to edit */}

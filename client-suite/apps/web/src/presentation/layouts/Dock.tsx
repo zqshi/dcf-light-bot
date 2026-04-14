@@ -139,7 +139,7 @@ export function Dock({ onLogout }: DockProps) {
 
       {/* Mode label */}
       <span className={`text-[9px] font-semibold tracking-wide ${isOC ? 'text-[#00D4B8]' : 'text-text-secondary'}`}>
-        {isOC ? 'OpenClaw' : 'DCF'}
+        {isOC ? 'ClawMate' : 'DCF'}
       </span>
 
       {/* Divider */}

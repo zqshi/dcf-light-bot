@@ -244,6 +244,38 @@ export function useAgentChat() {
     useOpenClawStore.setState({ _cleanup: () => { cleanup(); existingCleanup?.(); } });
   }, []);
 
+  /** Detect project-board intent and create ProjectBoardBlock */
+  const detectAndCreateBoard = useCallback((responseText: string, userText: string) => {
+    // Check both AI response and user input for board intent
+    const intent = MockOpenClawDataSource.detectBoardIntent(responseText)
+      || MockOpenClawDataSource.detectBoardIntent(userText);
+    if (!intent) return;
+
+    // Deduplicate: don't create if board already exists for this conversation turn
+    const store = useOpenClawStore.getState();
+    if (store.boards.length > 0) return;
+
+    const board = MockOpenClawDataSource.createBoardFromIntent(userText || responseText);
+    store.addBoard(board);
+
+    const block: MessageBlock = {
+      type: 'project-board',
+      boardId: board.id,
+      boardName: board.name,
+      totalCards: board.cards.length,
+      activeAgents: board.activeAgentCount,
+    };
+    store.updateLastMessage((m) => m.appendBlock(block));
+    store.openDrawer({ type: 'project-board', title: board.name, data: { boardId: board.id } });
+
+    const cleanup = MockOpenClawDataSource.simulateBoardProgress(board, (updated) => {
+      useOpenClawStore.getState().updateBoard(updated.id, () => updated);
+    });
+
+    const existingCleanup2 = store._cleanup;
+    useOpenClawStore.setState({ _cleanup: () => { cleanup(); existingCleanup2?.(); } });
+  }, []);
+
   const sendMessage = useCallback(async (text: string, attachments?: Attachment[]) => {
     if (!sessionId || isSending) return;
 
@@ -389,6 +421,7 @@ export function useAgentChat() {
           detectAndCreateTask(accumulated);
           detectAndCreateApp(accumulated, text);
           detectAndCreateDoc(accumulated, text);
+          detectAndCreateBoard(accumulated, text);
         },
         onError: (err) => {
           console.warn('[useAgentChat] SSE error, trying fallback:', err.message);
@@ -413,6 +446,7 @@ export function useAgentChat() {
           detectAndCreateTask(result.answer);
           detectAndCreateApp(result.answer, text);
           detectAndCreateDoc(result.answer, text);
+          detectAndCreateBoard(result.answer, text);
         } catch {
           // Both stream and non-stream failed — use mock fallback
           const mockResp = MockOpenClawDataSource.getMockChatResponse(text);
@@ -427,6 +461,7 @@ export function useAgentChat() {
           detectAndCreateTask(mockResp.text);
           detectAndCreateApp(mockResp.text, text);
           detectAndCreateDoc(mockResp.text, text);
+          detectAndCreateBoard(mockResp.text, text);
         }
       }
     } catch (err: any) {
@@ -444,11 +479,12 @@ export function useAgentChat() {
         detectAndCreateTask(mockResp.text);
         detectAndCreateApp(mockResp.text, text);
         detectAndCreateDoc(mockResp.text, text);
+        detectAndCreateBoard(mockResp.text, text);
       }
     } finally {
       setIsSending(false);
     }
-  }, [sessionId, isSending, appendMessage, updateLastMessage, setIsSending, detectAndCreateTask, detectAndCreateGoal, detectAndCreateApp, detectAndCreateDoc]);
+  }, [sessionId, isSending, appendMessage, updateLastMessage, setIsSending, detectAndCreateTask, detectAndCreateGoal, detectAndCreateApp, detectAndCreateDoc, detectAndCreateBoard]);
 
   const abort = useCallback(() => {
     abortRef.current?.abort();

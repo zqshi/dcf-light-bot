@@ -69,7 +69,6 @@ export function RoomList({ onSelectRoom }: RoomListProps) {
                   <div className="h-px bg-border mx-2 mb-2" />
                 </>
               )}
-              <SectionLabel>会话列表</SectionLabel>
               <div className="flex flex-col gap-0.5">
                 {normalRooms.map((room) => (
                   <RoomListItem

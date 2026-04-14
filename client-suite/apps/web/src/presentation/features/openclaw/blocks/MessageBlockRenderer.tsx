@@ -11,6 +11,7 @@ import { SuggestedActionsBlockComponent } from './SuggestedActionsBlock';
 import { EmailDraftBlockComponent } from './EmailDraftBlock';
 import { AppPreviewBlockComponent } from './AppPreviewBlock';
 import { DocEditorBlockComponent } from './DocEditorBlock';
+import { ProjectBoardBlockComponent } from './ProjectBoardBlock';
 import { useOpenClawStore } from '../../../../application/stores/openclawStore';
 import { DecisionRequestCard } from '../DecisionRequestCard';
 
@@ -225,6 +226,18 @@ export function MessageBlockRenderer({
                 docTitle={block.docTitle}
                 sectionsReady={block.sectionsReady}
                 totalSections={block.totalSections}
+                onOpen={onOpenDrawer}
+              />
+            );
+
+          case 'project-board':
+            return (
+              <ProjectBoardBlockComponent
+                key={`board-${block.boardId}-${i}`}
+                boardId={block.boardId}
+                boardName={block.boardName}
+                totalCards={block.totalCards}
+                activeAgents={block.activeAgents}
                 onOpen={onOpenDrawer}
               />
             );

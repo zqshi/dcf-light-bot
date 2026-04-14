@@ -1,10 +1,54 @@
 export type CoTStepStatus = 'pending' | 'running' | 'done' | 'error';
 
+/** 推理步骤中的工具调用 */
+export interface ToolCall {
+  id: string;
+  /** 工具名称，如 "IM 消息检索"、"部署状态查询" */
+  name: string;
+  /** Material icon 名称 */
+  icon: string;
+  status: CoTStepStatus;
+  /** 调用摘要 / 输入描述 */
+  input?: string;
+  /** 工具返回结果摘要 */
+  result?: string;
+}
+
+/** 知识引用的具体文档条目 */
+export interface KnowledgeCitation {
+  title: string;
+  type?: 'document' | 'wiki' | 'sop' | 'api-doc' | 'regulation';
+  /** 命中的关键片段 */
+  snippet?: string;
+}
+
+/** 推理步骤中的知识检索 */
+export interface KnowledgeRef {
+  id: string;
+  /** 知识库 / 文档名称 */
+  name: string;
+  /** Material icon 名称 */
+  icon: string;
+  status: CoTStepStatus;
+  /** 检索查询 */
+  query?: string;
+  /** 检索结果摘要 */
+  result?: string;
+  /** 来源标注 */
+  source?: string;
+  /** 具体引用了哪些篇文档 */
+  citations?: KnowledgeCitation[];
+}
+
 export interface CoTStep {
   id: string;
   label: string;
   status: CoTStepStatus;
   detail: string;
+  /** 该步骤调用的工具 */
+  toolCalls?: ToolCall[];
+  /** 该步骤引用的知识 */
+  knowledgeRefs?: KnowledgeRef[];
 }
 
 import type { MessageBlock } from './MessageBlock';

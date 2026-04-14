@@ -5,3 +5,4 @@ export { KPIBlockComponent } from './KPIBlock';
 export { DataTableBlockComponent } from './DataTableBlock';
 export { ActionConfirmBlockComponent } from './ActionConfirmBlock';
 export { CodeResultBlockComponent } from './CodeResultBlock';
+export { ProjectBoardBlockComponent } from './ProjectBoardBlock';

@@ -21,6 +21,7 @@ import { DecisionDetailContent } from './DecisionDetailContent';
 import { GoalTrackerContent } from './GoalTrackerContent';
 import { AppPreviewContent } from './AppPreviewContent';
 import { DocEditorContent } from './DocEditorContent';
+import { ProjectBoardContent } from './ProjectBoardContent';
 
 /* ─── helpers ─── */
 
@@ -94,6 +95,7 @@ function CoTDetailContent({ data }: ContentProps) {
         {message.cotSteps.map((step, idx) => {
           const isLast = idx === message.cotSteps!.length - 1;
           const si = COT_STEP_ICON[step.status] ?? COT_STEP_ICON.pending;
+
           return (
             <div key={step.id} className="relative">
               {/* Connector line */}
@@ -105,8 +107,65 @@ function CoTDetailContent({ data }: ContentProps) {
                 <Icon name={si.icon} size={16} className={`${si.cls} relative z-10 shrink-0 mt-0.5`} />
                 <div className="min-w-0 flex-1">
                   <span className="text-xs font-medium text-slate-200">{step.label}</span>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{step.detail}</p>
-                  <span className="text-[10px] text-slate-600 mt-1 block">
+
+                  {/* ── Tool calls — always visible ── */}
+                  {step.toolCalls && step.toolCalls.length > 0 && (
+                    <div className="mt-1.5 space-y-1">
+                      {step.toolCalls.map((tc) => (
+                        <div key={tc.id} className="flex items-start gap-1.5 text-[10px] leading-relaxed">
+                          <Icon name={tc.icon} size={11} className="text-amber-400 shrink-0 mt-[2px]" />
+                          <span className="text-amber-300/80 shrink-0">{tc.name}</span>
+                          {tc.result ? (
+                            <>
+                              <span className="text-slate-600 shrink-0">-&gt;</span>
+                              <span className="text-emerald-300/80">{tc.result}</span>
+                            </>
+                          ) : tc.status === 'running' ? (
+                            <span className="text-slate-500 italic">执行中...</span>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── Knowledge refs — always visible ── */}
+                  {step.knowledgeRefs && step.knowledgeRefs.length > 0 && (
+                    <div className="mt-1.5 space-y-1.5">
+                      {step.knowledgeRefs.map((kr) => (
+                        <div key={kr.id}>
+                          <div className="flex items-start gap-1.5 text-[10px] leading-relaxed">
+                            <Icon name={kr.icon} size={11} className="text-blue-400 shrink-0 mt-[2px]" />
+                            <span className="text-blue-300/80 shrink-0">{kr.name}</span>
+                            {kr.result && (
+                              <>
+                                <span className="text-slate-600 shrink-0">-&gt;</span>
+                                <span className="text-blue-200/70">{kr.result}</span>
+                              </>
+                            )}
+                          </div>
+                          {/* Citation chips */}
+                          {kr.citations && kr.citations.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1 pl-[17px]">
+                              {kr.citations.map((c, ci) => (
+                                <span
+                                  key={ci}
+                                  title={c.snippet ?? c.title}
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/[0.08] border border-blue-500/15 text-[9px] text-blue-300/70 cursor-default"
+                                >
+                                  <Icon name="description" size={9} className="text-blue-400/50" />
+                                  {c.title}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── Step conclusion ── */}
+                  <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">{step.detail}</p>
+                  <span className="text-[10px] text-slate-600 mt-0.5 block">
                     {step.status === 'done' ? '已完成' : step.status === 'running' ? '执行中...' : step.status === 'error' ? '失败' : '等待中'}
                   </span>
                 </div>
@@ -529,6 +588,7 @@ const CONTENT_RENDERERS: Record<
   'inbox-thread': NotificationDetailContent,
   'app-preview': AppPreviewContent,
   'doc-editor': DocEditorContent,
+  'project-board': ProjectBoardContent,
 };
 
 /* ─── Main component ─── */
