@@ -116,7 +116,6 @@ function createServer(context) {
     }
   }));
   app.get('/', (req, res) => res.redirect('/admin/openclaw-statistics.html'));
-  app.get('/admin', (req, res) => res.redirect('/admin/openclaw-statistics.html'));
   app.use('/api', apiLimiter);
   app.use(buildApiRouter(context));
 

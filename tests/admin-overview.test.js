@@ -99,13 +99,10 @@ describe('admin overview payload', () => {
     expect(res.body.overview.platform.instancesTotal).toBe(2);
     expect(res.body.overview.platform.runningInstances).toBe(1);
     expect(res.body.overview.platform.abnormalInstances).toBe(1);
-    expect(res.body.overview.assets.sharedTotal).toBe(5);
-    expect(res.body.overview.assets.bindingsTotal).toBe(3);
     expect(res.body.overview.assets.pendingReviews).toBe(3);
-    expect(res.body.overview.operations.auditEvents24h).toBeGreaterThanOrEqual(4);
+    expect(res.body.overview.assets.overdueReviews).toBe(1);
+    expect(typeof res.body.overview.security.disabledUsers).toBe('number');
 
-    expect(res.body.delivery).toBeTruthy();
-    expect(res.body.assets).toBeTruthy();
     expect(Array.isArray(res.body.focus)).toBe(true);
   });
 });

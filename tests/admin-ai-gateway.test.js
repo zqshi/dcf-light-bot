@@ -152,12 +152,12 @@ describe('AI Gateway — Costs', () => {
 
     const res = await agent.get('/api/admin/ai-gateway/costs');
     expect(res.status).toBe(200);
-    expect(typeof res.body.totalTokens).toBe('number');
+    expect(typeof res.body.totalPromptTokens).toBe('number');
+    expect(typeof res.body.totalCompletionTokens).toBe('number');
     expect(typeof res.body.totalEstimatedCost).toBe('number');
     expect(Array.isArray(res.body.userSummary)).toBe(true);
     expect(Array.isArray(res.body.modelSummary)).toBe(true);
     expect(Array.isArray(res.body.dailyTrend)).toBe(true);
-    expect(res.body.modelPricing).toBeDefined();
   });
 });
 

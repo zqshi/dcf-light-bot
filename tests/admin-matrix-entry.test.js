@@ -85,7 +85,7 @@ describe('matrix admin entry api', () => {
     const res = await request(app).get('/api/auth/matrix-admin-entry').query({ matrixUserId: '@employee01:localhost' });
     expect(res.status).toBe(200);
     expect(res.body.showAdminEntry).toBe(true);
-    expect(res.body.adminUrl).toBe('/admin/index.html');
+    expect(res.body.adminUrl).toBe('/admin/openclaw-statistics.html');
   });
 
   test('returns hidden for mapped disabled user', async () => {

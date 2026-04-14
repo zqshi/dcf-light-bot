@@ -22,6 +22,8 @@ function makeRepo() {
       docs.splice(idx, 1);
       return true;
     },
+    async saveVersion() {},
+    async appendKnowledgeAudit() {},
     _docs: docs,
   };
 }

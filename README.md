@@ -91,7 +91,8 @@ npm start
 - Matrix Desktop/Mobile Runbook: [matrix-clients.md](docs/runbooks/matrix-clients.md)
 
 ## Persistence Backend
-- `PERSISTENCE_BACKEND=file` (default): local JSON file store.
+- `PERSISTENCE_BACKEND=sqlite` (default): local SQLite database.
+- `PERSISTENCE_BACKEND=file`: local JSON file store (legacy).
 - `PERSISTENCE_BACKEND=postgres`: use Postgres as control-plane store backend.
 - When using Postgres, set `POSTGRES_URL` and run migration SQL in [001_control_plane_store.sql](scripts/migrations/001_control_plane_store.sql).
 

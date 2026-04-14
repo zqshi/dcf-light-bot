@@ -53,11 +53,19 @@
 - 角色管理
 
 ## 3. 页面路由（当前）
-- `/admin/index.html`
-- `/admin/employees.html`
-- `/admin/skills.html`
-- `/admin/tools.html`
-- `/admin/logs-agent.html`
-- `/admin/logs-admin.html`
-- `/admin/auth-users.html`
-- `/admin/auth-roles.html`
+- `/admin/login.html`
+- `/admin/openclaw-statistics.html` — 数据统计（着陆页）
+- `/admin/openclaw-monitor.html` — 平台运营
+- `/admin/employees.html` — 员工/实例管理
+- `/admin/skills.html` — 技能管理
+- `/admin/tools.html` — 工具管理
+- `/admin/tools-approvals.html` — 工具审批
+- `/admin/shared-agents.html` — 共享 Agent
+- `/admin/ai-gateway.html` — AI Gateway
+- `/admin/notifications.html` — 通知/推送渠道
+- `/admin/logs-agent.html` — Agent 行为日志
+- `/admin/logs-service.html` — 服务日志
+- `/admin/logs-admin.html` — 后台操作日志
+- `/admin/auth-users.html` — 用户管理
+- `/admin/auth-roles.html` — 角色管理
+- `/admin/auth-members.html` — 成员管理

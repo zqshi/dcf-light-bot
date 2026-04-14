@@ -59,12 +59,12 @@ describe('admin ui static routes', () => {
     const app = createServer(makeContext(auth));
 
     const indexRes = await request(app).get('/admin');
-    expect([200, 301]).toContain(indexRes.status);
+    expect(indexRes.status).toBe(302);
+    expect(indexRes.headers.location).toBe('/admin/openclaw-statistics.html');
 
     const indexRes2 = await request(app).get('/admin/');
-    expect(indexRes2.status).toBe(200);
-    expect(indexRes2.headers['content-type']).toContain('text/html');
-    expect(indexRes2.text).toContain('DCF Light Bot 管理后台');
+    expect(indexRes2.status).toBe(302);
+    expect(indexRes2.headers.location).toBe('/admin/openclaw-statistics.html');
 
     const jsRes = await request(app).get('/admin/app.js');
     expect(jsRes.status).toBe(200);
@@ -82,8 +82,7 @@ describe('admin ui static routes', () => {
     expect(serviceLogRes.headers['content-type']).toContain('text/html');
 
     const openclawRes = await request(app).get('/admin/openclaw-config.html');
-    expect(openclawRes.status).toBe(200);
-    expect(openclawRes.headers['content-type']).toContain('text/html');
+    expect(openclawRes.status).toBe(404);
 
     const sharedAgentRes = await request(app).get('/admin/shared-agents.html');
     expect(sharedAgentRes.status).toBe(200);

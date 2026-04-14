@@ -1,11 +1,11 @@
 const { createStore } = require('../src/infrastructure/persistence/createStore');
-const { FileStore } = require('../src/infrastructure/persistence/FileStore');
+const SqliteStore = require('../src/infrastructure/persistence/SqliteStore');
 const { AppError } = require('../src/shared/errors');
 
 describe('createStore', () => {
-  test('creates file store by default', () => {
+  test('creates sqlite store by default', () => {
     const store = createStore({ storeFile: '/tmp/dcf-factory-test.json' });
-    expect(store).toBeInstanceOf(FileStore);
+    expect(store).toBeInstanceOf(SqliteStore);
   });
 
   test('rejects unsupported backend', () => {
