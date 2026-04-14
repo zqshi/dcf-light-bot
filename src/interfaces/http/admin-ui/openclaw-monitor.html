@@ -58,7 +58,6 @@
       .ops-hero-icon.ic-conv    { background: rgba(0,113,227,0.08); color: #0071e3; }
       .ops-hero-icon.ic-user    { background: rgba(52,199,89,0.10); color: #34c759; }
       .ops-hero-icon.ic-round   { background: rgba(175,82,222,0.10); color: #af52de; }
-      .ops-hero-icon.ic-decision { background: rgba(255,59,48,0.10); color: #ff3b30; }
       .ops-hero-icon.ic-alert   { background: rgba(255,149,0,0.10);  color: #ff9500; }
       .ops-hero-label {
         font-size: 11px;
@@ -111,86 +110,90 @@
         margin: 2px 0 0;
       }
 
-      /* ── Agent Performance List ── */
-      .agent-perf-list { display: flex; flex-direction: column; gap: 8px; }
-      .agent-perf-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        border: 1px solid #f2f2f7;
-        border-radius: 10px;
-        transition: background 140ms ease;
-      }
-      .agent-perf-item:hover { background: #f8f8fa; }
-      .agent-perf-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        flex-shrink: 0;
-      }
-      .agent-perf-info { flex: 1; min-width: 0; }
-      .agent-perf-name {
-        font-size: 13px;
-        font-weight: 650;
-        color: #1d1d1f;
-      }
-      .agent-perf-meta {
-        font-size: 11px;
-        color: #8e8e93;
-        margin-top: 2px;
-      }
-      .agent-perf-stats {
-        display: flex;
-        gap: 16px;
-        flex-shrink: 0;
-      }
-      .agent-perf-stat {
+      /* ── Cost Overview ── */
+      .cost-total {
         text-align: center;
+        padding: 8px 0 14px;
       }
-      .agent-perf-stat-val {
-        font-size: 14px;
+      .cost-total-val {
+        font-size: 28px;
         font-weight: 700;
         color: #1d1d1f;
         font-variant-numeric: tabular-nums;
       }
-      .agent-perf-stat-label {
-        font-size: 10px;
-        color: #aeaeb2;
-        margin-top: 1px;
+      .cost-total-label {
+        font-size: 11px;
+        color: #8e8e93;
+        margin-top: 2px;
+      }
+      .cost-bar-list { display: flex; flex-direction: column; gap: 8px; }
+      .cost-bar-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .cost-bar-name {
+        width: 110px;
+        flex-shrink: 0;
+        font-size: 12px;
+        font-weight: 550;
+        color: #3a3a3c;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cost-bar-track {
+        flex: 1;
+        height: 10px;
+        background: #f2f2f7;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      .cost-bar-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        min-width: 3px;
+      }
+      .cost-bar-pct {
+        width: 44px;
+        flex-shrink: 0;
+        font-size: 12px;
+        font-weight: 650;
+        color: #6e6e73;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
       }
 
-      /* ── Decision Queue ── */
-      .decision-list { display: flex; flex-direction: column; gap: 8px; }
-      .decision-item {
-        display: flex;
-        align-items: flex-start;
+      /* ── SLA Dashboard ── */
+      .sla-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         gap: 10px;
-        padding: 12px 14px;
-        border: 1px solid #f2f2f7;
+      }
+      .sla-card {
+        background: #fafafa;
+        border: 1px solid #ededf2;
         border-radius: 10px;
-        transition: border-color 140ms ease, background 140ms ease;
+        padding: 14px 12px;
+        text-align: center;
+        transition: border-color 140ms ease;
       }
-      .decision-item:hover { border-color: #e5e5ea; background: #fafafa; }
-      .decision-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-top: 5px;
-        flex-shrink: 0;
+      .sla-card:hover { border-color: #d8d8df; }
+      .sla-card-val {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1d1d1f;
+        font-variant-numeric: tabular-nums;
       }
-      .decision-dot.critical { background: #ff3b30; box-shadow: 0 0 0 3px rgba(255,59,48,0.15); }
-      .decision-dot.high { background: #ff9500; box-shadow: 0 0 0 3px rgba(255,149,0,0.15); }
-      .decision-dot.normal { background: #0071e3; }
-      .decision-info { flex: 1; min-width: 0; }
-      .decision-title { font-weight: 650; font-size: 13px; color: #1d1d1f; }
-      .decision-meta { font-size: 11px; color: #8e8e93; margin-top: 2px; }
-      .decision-context { font-size: 12px; color: #6e6e73; margin-top: 4px; line-height: 1.55; }
-      .decision-rec { font-size: 11px; color: #8e8e93; margin-top: 4px; }
+      .sla-card-val.good { color: #34c759; }
+      .sla-card-val.warn { color: #ff9500; }
+      .sla-card-val.bad { color: #ff3b30; }
+      .sla-card-label {
+        font-size: 11px;
+        color: #8e8e93;
+        margin-top: 4px;
+      }
 
       /* ── Health Metric Cards ── */
       .health-grid {
@@ -297,16 +300,16 @@
     <div class="admin-shell">
             <aside class="sidebar">
         <h2>管理后台</h2>
-        <a href="/admin/index.html">总览</a>
+        <a href="/admin/openclaw-statistics.html">数据统计</a>
+        <a class="active" href="/admin/openclaw-monitor.html">平台运营</a>
         <a href="/admin/employees.html">员工管理</a>
         <a href="/admin/shared-agents.html">共享 Agent</a>
-        <a class="active" href="/admin/openclaw-monitor.html">平台运营</a>
-        <a href="/admin/openclaw-statistics.html">数据统计</a>
         <a href="/admin/skills.html">技能管理</a>
         <a href="/admin/tools.html">工具管理</a>
         <a href="/admin/ai-gateway.html">AI Gateway</a>
+        <a href="/admin/notifications.html">通知中心</a>
         <a href="/admin/logs-service.html">行为日志</a>
-        <a href="/admin/auth-members.html">成员管理</a>
+        <a href="/admin/auth-members.html">账号权限</a>
       </aside>
 
       <main class="content">
@@ -349,16 +352,6 @@
                 </div>
                 <div class="ops-hero-card">
                   <div class="ops-hero-head">
-                    <div class="ops-hero-icon ic-decision">
-                      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    </div>
-                  </div>
-                  <div class="ops-hero-label">待处理决策</div>
-                  <div class="ops-hero-value" id="pendingDecisions">-</div>
-                  <div class="ops-hero-desc">加载中...</div>
-                </div>
-                <div class="ops-hero-card">
-                  <div class="ops-hero-head">
                     <div class="ops-hero-icon ic-alert">
                       <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     </div>
@@ -372,17 +365,21 @@
           </div>
         </section>
 
-        <!-- Agent 效能 & 决策队列 -->
+        <!-- 成本概览 & SLA 仪表盘 -->
         <div class="ops-section ops-grid-2col">
           <div class="ops-panel">
-            <div class="ops-panel-title">Agent 效能排行</div>
-            <div class="ops-panel-note">按综合评分排序，涵盖调用频率、完成率和响应速度</div>
-            <div id="agentPerfList" class="agent-perf-list"></div>
+            <div class="ops-panel-title">成本概览</div>
+            <div class="ops-panel-note">AI Gateway 各模型调用花费分布</div>
+            <div id="costOverview">
+              <div style="font-size:12px;color:#aeaeb2;text-align:center;padding:20px">加载中...</div>
+            </div>
           </div>
           <div class="ops-panel">
-            <div class="ops-panel-title">待处理决策</div>
-            <div class="ops-panel-note">数字员工发起的需人工确认的运营决策</div>
-            <div id="decisionList" class="decision-list"></div>
+            <div class="ops-panel-title">SLA 仪表盘</div>
+            <div class="ops-panel-note">平台核心服务质量与可用性指标</div>
+            <div id="slaDashboard">
+              <div style="font-size:12px;color:#aeaeb2;text-align:center;padding:20px">加载中...</div>
+            </div>
           </div>
         </div>
 
@@ -480,7 +477,7 @@
       </main>
     </div>
 
-    <script src="/admin/auth-core.js"></script>
+    <script src="/admin/auth-core.js?v=20260414"></script>
     <script src="/admin/openclaw-monitor.js"></script>
   </body>
 </html>

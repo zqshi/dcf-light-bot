@@ -1,35 +1,13 @@
 /* ═══════════════════════════════════════════════════════════
    openclaw-monitor.js — Platform Operations Dashboard
-   定位：实时运营态势感知 + 待处置事件（决策/告警）
-   数据源：AI Gateway API + Analytics API（实时） + 本地 mock（决策）
+   定位：实时运营态势感知 + 平台级聚合指标（成本/SLA/健康/告警）
+   数据源：AI Gateway API + Analytics API（实时）
    ═══════════════════════════════════════════════════════════ */
 
-// ── Data（Agent 效能/健康/告警从 API 加载，决策暂用 mock） ──
+// ── Data（从 API 加载） ──
 
-let AGENT_PERF = [];
 let HEALTH_METRICS = [];
 let ALERTS = [];
-let AGENT_USAGE = [];
-
-const DECISIONS = [
-  {
-    id: 'dec-001', title: 'API 网关熔断策略升级', agent: '运维助手', urgency: 'critical',
-    context: '检测到支付服务异常率从 0.1% 升至 2.3%，建议立即启用熔断策略，将错误率阈值从 5% 降至 1%。',
-    recommendation: '立即启用，预计可在 30 秒内止损', time: '5 分钟前',
-  },
-  {
-    id: 'dec-002', title: '数据库连接池扩容', agent: '运维助手', urgency: 'high',
-    context: '数据库连接池使用率持续高于 85%，高峰时段出现排队等待。建议将最大连接数从 50 提升至 100。',
-    recommendation: '扩容至 100 连接，需同步检查数据库最大连接数配置', time: '18 分钟前',
-  },
-  {
-    id: 'dec-003', title: '第三方依赖升级（axios 1.x → 1.7）', agent: '代码助手', urgency: 'normal',
-    context: 'axios 1.7 修复了 SSRF 漏洞（CVE-2024-39338）。当前项目使用 axios 1.3.6，建议在下次迭代中升级。',
-    recommendation: '纳入下个 Sprint 升级，预计影响 12 个文件', time: '1 小时前',
-  },
-];
-
-// (HEALTH_METRICS, ALERTS, AGENT_USAGE declared above — populated by API calls)
 
 // ── API Integration ──
 
@@ -49,33 +27,6 @@ async function loadGatewayCosts() {
     if (!res.ok) return null;
     return await res.json();
   } catch (_) { return null; }
-}
-
-async function loadAgentPerformance() {
-  try {
-    const res = await fetch('/api/admin/analytics/agent-performance');
-    if (!res.ok) return;
-    const data = await res.json();
-    const colors = ['#0071e3', '#34c759', '#af52de', '#ff9500', '#ff3b30', '#5ac8fa'];
-    AGENT_PERF = (data.rows || []).map((a, i) => ({
-      name: a.name,
-      icon: '&#x1F916;',
-      sessions: a.taskCount,
-      completion: a.successRate,
-      satisfaction: '-',
-      avgTime: a.totalTokens > 0 ? fmtNum(a.totalTokens) + ' tok' : '-',
-      color: colors[i % colors.length]
-    }));
-    AGENT_USAGE = AGENT_PERF.map((a) => {
-      const maxSessions = AGENT_PERF.length > 0 ? AGENT_PERF[0].sessions : 1;
-      return {
-        name: a.name,
-        count: a.sessions,
-        pct: maxSessions > 0 ? Math.round(a.sessions / maxSessions * 100) : 0,
-        color: a.color
-      };
-    });
-  } catch (_) {}
 }
 
 async function loadHealthMetrics() {
@@ -113,45 +64,50 @@ function emptyHint(text) {
   return `<div style="font-size:12px;color:#aeaeb2;text-align:center;padding:20px">${text}</div>`;
 }
 
-function renderAgentPerf() {
-  const container = document.getElementById('agentPerfList');
+function renderCostOverview(gwCosts) {
+  const container = document.getElementById('costOverview');
   if (!container) return;
-  if (AGENT_PERF.length === 0) { container.innerHTML = emptyHint('暂无 Agent 效能数据'); return; }
-  container.innerHTML = AGENT_PERF.map(a => `
-    <div class="agent-perf-item">
-      <div class="agent-perf-avatar" style="background:${a.color}15;color:${a.color}">${a.icon}</div>
-      <div class="agent-perf-info">
-        <div class="agent-perf-name">${a.name}</div>
-        <div class="agent-perf-meta">${a.sessions} 次会话 · 平均响应 ${a.avgTime}</div>
-      </div>
-      <div class="agent-perf-stats">
-        <div class="agent-perf-stat">
-          <div class="agent-perf-stat-val" style="color:${a.completion >= 95 ? '#34c759' : a.completion >= 90 ? '#0071e3' : '#ff9500'}">${a.completion}%</div>
-          <div class="agent-perf-stat-label">完成率</div>
-        </div>
-        <div class="agent-perf-stat">
-          <div class="agent-perf-stat-val">${a.satisfaction}</div>
-          <div class="agent-perf-stat-label">满意度</div>
-        </div>
-      </div>
-    </div>
-  `).join('');
+  if (!gwCosts || !gwCosts.modelSummary || gwCosts.modelSummary.length === 0) {
+    container.innerHTML = emptyHint('暂无成本数据');
+    return;
+  }
+  const models = gwCosts.modelSummary;
+  const totalCost = models.reduce((s, m) => s + Number(m.totalCost || 0), 0);
+  const maxCost = Math.max(...models.map(m => Number(m.totalCost || 0)));
+  const colors = ['#0071e3', '#34c759', '#af52de', '#ff9500', '#ff3b30', '#5ac8fa', '#007aff', '#ff2d55'];
+
+  let html = `<div class="cost-total">
+    <div class="cost-total-val">¥${totalCost.toFixed(2)}</div>
+    <div class="cost-total-label">总花费（统计周期内）</div>
+  </div><div class="cost-bar-list">`;
+  html += models.map((m, i) => {
+    const cost = Number(m.totalCost || 0);
+    const pct = maxCost > 0 ? Math.round(cost / maxCost * 100) : 0;
+    const pctOfTotal = totalCost > 0 ? (cost / totalCost * 100).toFixed(1) : '0.0';
+    return `<div class="cost-bar-item">
+      <div class="cost-bar-name">${m.model}</div>
+      <div class="cost-bar-track"><div class="cost-bar-fill" style="width:${pct}%;background:${colors[i % colors.length]}"></div></div>
+      <div class="cost-bar-pct">${pctOfTotal}%</div>
+    </div>`;
+  }).join('');
+  html += '</div>';
+  container.innerHTML = html;
 }
 
-function renderDecisions() {
-  const container = document.getElementById('decisionList');
+function renderSLA() {
+  const container = document.getElementById('slaDashboard');
   if (!container) return;
-  container.innerHTML = DECISIONS.map(d => `
-    <div class="decision-item">
-      <div class="decision-dot ${d.urgency}"></div>
-      <div class="decision-info">
-        <div class="decision-title">${d.title}</div>
-        <div class="decision-meta">${d.agent} · ${d.time}</div>
-        <div class="decision-context">${d.context}</div>
-        <div class="decision-rec">建议：${d.recommendation}</div>
-      </div>
+  if (HEALTH_METRICS.length === 0) { container.innerHTML = emptyHint('暂无 SLA 数据'); return; }
+  // Pick key SLA metrics to display prominently
+  const slaKeys = ['实例可用率', 'Gateway 平均延迟', 'Gateway P95 延迟', 'Gateway 错误率', 'Gateway 拦截率', '运行实例'];
+  const items = HEALTH_METRICS.filter(m => slaKeys.includes(m.label));
+  if (items.length === 0) { container.innerHTML = emptyHint('暂无 SLA 数据'); return; }
+  container.innerHTML = '<div class="sla-grid">' + items.map(m => `
+    <div class="sla-card">
+      <div class="sla-card-val ${m.status}">${m.value}</div>
+      <div class="sla-card-label">${m.label}</div>
     </div>
-  `).join('');
+  `).join('') + '</div>';
 }
 
 function renderHealth() {
@@ -210,7 +166,6 @@ function renderUsageBars(containerId, data) {
   const [gwStats, gwCosts] = await Promise.all([
     loadGatewayStats(),
     loadGatewayCosts(),
-    loadAgentPerformance(),
     loadHealthMetrics(),
     loadAlerts()
   ]);
@@ -223,41 +178,28 @@ function renderUsageBars(containerId, data) {
     if (descEl) descEl.textContent = `完成 ${gwStats.completed} · 拦截 ${gwStats.blocked} · 失败 ${gwStats.failed}`;
   }
 
-  // Update active users from agent performance data
+  // Update active users from gateway stats
   const activeUsersEl = document.getElementById('activeUsers');
   if (activeUsersEl) {
-    activeUsersEl.textContent = AGENT_PERF.length > 0 ? String(AGENT_PERF.length) : '0';
-    const descEl = activeUsersEl.nextElementSibling;
-    const totalSessions = AGENT_PERF.reduce((s, a) => s + a.sessions, 0);
-    if (descEl) descEl.textContent = totalSessions > 0 ? `共 ${fmtNum(totalSessions)} 次会话` : '暂无数据';
+    if (gwStats && gwStats.totalTraces > 0) {
+      activeUsersEl.textContent = fmtNum(gwStats.completed + gwStats.failed);
+      const descEl = activeUsersEl.nextElementSibling;
+      if (descEl) descEl.textContent = `共 ${fmtNum(gwStats.totalTraces)} 次调用`;
+    } else {
+      activeUsersEl.textContent = '0';
+      const descEl = activeUsersEl.nextElementSibling;
+      if (descEl) descEl.textContent = '暂无数据';
+    }
   }
 
   // Update avg rounds from gateway stats
   const avgRoundsEl = document.getElementById('avgRounds');
   if (avgRoundsEl) {
-    if (gwStats && gwStats.totalTraces > 0 && AGENT_PERF.length > 0) {
-      const totalSessions = AGENT_PERF.reduce((s, a) => s + a.sessions, 0);
-      const avg = totalSessions > 0 ? (gwStats.totalTraces / totalSessions).toFixed(1) : '-';
+    if (gwStats && gwStats.totalTraces > 0 && gwStats.completed > 0) {
+      const avg = (gwStats.totalTraces / gwStats.completed).toFixed(1);
       avgRoundsEl.textContent = avg;
     } else {
       avgRoundsEl.textContent = '-';
-    }
-  }
-
-  // Update pending decisions count
-  const pendingDecisionsEl = document.getElementById('pendingDecisions');
-  if (pendingDecisionsEl) {
-    pendingDecisionsEl.textContent = String(DECISIONS.length);
-    const descEl = pendingDecisionsEl.nextElementSibling;
-    if (descEl) {
-      const critical = DECISIONS.filter(d => d.urgency === 'critical').length;
-      const high = DECISIONS.filter(d => d.urgency === 'high').length;
-      const normal = DECISIONS.filter(d => d.urgency === 'normal').length;
-      const parts = [];
-      if (critical > 0) parts.push(`${critical} 紧急`);
-      if (high > 0) parts.push(`${high} 重要`);
-      if (normal > 0) parts.push(`${normal} 一般`);
-      descEl.textContent = parts.length > 0 ? parts.join(' · ') : '无待处理';
     }
   }
 
@@ -278,13 +220,27 @@ function renderUsageBars(containerId, data) {
     }
   }
 
-  renderAgentPerf();
-  renderDecisions();
+  renderCostOverview(gwCosts);
+  renderSLA();
   renderHealth();
   renderAlerts();
-  renderUsageBars('agentUsage', AGENT_USAGE);
 
-  // Model usage distribution from real API (replaces mock dept usage)
+  // Agent usage distribution from real API
+  if (gwCosts && gwCosts.modelSummary && gwCosts.modelSummary.length > 0) {
+    const maxCount = Math.max(...gwCosts.modelSummary.map(m => m.count));
+    const agentUsage = gwCosts.modelSummary.map((m, i) => ({
+      name: m.model,
+      count: m.count,
+      pct: maxCount > 0 ? Math.round(m.count / maxCount * 100) : 0,
+      color: MODEL_COLORS[i % MODEL_COLORS.length]
+    }));
+    renderUsageBars('agentUsage', agentUsage);
+  } else {
+    const el = document.getElementById('agentUsage');
+    if (el) el.innerHTML = emptyHint('暂无 Agent 使用数据');
+  }
+
+  // Model usage distribution from real API
   if (gwCosts && gwCosts.modelSummary && gwCosts.modelSummary.length > 0) {
     const maxCount = Math.max(...gwCosts.modelSummary.map(m => m.count));
     const modelUsage = gwCosts.modelSummary.map((m, i) => ({
@@ -296,7 +252,7 @@ function renderUsageBars(containerId, data) {
     renderUsageBars('deptUsage', modelUsage);
   } else {
     const el = document.getElementById('deptUsage');
-    if (el) el.innerHTML = '<div style="font-size:12px;color:#aeaeb2;text-align:center;padding:20px">暂无模型调用数据</div>';
+    if (el) el.innerHTML = emptyHint('暂无模型调用数据');
   }
 
   // ── 运行时配置 & 权限模板（原配置中心） ──
