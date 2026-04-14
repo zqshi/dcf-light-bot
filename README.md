@@ -83,25 +83,25 @@ npm start
   - audit trace export (JSON / NDJSON) from instance trace view
 
 ## Client Experience Spec
-- PRD: [PRD.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/PRD.md)
-- IA: [IA.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/IA.md)
-- API Contract: [API-CONTRACT.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/API-CONTRACT.md)
-- Acceptance: [ACCEPTANCE.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/ACCEPTANCE.md)
-- Tasks: [TASKS.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/specs/client-experience/TASKS.md)
-- Matrix Desktop/Mobile Runbook: [matrix-clients.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/runbooks/matrix-clients.md)
+- PRD: [PRD.md](docs/specs/client-experience/PRD.md)
+- IA: [IA.md](docs/specs/client-experience/IA.md)
+- API Contract: [API-CONTRACT.md](docs/specs/client-experience/API-CONTRACT.md)
+- Acceptance: [ACCEPTANCE.md](docs/specs/client-experience/ACCEPTANCE.md)
+- Tasks: [TASKS.md](docs/specs/client-experience/TASKS.md)
+- Matrix Desktop/Mobile Runbook: [matrix-clients.md](docs/runbooks/matrix-clients.md)
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=file` (default): local JSON file store.
 - `PERSISTENCE_BACKEND=postgres`: use Postgres as control-plane store backend.
-- When using Postgres, set `POSTGRES_URL` and run migration SQL in [001_control_plane_store.sql](/Users/zqs/Downloads/project/dcf-light-bot/scripts/migrations/001_control_plane_store.sql).
+- When using Postgres, set `POSTGRES_URL` and run migration SQL in [001_control_plane_store.sql](scripts/migrations/001_control_plane_store.sql).
 
 ## Kubernetes Deploy
-- Manifests: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/deploy/k8s/README.md)
+- Manifests: [README.md](deploy/k8s/README.md)
 - Apply: `npm run k8s:apply`
 - Delete: `npm run k8s:delete`
 
 ## Helm Deploy
-- Chart guide: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/deploy/helm/README.md)
+- Chart guide: [README.md](deploy/helm/README.md)
 - Validate chart: `npm run check:helm-chart`
 - Install/upgrade:
   - `helm upgrade --install dcf-light-bot deploy/helm/dcf-light-bot --namespace dcf-system --create-namespace -f deploy/helm/dcf-light-bot/values-prod.yaml`
@@ -196,9 +196,9 @@ npm run verify:openclaw-lock
 - Helm chart static check: `npm run check:helm-chart`
 - Production helm guardrail check: `npm run check:prod-config`
 - Release preflight matrix check: `npm run check:release-preflight`
-- Prometheus alert template: [prometheus-alert-rules.yaml](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/prometheus-alert-rules.yaml)
-- Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/grafana-dashboard-dcf-light-bot.json)
-- Monitoring guide: [README.md](/Users/zqs/Downloads/project/dcf-light-bot/docs/monitoring/README.md)
+- Prometheus alert template: [prometheus-alert-rules.yaml](docs/monitoring/prometheus-alert-rules.yaml)
+- Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](docs/monitoring/grafana-dashboard-dcf-light-bot.json)
+- Monitoring guide: [README.md](docs/monitoring/README.md)
 - Local observability stack:
   - `npm run observability:up`
   - `npm run observability:check`
