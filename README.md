@@ -16,11 +16,16 @@ npm start
 
 启动后访问：
 
-| 入口 | URL | 说明 |
-|------|-----|------|
-| 租户管理后台 | http://localhost:3010/admin/login.html | 单租户级员工/技能/工具管理 |
-| 租户运营平台 | http://localhost:3010/super-admin/login.html | 跨租户运营监控与配额管理 |
-| 健康检查 | http://localhost:3010/health | 平台健康状态 |
+| 角色 | 入口 | URL | 说明 |
+|------|------|-----|------|
+| 终端用户 | Matrix 客户端 | http://127.0.0.1:8081 (Element) | 与数字员工对话、创建员工（需先 `npm run openclaw:up`） |
+| 租户管理员 | 租户管理后台 | http://localhost:3010/admin/login.html | 员工/技能/工具/AI Gateway/日志/权限管理 |
+| 平台运营方 | 租户运营平台 | http://localhost:3010/super-admin/login.html | 跨租户配额/监控/用户/配置/审计 |
+| 运维 / 开发 | 健康检查 | http://localhost:3010/health | 分级健康状态 |
+| 运维 / 开发 | Prometheus 指标 | http://localhost:3010/metrics | 平台指标采集端点 |
+| 运维 / 开发 | OpenClaw Gateway | http://127.0.0.1:18789 | OpenClaw 原生 UI（需先 `npm run openclaw:up`） |
+
+> 终端用户通过 Matrix 客户端与 `数字工厂bot` 私聊创建数字员工，在绑定的员工房间中与 AI Agent 协作。管理员通过管理后台配置员工的技能、工具和 AI 模型。
 
 ---
 
@@ -97,23 +102,30 @@ dcf-light-bot/
 
 面向单个租户的管理员，管理本租户内的数字员工、技能、工具和资产。
 
-- 员工管理：创建/编辑/同步身份 + Matrix 房间绑定
-- 技能 & 工具：上报 → 审核 → 共享发布 → 跨租户绑定
-- AI Gateway：模型路由、调用链追踪、模板管理
-- 实例运维：启动/停止/批量操作 + 详情 Drawer
-- 审计日志：按类型/操作人/实例筛选 + NDJSON 导出
-- 知识库：文档管理 + WeKnora RAG 集成
-- 通知中心、运行时监控、发布预检
+| 页面 | 路径 | 功能 |
+|------|------|------|
+| 数据统计 | `/admin/openclaw-statistics.html` | 首页，运营数据概览 |
+| 平台运营 | `/admin/openclaw-monitor.html` | 实例运行状态监控 |
+| 员工管理 | `/admin/employees.html` | 数字员工 CRUD + Matrix 房间绑定 |
+| 共享 Agent | `/admin/shared-agents.html` | 跨租户共享 Agent 注册/绑定 |
+| 技能管理 | `/admin/skills.html` | 技能上报 → 审核 → 共享发布 |
+| 工具管理 | `/admin/tools.html` | 工具资产 + 审批流 |
+| AI Gateway | `/admin/ai-gateway.html` | 模型路由、调用链追踪、模板管理 |
+| 通知中心 | `/admin/notifications.html` | 系统通知 |
+| 行为日志 | `/admin/logs-service.html` | 按类型/操作人/实例筛选 + NDJSON 导出 |
+| 账号权限 | `/admin/auth-members.html` | 租户内用户与角色管理 |
 
 ### 租户运营平台（/super-admin）
 
 面向平台运营方，跨租户管理资源和配额。
 
-- 租户管理：创建 Drawer（套餐选卡 + 14 字段配额自动填充 + 功能开关 + 初始管理员）、编辑、暂停/激活/归档
-- 平台用户：CRUD（动态创建 + 环境变量用户合并）
-- 运营监控：资源总览、租户配额利用率（进度条 + 三色告警）、健康状态
-- 全局配置：运行时参数可编辑（审计策略/SLA/资源默认值）
-- 审计日志：跨租户操作审计
+| 页面 | 路径 | 功能 |
+|------|------|------|
+| 租户管理 | `/super-admin/tenants.html` | 创建/编辑/暂停/激活/归档 + 14 字段配额 + 初始管理员 |
+| 平台用户 | `/super-admin/platform-users.html` | 平台域用户 CRUD（动态 + env 合并） |
+| 全局配置 | `/super-admin/platform-config.html` | 运行时参数可编辑（审计策略/SLA/资源默认值） |
+| 运营监控 | `/super-admin/platform-monitoring.html` | 资源总览 + 配额利用率进度条 + 健康状态 |
+| 审计日志 | `/super-admin/platform-audit.html` | 跨租户操作审计 |
 
 详细文档：[架构](docs/super-admin/architecture.md) | [PRD](docs/super-admin/prd.md) | [里程碑](docs/super-admin/milestones.md)
 
