@@ -1,211 +1,318 @@
-# dcf-light-bot
+# DCF Light Bot — 数字员工工厂
 
-Control-plane-first multi-tenant OpenClaw hosting platform.
+> Control-plane-first 多租户 OpenClaw 托管平台
 
-## Core Capabilities
-- Matrix command creates one isolated OpenClaw tenant instance.
-- Platform-managed provider API keys; tenant users never configure API keys.
-- Tenant asset report (skill/tool/knowledge) -> review -> shared publish -> cross-tenant binding workflow.
-- Tenant bound assets auto-mounted into OpenClaw runtime config during provision/reconcile/start.
-- Audit trail for instance lifecycle and shared-asset operations.
-- JWT + RBAC control-plane auth (legacy admin token compatible).
-- K8s real-mode idempotent reconcile and rollback on provision failure.
-- Runtime proxy in kubernetes mode with retry, circuit breaker, and degraded fallback.
-- Asset compatibility validation (`version` / `minOpenclawVersion`) with non-blocking mount isolation.
-- Audit retention lifecycle: TTL + max rows + archive ring with scheduled cleanup.
-- Multi-level asset review (`requiredApprovals`) with review opinion trail and pending-review queue.
-- Review SLA automation (overdue escalation) and review workload dashboard API.
-- Prometheus metrics endpoint (`/metrics`) and graded health status (`healthy/degraded/unhealthy`).
-- Instance-labeled metrics (`dcf_instance_state_total`, `dcf_instance_failure_reason_total`) and configurable health thresholds.
+DCF（Digital Crew Factory）是一个多租户数字员工管理平台，基于 [OpenClaw](https://github.com/nicepkg/openclaw) 提供隔离的 AI Agent 实例。平台通过 Matrix 协议实现人机协作，支持 K8s 容器化部署，内置完整的租户生命周期管理、资产审核、运行时代理和审计追踪能力。
 
-## Architecture
-- Control Plane: instance lifecycle, auth, audit, shared assets.
-- Runtime Plane: isolated OpenClaw pod per tenant.
-- Asset Plane: shared skill/tool/knowledge registry and bindings.
+---
 
-## Quick Start
+## 快速开始
+
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env   # 编辑配置（至少填写 OPENAI_API_KEY）
 npm start
 ```
 
-## Local Matrix + OpenClaw Stack
-- Start: `npm run openclaw:up`
-- Check: `npm run openclaw:check`
-- Smoke: `npm run openclaw:smoke`
-- Stop: `npm run openclaw:down`
-- Exposed endpoints:
-  - Matrix Synapse: `http://127.0.0.1:8008`
-  - Matrix Web Client (Element): `http://127.0.0.1:8081`
-  - OpenClaw Gateway UI: `http://127.0.0.1:18789`
-  - DCF Admin Console: `http://127.0.0.1:3010/admin/login.html`
-  - DCF Tenant Operations Platform: `http://127.0.0.1:3010/super-admin/login.html`
-  - DCF App Status: `http://127.0.0.1:3010/status`
+启动后访问：
 
-## Local All-In-One Ops
-- Start all (`matrix + openclaw + dcf app`): `npm run start:all`
-- Check all (includes Matrix + browser-use user E2E): `npm run check:all`
-- Run user behavior E2E only: `npm run e2e:user`
-- Stop all: `npm run stop:all`
-- App-only:
-  - Start: `npm run start:app`
-  - Check: `npm run check:app`
-  - Stop: `npm run stop:app`
+| 入口 | URL | 说明 |
+|------|-----|------|
+| 租户管理后台 | http://localhost:3010/admin/login.html | 单租户级员工/技能/工具管理 |
+| 租户运营平台 | http://localhost:3010/super-admin/login.html | 跨租户运营监控与配额管理 |
+| 健康检查 | http://localhost:3010/health | 平台健康状态 |
 
-## Admin Console
-- URL: `http://127.0.0.1:3010/admin/login.html`
-- Built-in static management UI (login, instance/asset/audit/release-preflight views), backed by existing control-plane APIs.
-- Supports operational actions:
-  - create/start/stop tenant instance
-  - review shared asset reports (approve/reject)
-  - one-click quick approve/reject on pending asset rows
-  - bind shared assets to tenant
-  - filter audit logs by `type` / `actor`
-  - audit pagination (prev/next cursor) and NDJSON export
-  - run release preflight assert and highlight failed checks
-  - instance row-level start/stop actions
-  - instance detail drawer (runtime/resources/error snapshot)
-  - shared asset row-level quick bind to target tenant
-  - instance state filter (all/running/provisioning/failed/stopped)
-  - instance search by name and tenant id
-  - shared asset binding history list
-  - shared asset type filter (skill/tool/knowledge)
-  - one-click copy for instance/asset/report/binding IDs
-  - audit export mode switch (current page / full by filter)
-  - audit trace aggregation by instance id
-  - batch asset review (approve/reject multiple report IDs)
-  - server-side audit trace API and server-side batch review API
-  - server-side instance query filters (`state/name/tenantId`)
-  - server-side audit `instanceId` filter
-  - batch asset binding API
-  - batch instance action API (`start/stop`) and admin console batch action form
-  - batch failure detail panels (instance action / asset review / asset binding)
-  - audit trace export (JSON / NDJSON) from instance trace view
+---
 
-## Tenant Operations Platform (Super Admin)
-- URL: `http://127.0.0.1:3010/super-admin/login.html`
-- Platform-level control console for operators, independent from tenant admin console.
-- Features:
-  - Tenant lifecycle management (create/edit/suspend/activate/archive)
-  - Production-grade tenant creation: plan selection, 14-field quota model (capacity, instance resources, AI usage, data policy), feature toggles, model access control, initial admin
-  - Platform user CRUD (dynamic users + env users merge)
-  - Cross-tenant resource monitoring (CPU/memory allocation, quota utilization with progress bars, health status)
-  - Editable runtime configuration (audit policy, SLA, resource defaults)
-  - Cross-tenant audit log viewer
-- Docs: [Architecture](docs/super-admin/architecture.md) | [PRD](docs/super-admin/prd.md) | [Milestones](docs/super-admin/milestones.md)
+## 系统架构
 
-## Persistence Backend
-- `PERSISTENCE_BACKEND=sqlite` (default): local SQLite database.
-- `PERSISTENCE_BACKEND=file`: local JSON file store (legacy).
-- `PERSISTENCE_BACKEND=postgres`: use Postgres as control-plane store backend.
-- When using Postgres, set `POSTGRES_URL` and run migration SQL in [001_control_plane_store.sql](scripts/migrations/001_control_plane_store.sql).
+### 三面体
 
-## Kubernetes Deploy
-- Manifests: [README.md](deploy/k8s/README.md)
-- Apply: `npm run k8s:apply`
-- Delete: `npm run k8s:delete`
-
-## Helm Deploy
-- Chart guide: [README.md](deploy/helm/README.md)
-- Validate chart: `npm run check:helm-chart`
-- Install/upgrade:
-  - `helm upgrade --install dcf-light-bot deploy/helm/dcf-light-bot --namespace dcf-system --create-namespace -f deploy/helm/dcf-light-bot/values-prod.yaml`
-
-## Auth
-- Login: `POST /api/control/auth/login`
-- Control APIs: `Authorization: Bearer <jwt-or-admin-token>`
-
-## Matrix Webhook
-- `POST /api/integrations/matrix/commands`
-- header: `x-matrix-webhook-secret`
-- body: `{ "sender": "@u:matrix", "roomId": "!r:matrix", "text": "!create_agent alice" }`
-
-## Matrix Relay (Real Room Message Inbound)
-- Set `.env`:
-  - `MATRIX_HOMESERVER` (example: `http://127.0.0.1:8008`)
-  - `MATRIX_USER_ID` (example: `@dcfbot:localhost`)
-  - `MATRIX_ACCESS_TOKEN`
-  - `MATRIX_PASSWORD` (optional fallback when no access token is provided)
-  - `MATRIX_RELAY_ENABLED=true`
-  - `MATRIX_CONVERSATION_MODE=openclaw_channel` (default, DCF bot does not proxy employee-room chats)
-- Optional provider defaults for OpenClaw tenant config:
-  - `MINIMAX_API_KEY`, `MINIMAX_API_BASE`, `MINIMAX_MODEL`
-  - `DEEPSEEK_API_BASE`, `DEEPSEEK_MODEL`
-  - default permission template for newly created digital employees:
-    - `OPENCLAW_PERMISSION_TEMPLATE_JSON` (JSON, optional; if empty uses OpenClaw default template)
-  - compatibility aliases are also supported for MiniMax Anthropic endpoint style:
-    - `ANTHROPIC_AUTH_TOKEN` (same as `MINIMAX_API_KEY`)
-    - `ANTHROPIC_BASE_URL` (same as `MINIMAX_API_BASE`)
-  - shell export example:
-    - `export MINIMAX_API_BASE=https://api.minimaxi.com/anthropic`
-    - `export MINIMAX_API_KEY=<your_key>`
-- Start app and relay will bridge factory commands to control-plane handler.
-- Matrix message patterns:
-  - create employee (factory command): `!create_agent <name>`
-  - natural language create in factory DM is also supported (example: `请创建一个采购数字员工，名字叫采购小助手`)
-  - query provisioning job: `!job_status <requestId>`
-  - in a bound employee room:
-    - `openclaw_channel` mode (default): DCF bot delegates conversation to OpenClaw Matrix channel
-    - `runtime_proxy` mode: legacy fallback, DCF bot forwards text to runtime proxy
-- Run E2E bootstrap/validation:
-  - `npm run matrix:e2e`
-  - `npm run e2e:full` (full chain: stack health + matrix create + admin API acceptance)
-  - `npm run e2e:user` (Matrix real room + browser-use admin UI assertion)
-
-## Matrix Test Users (Local)
-- Bot user (created/maintained by start scripts): `@dcfbot:localhost` / `dcfbot123`
-- Operator user (used by E2E): `@opsuser:localhost` / `opsuser123`
-- Login through Element Web at `http://127.0.0.1:8081` with homeserver `http://127.0.0.1:8008`.
-- Bot display name defaults to `数字工厂bot`; users can search this contact in Matrix, open a DM, and create digital employees via natural language (for example: `请创建一个采购数字员工，名字叫采购小助手`).
-
-## Key APIs
-- `GET /health`
-- `GET /status`
-- `GET /metrics`
-- `POST /api/control/instances`
-- `GET /api/control/instances`
-- `POST /api/control/assets/reports`
-- `GET /api/control/assets/shared?type=tool`
-- `POST /api/control/assets/bindings`
-- `POST /api/control/skills/reports`
-- `POST /api/control/skills/reports/{reportId}/approve`
-- `POST /api/control/skills/bindings`
-- `POST /api/control/runtime/instances/{instanceId}/invoke`
-- `GET /api/admin/agents/shared`
-- `POST /api/admin/agents/shared/register`
-- `POST /api/admin/agents/shared/{id}`
-- `POST /api/admin/agents/shared/{id}/delete`
-- `GET /api/admin/agents/shared/recommend`
-- `POST /api/admin/agents/shared/auto-bind/{employeeId}`
-- `POST /api/admin/employees/{id}/sync-identity`
-- `GET /api/control/audits`
-- `GET /api/control/audits/export?format=ndjson`
-- `GET /api/control/audits?cursor=0&limit=200&sinceId=<lastSeenId>`
-- `GET /api/control/audits/trace/instances/{instanceId}`
-- `GET /api/control/release/preflight`
-- `POST /api/control/release/preflight/assert`
-- `POST /api/control/assets/reviews/batch`
-- `POST /api/control/assets/bindings/batch`
-- `POST /api/control/instances/batch-actions`
-
-## Quality Gates
-```bash
-npm run lint
-npm test
-npm run verify:openclaw-lock
+```
+Control Plane ─── 实例生命周期、认证、审计、租户管理
+Runtime Plane ─── 每租户隔离的 OpenClaw Pod（K8s / 模拟模式）
+Asset Plane   ─── 共享技能/工具/知识库注册 + 跨租户绑定
 ```
 
-## Ops Checks
-- SLO self-check script: `npm run check:platform-slo`
-- K8s manifest static check: `npm run check:k8s-manifests`
-- Helm chart static check: `npm run check:helm-chart`
-- Production helm guardrail check: `npm run check:prod-config`
-- Release preflight matrix check: `npm run check:release-preflight`
-- Prometheus alert template: [prometheus-alert-rules.yaml](docs/shared/monitoring/prometheus-alert-rules.yaml)
-- Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](docs/shared/monitoring/grafana-dashboard-dcf-light-bot.json)
-- Monitoring guide: [README.md](docs/shared/monitoring/README.md)
-- Local observability stack:
-  - `npm run observability:up`
-  - `npm run observability:check`
-  - `npm run observability:down`
+### DDD 限界上下文
+
+```
+src/contexts/
+  tenant-management/     # 租户实体、套餐、14 字段四维度配额
+  tenant-instance/       # 实例生命周期（创建/启动/停止/调和）
+  identity-access/       # 双域认证（platform/tenant）+ RBAC
+  shared-assets/         # 技能/工具/知识库上报 → 审核 → 共享 → 绑定
+  audit-observability/   # 审计日志 + Prometheus 指标 + 保留策略
+  release-management/    # 发布预检（Release Preflight）
+  document/              # 知识库文档管理 + 分类 + 存储
+```
+
+### 多租户模型
+
+- **双域角色体系**：`platform`（平台管理员/运维）与 `tenant`（租户管理员/运维/审计员）完全隔离
+- **JWT scope 隔离**：平台 JWT 不能访问租户 API，反之亦然
+- **数据隔离**：所有查询按 `tenantId` 强制过滤，Platform API 可跨租户
+- **配额四维度**：容量（实例/并发/用户）、实例资源（CPU/内存/存储）、AI 用量（Token/调用/速率）、数据策略（保留期/Webhook/知识库）
+
+---
+
+## 项目结构
+
+```
+dcf-light-bot/
+  src/
+    app/                        # 启动入口、服务器创建
+    config/                     # 配置加载（env → config 对象）
+    contexts/                   # DDD 限界上下文（见上）
+    infrastructure/
+      persistence/              # 存储适配（SQLite/File/Postgres）
+      k8s/                      # K8s provisioner + reconciler
+    integrations/
+      matrix/                   # Matrix Bot + Relay 桥接
+      weknora/                  # WeKnora RAG 集成
+    interfaces/http/
+      routes/                   # API 路由（薄层）
+      middleware/               # 认证 + 权限中间件
+      admin-ui/                 # 租户管理后台（Vanilla HTML/CSS/JS）
+      super-admin-ui/           # 租户运营平台（Vanilla HTML/CSS/JS）
+    shared/                     # ID 生成、时间、通用工具
+  client-suite/
+    apps/web/                   # OpenClaw 客户端（React + TypeScript SPA）
+    packages/ui-tokens/         # 设计 Token（Tailwind preset）
+  deploy/
+    k8s/                        # K8s 原生 manifests
+    helm/                       # Helm Chart
+    local/                      # 本地 docker-compose 编排
+    observability/              # Prometheus + Grafana + Alertmanager
+  docs/                         # 按子系统分目录的文档（见"文档索引"）
+  scripts/                      # 运维/检查/E2E 脚本
+  tests/                        # 后端测试（vitest）
+```
+
+---
+
+## 管理控制台
+
+### 租户管理后台（/admin）
+
+面向单个租户的管理员，管理本租户内的数字员工、技能、工具和资产。
+
+- 员工管理：创建/编辑/同步身份 + Matrix 房间绑定
+- 技能 & 工具：上报 → 审核 → 共享发布 → 跨租户绑定
+- AI Gateway：模型路由、调用链追踪、模板管理
+- 实例运维：启动/停止/批量操作 + 详情 Drawer
+- 审计日志：按类型/操作人/实例筛选 + NDJSON 导出
+- 知识库：文档管理 + WeKnora RAG 集成
+- 通知中心、运行时监控、发布预检
+
+### 租户运营平台（/super-admin）
+
+面向平台运营方，跨租户管理资源和配额。
+
+- 租户管理：创建 Drawer（套餐选卡 + 14 字段配额自动填充 + 功能开关 + 初始管理员）、编辑、暂停/激活/归档
+- 平台用户：CRUD（动态创建 + 环境变量用户合并）
+- 运营监控：资源总览、租户配额利用率（进度条 + 三色告警）、健康状态
+- 全局配置：运行时参数可编辑（审计策略/SLA/资源默认值）
+- 审计日志：跨租户操作审计
+
+详细文档：[架构](docs/super-admin/architecture.md) | [PRD](docs/super-admin/prd.md) | [里程碑](docs/super-admin/milestones.md)
+
+---
+
+## OpenClaw 客户端
+
+`client-suite/apps/web/` 是基于 React + TypeScript 的 OpenClaw 管理 SPA：
+
+- **DDD 分层**：domain/ → infrastructure/ → application/ → presentation/
+- **状态管理**：zustand（authStore / chatStore / openclawStore）
+- **设计语言**：Apple HIG glass morphism，主色 `#007AFF`，Tailwind CSS 3.4
+- **Matrix 集成**：MockMatrixClient 全 Demo 模式（7 个模拟房间 + Bot 自动回复）
+
+---
+
+## Matrix 集成
+
+DCF 通过 Matrix 协议实现人机协作：
+
+- **Factory DM**：用户在 Matrix 中与 `数字工厂bot` 对话创建数字员工（支持 `!create_agent <name>` 指令和自然语言）
+- **Employee Room**：每个数字员工绑定独立 Matrix 房间，`openclaw_channel` 模式下对话委托给 OpenClaw
+- **Relay 桥接**：`MatrixRelay` 监听 Matrix 事件，桥接到 Control Plane 处理
+
+配置项参见 [.env.example](.env.example) 中 `MATRIX_*` 部分。
+
+### 本地 Matrix 环境
+
+```bash
+npm run openclaw:up          # 启动 Matrix Synapse + Element + OpenClaw
+npm run openclaw:check       # 健康检查
+npm run openclaw:smoke       # 冒烟测试
+npm run openclaw:down        # 停止
+```
+
+本地 Matrix 端点：Synapse `http://127.0.0.1:8008` | Element `http://127.0.0.1:8081` | OpenClaw `http://127.0.0.1:18789`
+
+---
+
+## API 概览
+
+### 控制面（/api/control）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/control/instances` | 创建实例 |
+| GET | `/api/control/instances` | 实例列表（支持 state/name/tenantId 筛选） |
+| POST | `/api/control/instances/batch-actions` | 批量启动/停止 |
+| POST | `/api/control/assets/reports` | 上报资产 |
+| POST | `/api/control/assets/reviews/batch` | 批量审核 |
+| POST | `/api/control/assets/bindings/batch` | 批量绑定 |
+| GET | `/api/control/audits` | 审计日志（游标分页） |
+| POST | `/api/control/release/preflight/assert` | 发布预检 |
+
+### 租户 BFF（/api/admin）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/admin/agents/shared` | 共享 Agent 列表 |
+| POST | `/api/admin/agents/shared/register` | 注册共享 Agent |
+| POST | `/api/admin/agents/shared/auto-bind/{employeeId}` | 自动绑定 |
+| POST | `/api/admin/employees/{id}/sync-identity` | 同步 Matrix 身份 |
+
+### 平台 API（/api/platform）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/platform/auth/login` | 平台登录 |
+| GET | `/api/platform/tenants` | 租户列表 |
+| POST | `/api/platform/tenants` | 创建租户（含初始管理员） |
+| POST | `/api/platform/tenants/:id/suspend` | 暂停租户 |
+| GET | `/api/platform/users` | 平台用户列表 |
+| GET | `/api/platform/monitoring/overview` | 运营总览 |
+| GET | `/api/platform/monitoring/resources` | 配额利用率 |
+| GET | `/api/platform/config` | 全局配置 |
+
+### 基础设施
+
+| 路径 | 说明 |
+|------|------|
+| `GET /health` | 分级健康状态（healthy/degraded/unhealthy） |
+| `GET /status` | 应用状态摘要 |
+| `GET /metrics` | Prometheus 指标 |
+
+---
+
+## 部署
+
+### 本地开发
+
+```bash
+npm run start:app            # 仅启动 DCF 应用
+npm run start:all            # 启动 Matrix + OpenClaw + DCF 全栈
+npm run stop:all             # 停止全部
+```
+
+### Docker
+
+```bash
+npm run docker:build
+npm run docker:run
+```
+
+### Kubernetes
+
+```bash
+npm run k8s:apply            # 部署 K8s manifests
+npm run k8s:delete           # 清理
+```
+
+详见 [deploy/k8s/README.md](deploy/k8s/README.md)
+
+### Helm
+
+```bash
+helm upgrade --install dcf-light-bot deploy/helm/dcf-light-bot \
+  --namespace dcf-system --create-namespace \
+  -f deploy/helm/dcf-light-bot/values-prod.yaml
+```
+
+详见 [deploy/helm/README.md](deploy/helm/README.md)
+
+---
+
+## 持久化后端
+
+| 环境变量 | 后端 | 说明 |
+|---------|------|------|
+| `PERSISTENCE_BACKEND=sqlite` | SQLite | 默认，推荐生产环境 |
+| `PERSISTENCE_BACKEND=file` | JSON File | 开发调试用 |
+| `PERSISTENCE_BACKEND=postgres` | PostgreSQL | K8s 环境部署，需设置 `POSTGRES_URL` |
+
+Postgres 迁移脚本：[001_control_plane_store.sql](scripts/migrations/001_control_plane_store.sql)
+
+---
+
+## 认证
+
+```bash
+# 控制面登录
+POST /api/control/auth/login
+# 请求头
+Authorization: Bearer <jwt-or-admin-token>
+```
+
+平台登录与租户登录独立，JWT 中 `scope` 字段区分域（`platform` / `tenant`）。
+
+---
+
+## 质量门禁
+
+```bash
+npm run lint                         # ESLint
+npm test                             # vitest
+npm run verify:openclaw-lock         # OpenClaw 版本锁校验
+```
+
+## 运维检查
+
+```bash
+npm run check:platform-slo           # SLO 自检
+npm run check:k8s-manifests          # K8s manifest 静态检查
+npm run check:helm-chart             # Helm Chart 校验
+npm run check:prod-config            # 生产 Helm guardrail
+npm run check:release-preflight      # 发布预检矩阵
+```
+
+### 可观测性
+
+```bash
+npm run observability:up             # 启动 Prometheus + Grafana + Alertmanager
+npm run observability:check          # 健康检查
+npm run observability:down           # 停止
+```
+
+- Prometheus 告警规则：[prometheus-alert-rules.yaml](docs/shared/monitoring/prometheus-alert-rules.yaml)
+- Grafana 仪表盘：[grafana-dashboard-dcf-light-bot.json](docs/shared/monitoring/grafana-dashboard-dcf-light-bot.json)
+- 监控指南：[README.md](docs/shared/monitoring/README.md)
+
+---
+
+## E2E 测试
+
+```bash
+npm run matrix:e2e                   # Matrix 创建员工 E2E
+npm run e2e:full                     # 全链路（Stack 健康 + Matrix + Admin API）
+npm run e2e:user                     # 用户行为 E2E（Matrix 真实房间 + 浏览器断言）
+npm run check:all                    # 全量检查（含 Matrix + browser-use）
+```
+
+---
+
+## 文档索引
+
+| 子系统 | 路径 | 内容 |
+|--------|------|------|
+| 租户运营平台 | [docs/super-admin/](docs/super-admin/) | 架构、PRD、里程碑 |
+| 租户管理后台 | [docs/admin-console/](docs/admin-console/) | 架构、PRD、里程碑 |
+| 控制面 | [docs/control-plane/](docs/control-plane/) | 架构、API 契约、Runbooks |
+| OpenClaw 客户端 | [docs/openclaw-client/](docs/openclaw-client/) | 架构、PRD、Manager Mode 设计 |
+| 共享资源 | [docs/shared/](docs/shared/) | ADR、OpenAPI 契约、监控配置 |
+| 审计报告 | [docs/audit-report.md](docs/audit-report.md) | 审计治理报告 |
