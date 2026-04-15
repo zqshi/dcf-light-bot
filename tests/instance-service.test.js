@@ -43,7 +43,7 @@ describe('InstanceService', () => {
       }
     });
     expect(instance.state).toBe('running');
-    expect(instance.runtime.namespace).toContain('dcf-tenant_');
+    expect(instance.runtime.namespace).toContain('dcf-tn_default');
 
     const rows = await service.list();
     expect(rows.length).toBe(1);

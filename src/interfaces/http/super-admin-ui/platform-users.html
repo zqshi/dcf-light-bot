@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>平台用户 - 租户运营平台</title>
+<link rel="stylesheet" href="/admin/layout-base.css">
+<link rel="stylesheet" href="/admin/layout-extra.css">
+<link rel="stylesheet" href="/super-admin/super-admin-base.css">
+<style>
+.pu-drawer-form { display: flex; flex-direction: column; gap: 14px; }
+.pu-field { display: flex; flex-direction: column; gap: 4px; }
+.pu-field-label { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+.pu-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pu-hint { font-size: 11px; color: var(--text-soft); margin-top: 2px; }
+.pu-section-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.pu-actions { padding-top: 12px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+.pu-source-chip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.pu-source-chip.env { background: #e8f0fe; color: #3b6dd8; }
+.pu-source-chip.dynamic { background: #dcf9eb; color: #136140; }
+</style>
+</head>
+<body>
+<div class="admin-shell">
+  <aside class="sidebar"></aside>
+  <main class="content">
+    <section class="page-head">
+      <div class="page-head-layout">
+        <div>
+          <h1 class="page-title">平台用户</h1>
+          <p class="page-subtitle">管理平台级与租户级管理员账号、角色和权限</p>
+          <div class="stat-strip">
+            <div class="stat-item">
+              <div class="stat-label">用户总数</div>
+              <div id="statTotal" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">平台用户</div>
+              <div id="statPlatform" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">租户用户</div>
+              <div id="statTenant" class="stat-value">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h3>用户列表</h3>
+        <button class="primary" id="createUserBtn">创建用户</button>
+      </div>
+      <div class="toolbar filter-toolbar" style="margin-bottom:10px;">
+        <div class="toolbar-group" style="min-width:140px;flex:0 1 140px;">
+          <label>作用域</label>
+          <select id="filterScope" class="admin-select">
+            <option value="">全部</option>
+            <option value="platform">平台</option>
+            <option value="tenant">租户</option>
+          </select>
+        </div>
+        <div class="toolbar-group" style="min-width:160px;flex:0 1 160px;">
+          <label>角色</label>
+          <select id="filterRole" class="admin-select">
+            <option value="">全部</option>
+            <option value="platform_admin">平台管理员</option>
+            <option value="platform_ops">平台运维</option>
+            <option value="tenant_admin">租户管理员</option>
+            <option value="tenant_ops">租户运维</option>
+            <option value="tenant_auditor">租户审计员</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>显示名称</th>
+              <th>作用域</th>
+              <th>角色</th>
+              <th>归属租户</th>
+              <th>来源</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="userBody">
+            <tr><td colspan="8" class="empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<!-- User drawer -->
+<aside id="userDrawer" class="employee-drawer hidden" aria-hidden="true">
+  <div class="employee-drawer-head">
+    <h3 id="userDrawerTitle">创建用户</h3>
+    <button id="closeUserDrawer" type="button">关闭</button>
+  </div>
+  <div id="userDrawerBody" class="employee-drawer-body"></div>
+</aside>
+<div id="userDrawerMask" class="employee-drawer-mask hidden" aria-hidden="true"></div>
+<script src="super-auth-core.js"></script>
+<script src="platform-users.js"></script>
+</body>
+</html>

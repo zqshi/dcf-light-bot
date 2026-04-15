@@ -6,21 +6,8 @@
 
 import type { DecisionTrigger, DecisionTriggerHandler } from '../../domain/agent/DecisionHub';
 import type { RecommendationOption, DecisionUrgency } from '../../domain/agent/DecisionRequest';
-
-/**
- * 里程碑上下文
- */
-export interface MilestoneContext {
-  goalId: string;
-  goalTitle: string;
-  milestoneId: string;
-  milestoneName: string;
-  milestoneIndex: number;
-  totalMilestones: number;
-  completedMilestones: number;
-  hasBlockingIssue: boolean;
-  estimatedTimeToComplete: number; // 毫秒
-}
+import type { MilestoneContext } from '../../domain/agent/DecisionTriggerFactories';
+export type { MilestoneContext } from '../../domain/agent/DecisionTriggerFactories';
 
 /**
  * MilestoneTrigger — 里程碑决策触发器
@@ -227,35 +214,5 @@ export class MilestoneTrigger implements DecisionTriggerHandler {
     }
 
     return parts.join('，') + '。';
-  }
-
-  /**
-   * 从里程碑完成事件创建 DecisionTrigger
-   */
-  static createFromMilestone(
-    context: MilestoneContext,
-    extraData?: {
-      taskId?: string;
-      decisionId?: string;
-    }
-  ): DecisionTrigger {
-    // 将里程碑上下文包含在 context 中
-    const contextWithExtras = `目标 ${context.goalTitle} 的 ${context.milestoneName} 里程碑已达成` +
-      (context.hasBlockingIssue ? '，但存在阻塞问题需要处理' : '') +
-      `\n进度: ${context.completedMilestones}/${context.totalMilestones} (${Math.round((context.completedMilestones / context.totalMilestones) * 100)}%)`;
-
-    return {
-      source: 'milestone-arrival',
-      sourceId: `${context.goalId}-${context.milestoneId}`,
-      title: `${context.milestoneName} 里程碑完成 - 确认下一步`,
-      context: contextWithExtras,
-      urgency: 'normal', // 会在 preprocess 中重新计算
-      deadline: Date.now() + MilestoneTrigger.DEFAULT_DEADLINE,
-      relatedEntities: {
-        goalId: context.goalId,
-        taskId: extraData?.taskId,
-        decisionId: extraData?.decisionId,
-      },
-    };
   }
 }

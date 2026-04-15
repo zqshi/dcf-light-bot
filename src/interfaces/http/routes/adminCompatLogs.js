@@ -6,8 +6,8 @@ function registerAdminCompatLogRoutes(router, context, deps) {
     res.json(rows);
   });
 
-  router.get('/api/admin/tasks', async (_req, res) => {
-    const instances = await listInstances();
+  router.get('/api/admin/tasks', async (req, res) => {
+    const instances = await listInstances(req.tenantId);
     const rows = instances.map((x) => ({
       id: `task_${x.id}`,
       status: String(x.state || 'unknown'),
@@ -21,7 +21,7 @@ function registerAdminCompatLogRoutes(router, context, deps) {
   });
 
   router.get('/api/admin/tasks/:id', async (req, res) => {
-    const rows = await listInstances();
+    const rows = await listInstances(req.tenantId);
     const key = String(req.params.id || '').replace(/^task_/, '');
     const x = rows.find((item) => item.id === key);
     if (!x) {

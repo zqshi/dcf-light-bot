@@ -94,7 +94,7 @@ function registerAdminCompatNotificationRoutes(router, context, deps) {
 
   router.get('/api/admin/matrix/channels', async (req, res) => {
     const [instances, audits] = await Promise.all([
-      listInstances(),
+      listInstances(req.tenantId),
       context.auditService.list(1000)
     ]);
     const byRoom = new Map();
@@ -172,9 +172,9 @@ function registerAdminCompatNotificationRoutes(router, context, deps) {
     res.json(buildMatrixOpsStatus(audits));
   });
 
-  router.get('/api/admin/notifications', async (_req, res) => {
+  router.get('/api/admin/notifications', async (req, res) => {
     const [instances, dashboard, audits] = await Promise.all([
-      listInstances(),
+      listInstances(req.tenantId),
       (context.assetService || context.skillService).getReviewDashboard({ reviewer: '' }),
       context.auditService.list(1000)
     ]);

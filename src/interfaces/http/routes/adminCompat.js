@@ -270,6 +270,10 @@ function buildAdminCompatRouter(context) {
       return;
     }
     req.adminSession = session;
+    // Inject tenantId for data isolation
+    const user = session.user || {};
+    req.tenantId = String(user.tenantId || '').trim() || null;
+    req.tenantScope = String(user.scope || 'tenant');
     next();
   }
 
@@ -288,9 +292,9 @@ function buildAdminCompatRouter(context) {
   function clearSessionCookie(res) {
     res.setHeader('Set-Cookie', 'dcf_admin_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
   }
-  // ── Data helpers ──
-  async function listInstances() {
-    return context.instanceService.list();
+  // ─── Data helpers ──
+  async function listInstances(tenantId) {
+    return context.instanceService.list(tenantId || null);
   }
 
   async function listSharedAssets(type) {
@@ -560,9 +564,9 @@ function buildAdminCompatRouter(context) {
     };
   }
 
-  async function listEmployees() {
+  async function listEmployees(tenantId) {
     await ensureSharedAgentsHydrated();
-    const instances = await listInstances();
+    const instances = await listInstances(tenantId);
     return instances.map((row) => employeeFromInstance(row));
   }
 
@@ -593,8 +597,8 @@ function buildAdminCompatRouter(context) {
     });
   }
 
-  async function getEmployeeById(id) {
-    const rows = await listEmployees();
+  async function getEmployeeById(id, tenantId) {
+    const rows = await listEmployees(tenantId);
     return rows.find((x) => x.id === id) || null;
   }
 
@@ -651,7 +655,9 @@ function buildAdminCompatRouter(context) {
   router.post('/api/auth/login', async (req, res) => {
     try {
       const body = req.body || {};
-      const result = await context.authService.login(body.username || '', body.password || '');
+      const result = await context.authService.login(body.username || '', body.password || '', {
+        tenantId: body.tenantId || body.tenantSlug || undefined
+      });
       const sid = crypto.randomBytes(24).toString('hex');
       sessions.set(sid, {
         token: result.token,
@@ -688,6 +694,8 @@ function buildAdminCompatRouter(context) {
         username: String(user.username || ''),
         displayName: String(user.username || ''),
         role: String(user.role || 'ops_admin'),
+        scope: String(user.scope || 'tenant'),
+        tenantId: String(user.tenantId || ''),
         permissions
       }
     });

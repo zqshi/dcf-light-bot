@@ -5,7 +5,9 @@ function buildInstanceRouter(instanceService, requirePermission) {
 
   router.get('/', requirePermission('control:instance:read'), async (req, res, next) => {
     try {
-      let rows = await instanceService.list();
+      const principal = req.principal || {};
+      const scopeTenantId = principal.scope === 'tenant' ? principal.tenantId : null;
+      let rows = await instanceService.list(scopeTenantId);
       const state = String(req.query.state || '').trim();
       const name = String(req.query.name || '').trim().toLowerCase();
       const tenantId = String(req.query.tenantId || '').trim().toLowerCase();

@@ -20,6 +20,7 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'notifications.html',
   'notifications.js',
   'employee-detail-renderer.js',
+  'employee-form-renderer.js',
   'skills.html',
   'skills.js',
   'skill-detail-renderer.js',
@@ -50,6 +51,23 @@ const PURE_ADMIN_ALLOWED_FILES = new Set([
   'layout-extra.css',
   'tools-approvals.html',
   'tools-approvals.js'
+]);
+
+const SUPER_ADMIN_ALLOWED_FILES = new Set([
+  'login.html',
+  'login.js',
+  'super-auth-core.js',
+  'super-admin-base.css',
+  'tenants.html',
+  'tenants.js',
+  'platform-users.html',
+  'platform-users.js',
+  'platform-config.html',
+  'platform-config.js',
+  'platform-monitoring.html',
+  'platform-monitoring.js',
+  'platform-audit.html',
+  'platform-audit.js'
 ]);
 
 
@@ -91,6 +109,31 @@ function createServer(context) {
   // Favicon — return 204 to silence browser 404
   app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+  // ── Super Admin Console ──
+  const superAdminUiDir = path.join(__dirname, '../interfaces/http/super-admin-ui');
+  app.use('/super-admin', (req, res, next) => {
+    const target = String(req.path || '/');
+    if (target === '/' || target === '') return res.redirect('/super-admin/login.html');
+    const fileName = target.startsWith('/') ? target.slice(1) : target;
+    if (!fileName || fileName.includes('..')) {
+      res.status(404).send('Not Found');
+      return;
+    }
+    if (!SUPER_ADMIN_ALLOWED_FILES.has(fileName)) {
+      res.status(404).send('Not Found');
+      return;
+    }
+    next();
+  });
+  app.use('/super-admin', express.static(superAdminUiDir, {
+    etag: false,
+    lastModified: false,
+    setHeaders(res) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }));
+
+  // ── Tenant Admin Console ──
   const adminUiDir = path.join(__dirname, '../interfaces/http/admin-ui');
   app.use('/admin', (req, res, next) => {
     const target = String(req.path || '/');

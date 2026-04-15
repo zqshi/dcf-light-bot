@@ -3,9 +3,11 @@ class ControlPlaneRepository {
     this.store = store;
   }
 
-  async listInstances() {
+  async listInstances(tenantId) {
     const doc = await this.store.read();
-    return doc.instances || [];
+    const all = doc.instances || [];
+    if (tenantId) return all.filter((x) => x.tenantId === tenantId);
+    return all;
   }
 
   async getInstance(instanceId) {
@@ -436,6 +438,84 @@ class ControlPlaneRepository {
       return { ...doc, platformConfigs: configs };
     });
     return value;
+  }
+
+  // ─── Platform Users (dynamic) ──────────────────────────────────
+
+  async listPlatformUsers() {
+    const doc = await this.store.read();
+    return Array.isArray(doc.platformUsers) ? doc.platformUsers : [];
+  }
+
+  async getPlatformUser(username) {
+    const rows = await this.listPlatformUsers();
+    return rows.find((x) => x.username === username) || null;
+  }
+
+  async savePlatformUser(user) {
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.platformUsers) ? doc.platformUsers : [];
+      const idx = list.findIndex((x) => x.username === user.username);
+      if (idx >= 0) list[idx] = user;
+      else list.push(user);
+      return { ...doc, platformUsers: list };
+    });
+    return user;
+  }
+
+  async deletePlatformUser(username) {
+    const key = String(username || '').trim();
+    if (!key) return false;
+    let deleted = false;
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.platformUsers) ? doc.platformUsers : [];
+      const next = list.filter((x) => {
+        const keep = String(x.username || '') !== key;
+        if (!keep) deleted = true;
+        return keep;
+      });
+      return { ...doc, platformUsers: next };
+    });
+    return deleted;
+  }
+
+  // ─── Tenants ────────────────────────────────────────────────────
+
+  async listTenants() {
+    const doc = await this.store.read();
+    return Array.isArray(doc.tenants) ? doc.tenants : [];
+  }
+
+  async getTenant(tenantId) {
+    const rows = await this.listTenants();
+    return rows.find((x) => x.id === tenantId) || null;
+  }
+
+  async saveTenant(tenant) {
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.tenants) ? doc.tenants : [];
+      const idx = list.findIndex((x) => x.id === tenant.id);
+      if (idx >= 0) list[idx] = tenant;
+      else list.push(tenant);
+      return { ...doc, tenants: list };
+    });
+    return tenant;
+  }
+
+  async deleteTenant(tenantId) {
+    const key = String(tenantId || '').trim();
+    if (!key) return false;
+    let deleted = false;
+    await this.store.update((doc) => {
+      const list = Array.isArray(doc.tenants) ? doc.tenants : [];
+      const next = list.filter((x) => {
+        const keep = String((x && x.id) || '') !== key;
+        if (!keep) deleted = true;
+        return keep;
+      });
+      return { ...doc, tenants: next };
+    });
+    return deleted;
   }
 }
 

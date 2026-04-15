@@ -10,7 +10,16 @@
  */
 
 import { DecisionRequest, type RecommendationOption, DecisionUrgency } from './DecisionRequest';
-import { appEvents } from '../../application/events/eventBus';
+
+/**
+ * Domain event emitter port.
+ * Application 层通过 DecisionHub.setEventEmitter() 注入实现。
+ */
+export interface DomainEventEmitter {
+  emitDecisionCreated(payload: { decisionId: string; agentId: string; urgency: string }): void;
+}
+
+const noopEmitter: DomainEventEmitter = { emitDecisionCreated: () => {} };
 
 /**
  * 决策来源类型
@@ -70,6 +79,14 @@ export interface DecisionTriggerHandler {
 export class DecisionHub {
   private static readonly TRIGGERS: Map<DecisionSource, DecisionTriggerHandler> = new Map();
   private static readonly RECOMMENDATION_GENERATOR?: (trigger: DecisionTrigger) => RecommendationOption;
+  private static eventEmitter: DomainEventEmitter = noopEmitter;
+
+  /**
+   * 注入事件发射器（由 application 层调用）
+   */
+  static setEventEmitter(emitter: DomainEventEmitter): void {
+    this.eventEmitter = emitter;
+  }
 
   /**
    * 注册决策触发器
@@ -135,7 +152,7 @@ export class DecisionHub {
     });
 
     // 5. 发布事件到 Store
-    appEvents.emit('decision:created', { decisionId: decision.id, agentId: decision.agentId, urgency: decision.urgency });
+    this.eventEmitter.emitDecisionCreated({ decisionId: decision.id, agentId: decision.agentId, urgency: decision.urgency });
 
     // 6. 调用后处理器（如有）
     if (handler?.postprocess) {

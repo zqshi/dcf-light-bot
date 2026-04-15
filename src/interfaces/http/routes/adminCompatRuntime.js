@@ -15,9 +15,9 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
   const userStore = deps.userStore;
   const roleStore = deps.roleStore;
 
-  router.get('/api/admin/overview', async (_req, res) => {
+  router.get('/api/admin/overview', async (req, res) => {
     const [instances, dashboard] = await Promise.all([
-      listInstances(),
+      listInstances(req.tenantId),
       (context.assetService || context.skillService).getReviewDashboard({ reviewer: '' })
     ]);
     const instanceSummary = summarizeInstanceStates(instances);
@@ -74,8 +74,8 @@ function registerAdminCompatRuntimeRoutes(router, context, deps) {
     });
   });
 
-  router.get('/api/admin/runtime-status', async (_req, res) => {
-    const instances = await listInstances();
+  router.get('/api/admin/runtime-status', async (req, res) => {
+    const instances = await listInstances(req.tenantId);
     const sharedSkills = await listSharedAssets('skill');
     const sharedFindings = await listSharedAssets('knowledge');
     const reports = await (context.assetService || context.skillService).listReportsByStatus('pending_review');

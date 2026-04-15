@@ -8,12 +8,12 @@ function registerAdminCompatInstanceRoutes(router, context, deps) {
   const getEmployeeById = deps.getEmployeeById;
 
   router.get('/api/admin/instances', async (req, res) => {
-    const rows = await listEmployees();
+    const rows = await listEmployees(req.tenantId);
     res.json(filterInstanceRows(rows, req.query || {}));
   });
 
   router.get('/api/admin/instances/:id', async (req, res) => {
-    const row = await getEmployeeById(String(req.params.id || ''));
+    const row = await getEmployeeById(String(req.params.id || ''), req.tenantId);
     if (!row) {
       res.status(404).json({ error: 'instance not found' });
       return;
@@ -29,7 +29,7 @@ function registerAdminCompatInstanceRoutes(router, context, deps) {
       state: next.state,
       actor: actorOf(req)
     });
-    const row = await getEmployeeById(id);
+    const row = await getEmployeeById(id, req.tenantId);
     res.json(row || next);
   });
 
@@ -41,7 +41,7 @@ function registerAdminCompatInstanceRoutes(router, context, deps) {
       state: next.state,
       actor: actorOf(req)
     });
-    const row = await getEmployeeById(id);
+    const row = await getEmployeeById(id, req.tenantId);
     res.json(row || next);
   });
 
@@ -53,7 +53,7 @@ function registerAdminCompatInstanceRoutes(router, context, deps) {
       state: next.state,
       actor: actorOf(req)
     });
-    const row = await getEmployeeById(id);
+    const row = await getEmployeeById(id, req.tenantId);
     res.json(row || next);
   });
 

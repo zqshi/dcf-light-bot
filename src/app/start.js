@@ -19,6 +19,7 @@ const { CategoryService } = require('../contexts/document/application/CategorySe
 const { KnowledgeAuditService } = require('../contexts/document/application/KnowledgeAuditService');
 const { StorageService } = require('../contexts/document/application/StorageService');
 const { WeKnoraService } = require('../integrations/weknora/WeKnoraService');
+const { TenantService } = require('../contexts/tenant-management/application/TenantService');
 const { createServer } = require('./createServer');
 
 function createLogger() {
@@ -167,6 +168,27 @@ async function startApp() {
   const knowledgeAuditService = new KnowledgeAuditService(repo);
   const storageService = new StorageService(repo);
   const weKnoraService = config.weKnoraEnabled ? new WeKnoraService(config) : null;
+  const tenantService = new TenantService(repo);
+
+  // Seed default tenant if not present
+  const existingDefault = await repo.getTenant(config.defaultTenantId);
+  if (!existingDefault) {
+    const { nowIso } = require('../shared/time');
+    const now = nowIso();
+    await repo.saveTenant({
+      id: config.defaultTenantId,
+      name: 'Default Tenant',
+      slug: 'default',
+      plan: 'enterprise',
+      quotas: { maxInstances: 100, maxUsers: 500, maxStorageMB: 102400 },
+      status: 'active',
+      contactEmail: null,
+      createdAt: now,
+      updatedAt: now
+    });
+    logger.info('seeded default tenant', { tenantId: config.defaultTenantId });
+  }
+
   const matrixBot = new MatrixBot(config, logger, instanceService, {
     auditService,
     runtimeProxyService,
@@ -175,7 +197,7 @@ async function startApp() {
     resolveIdentityProfile: (matrixUserId) => resolveIdentityProfileFromRepo(repo, matrixUserId)
   });
   const matrixRelay = new MatrixRelay(config, logger, matrixBot, { auditService });
-  const authService = new AuthService(config);
+  const authService = new AuthService(config, repo);
   const releasePreflightService = new ReleasePreflightService({ rootDir: process.cwd() });
   const reconciler = new InstanceReconciler(repo, auditService, provisioner, {
     timeoutMs: config.bootstrapProvisioningTimeoutMs,
@@ -199,7 +221,8 @@ async function startApp() {
     categoryService,
     knowledgeAuditService,
     storageService,
-    weKnoraService
+    weKnoraService,
+    tenantService
   });
   const server = app.listen(config.port, config.host, () => {
     logger.info('server started', { host: config.host, port: config.port });

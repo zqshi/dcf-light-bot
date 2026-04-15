@@ -6,25 +6,8 @@
 
 import type { DecisionTrigger, DecisionTriggerHandler } from '../../domain/agent/DecisionHub';
 import type { RecommendationOption, DecisionUrgency } from '../../domain/agent/DecisionRequest';
-
-/**
- * 协作节点上下文
- */
-export interface CollaborationNodeContext {
-  collaborationId: string;
-  collaborationName: string;
-  nodeId: string;
-  nodeName: string;
-  requesterId: string;
-  requesterName: string;
-  nodeType: 'approval' | 'review' | 'modification' | 'blocking';
-  changeSummary: string;
-  requiresApproval: boolean;
-  approvers: string[];
-  currentApprover: string;
-  estimatedDelayIfRejected: number; // 毫秒
-  hasConflictingChanges: boolean;
-}
+import type { CollaborationNodeContext } from '../../domain/agent/DecisionTriggerFactories';
+export type { CollaborationNodeContext } from '../../domain/agent/DecisionTriggerFactories';
 
 /**
  * CollaborationTrigger — 协作决策触发器
@@ -330,30 +313,5 @@ export class CollaborationTrigger implements DecisionTriggerHandler {
     }
 
     return 'medium';
-  }
-
-  /**
-   * 从协作节点事件创建 DecisionTrigger
-   */
-  static createFromCollaborationNode(
-    context: CollaborationNodeContext,
-    extraData?: {
-      taskId?: string;
-      goalId?: string;
-    }
-  ): DecisionTrigger {
-    return {
-      source: 'collaboration-node',
-      sourceId: `${context.collaborationId}-${context.nodeId}`,
-      title: `协作节点「${context.nodeName}」需要您的确认`,
-      context: `${context.requesterName} 在协作链 ${context.collaborationName} 中请求您的决策\n变更: ${context.changeSummary}`,
-      urgency: 'normal', // 会在 preprocess 中重新计算
-      deadline: Date.now() + CollaborationTrigger.DEFAULT_DEADLINE,
-      relatedEntities: {
-        collaborationId: context.collaborationId,
-        taskId: extraData?.taskId,
-        goalId: extraData?.goalId,
-      },
-    };
   }
 }

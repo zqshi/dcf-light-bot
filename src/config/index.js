@@ -26,10 +26,10 @@ function parseProviders(env) {
 
 function defaultUsersJson() {
   return JSON.stringify([
-    { username: 'admin', role: 'platform_admin', password: 'plain:admin123' },
-    { username: 'reviewer', role: 'reviewer', password: 'plain:review123' },
-    { username: 'ops', role: 'ops_admin', password: 'plain:ops123' },
-    { username: 'auditor', role: 'auditor', password: 'plain:audit123' }
+    { username: 'admin', role: 'platform_admin', scope: 'platform', password: 'plain:admin123' },
+    { username: 'reviewer', role: 'tenant_ops', scope: 'tenant', tenantId: 'tn_default', password: 'plain:review123' },
+    { username: 'ops', role: 'tenant_ops', scope: 'tenant', tenantId: 'tn_default', password: 'plain:ops123' },
+    { username: 'auditor', role: 'tenant_auditor', scope: 'tenant', tenantId: 'tn_default', password: 'plain:audit123' }
   ]);
 }
 
@@ -100,6 +100,8 @@ function parseUsers(raw) {
   return parsed.map((u) => ({
     username: String(u.username || '').trim(),
     role: String(u.role || '').trim(),
+    scope: String(u.scope || '').trim() || null,
+    tenantId: String(u.tenantId || '').trim() || null,
     password: String(u.password || '').trim(),
     disabled: Boolean(u.disabled)
   }));
@@ -201,6 +203,7 @@ function loadConfig() {
     runtimeProxyFailureThreshold: Number(process.env.RUNTIME_PROXY_FAILURE_THRESHOLD || 3),
     runtimeProxyBreakerCoolOffMs: Number(process.env.RUNTIME_PROXY_BREAKER_COOLOFF_MS || 30_000),
     runtimeProxySharedToken: String(process.env.RUNTIME_PROXY_SHARED_TOKEN || '').trim(),
+    defaultTenantId: String(process.env.DEFAULT_TENANT_ID || 'tn_default').trim(),
     weKnoraEnabled: parseBoolean(process.env.WEKNORA_ENABLED, false),
     weKnoraApiUrl: String(process.env.WEKNORA_API_URL || 'http://weknora-app:8080').trim(),
     weKnoraJwtSecret: String(process.env.WEKNORA_JWT_SECRET || '').trim(),

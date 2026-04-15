@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>租户管理 - 租户运营平台</title>
+<link rel="stylesheet" href="/admin/layout-base.css">
+<link rel="stylesheet" href="/admin/layout-extra.css">
+<link rel="stylesheet" href="/super-admin/super-admin-base.css">
+<style>
+/* ── Tenant Drawer styles ── */
+.td-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.td-meta-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.td-meta-label {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.td-meta-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+.td-meta-value.mono {
+  font-family: "SF Mono", "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 12px;
+  font-weight: 500;
+}
+.td-section {
+  margin-bottom: 18px;
+}
+.td-section-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.td-form-grid {
+  display: grid;
+  gap: 12px;
+}
+.td-form-2col { grid-template-columns: repeat(2, 1fr); }
+.td-form-3col { grid-template-columns: repeat(3, 1fr); }
+.td-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.td-field-label {
+  font-size: 12px;
+  color: var(--text-soft);
+  font-weight: 500;
+}
+.td-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.td-usage-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.td-usage-label {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.td-usage-value {
+  font-size: 15px;
+  font-weight: 650;
+  color: #1b3162;
+}
+.td-actions {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.td-check-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.td-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.td-check-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand);
+}
+.td-hint { font-size: 11px; color: var(--text-soft); margin-top: 2px; }
+.td-sub-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+  margin: 12px 0 6px;
+  padding-left: 2px;
+  letter-spacing: .5px;
+}
+.td-sub-title:first-child { margin-top: 0; }
+.td-plan-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.td-plan-card {
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  background: #fff;
+}
+.td-plan-card:hover { border-color: var(--brand); }
+.td-plan-card.selected {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+  background: #f5f3ff;
+}
+.td-plan-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.td-plan-card-desc {
+  font-size: 11px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+@media (max-width: 640px) {
+  .td-meta-grid,
+  .td-form-2col,
+  .td-form-3col,
+  .td-usage-grid,
+  .td-plan-cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="admin-shell">
+  <aside class="sidebar"></aside>
+  <main class="content">
+    <section class="page-head">
+      <div class="page-head-layout">
+        <div>
+          <h1 class="page-title">租户管理</h1>
+          <p class="page-subtitle">管理平台所有租户的创建、配额、状态与生命周期</p>
+          <div class="stat-strip">
+            <div class="stat-item">
+              <div class="stat-label">租户总数</div>
+              <div id="tenantTotal" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">活跃租户</div>
+              <div id="tenantActive" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">已暂停</div>
+              <div id="tenantSuspended" class="stat-value">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h3>租户列表</h3>
+        <button class="primary" id="createBtn">创建租户</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>租户名称</th>
+              <th>标识</th>
+              <th>行业</th>
+              <th>套餐</th>
+              <th>状态</th>
+              <th>实例用量</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tenantBody">
+            <tr><td colspan="8" class="empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<!-- Detail/Edit drawer -->
+<aside id="tenantDrawer" class="employee-drawer hidden" aria-hidden="true">
+  <div class="employee-drawer-head">
+    <h3 id="drawerTitle">租户详情</h3>
+    <button id="closeDrawer" type="button">关闭</button>
+  </div>
+  <div id="drawerBody" class="employee-drawer-body">
+    <div class="empty">请选择租户查看详情</div>
+  </div>
+</aside>
+<div id="tenantDrawerMask" class="employee-drawer-mask hidden" aria-hidden="true"></div>
+<!-- Create drawer -->
+<aside id="createDrawer" class="employee-drawer hidden" aria-hidden="true">
+  <div class="employee-drawer-head">
+    <h3>创建租户</h3>
+    <button id="closeCreateDrawer" type="button">关闭</button>
+  </div>
+  <div id="createDrawerBody" class="employee-drawer-body"></div>
+</aside>
+<div id="createDrawerMask" class="employee-drawer-mask hidden" aria-hidden="true"></div>
+<script src="super-auth-core.js"></script>
+<script src="tenants.js"></script>
+</body>
+</html>

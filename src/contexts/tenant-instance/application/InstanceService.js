@@ -97,6 +97,7 @@ class InstanceService {
 
     let instance = createInstance({
       ...input,
+      tenantId: input.tenantId || (this.config && this.config.defaultTenantId) || 'tn_default',
       permissionTemplate
     }, this.config);
     instance.requestId = requestId || null;
@@ -223,8 +224,8 @@ class InstanceService {
     }
   }
 
-  async list() {
-    return this.repo.listInstances();
+  async list(tenantId) {
+    return this.repo.listInstances(tenantId || null);
   }
 
   async get(instanceId) {

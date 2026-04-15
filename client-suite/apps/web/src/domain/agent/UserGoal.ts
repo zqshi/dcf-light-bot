@@ -6,7 +6,7 @@
  */
 
 import { DecisionHub, type DecisionTrigger } from './DecisionHub';
-import { MilestoneTrigger, type MilestoneContext } from '../../application/decision-triggers/MilestoneTrigger';
+import { createMilestoneTrigger, type MilestoneContext } from './DecisionTriggerFactories';
 
 export type GoalStatus = 'active' | 'paused' | 'completed' | 'archived' | 'cancelled';
 export type GoalPriority = 'critical' | 'high' | 'normal' | 'low';
@@ -128,13 +128,14 @@ export class UserGoal {
     // 触发决策请求（如果启用）
     if (options?.triggerDecision && DecisionHub.hasHandler('milestone-arrival')) {
       const completedCount = updatedMilestones.filter((m) => m.status === 'completed').length;
+      const completedMilestone = updatedMilestones[completedIdx];
 
       // 构建里程碑上下文
       const milestoneContext: MilestoneContext = {
         goalId: this.id,
         goalTitle: this.title,
         milestoneId: milestoneId,
-        milestoneName: milestone.name,
+        milestoneName: completedMilestone?.name ?? milestoneId,
         milestoneIndex: completedIdx,
         totalMilestones: this.milestones.length,
         completedMilestones: completedCount,
@@ -143,7 +144,7 @@ export class UserGoal {
       };
 
       // 创建决策触发器
-      const trigger: DecisionTrigger = MilestoneTrigger.createFromMilestone(milestoneContext, {
+      const trigger: DecisionTrigger = createMilestoneTrigger(milestoneContext, {
         taskId: this.relatedTaskIds[0],
       });
 

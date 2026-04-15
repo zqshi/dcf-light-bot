@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>审计日志 - 租户运营平台</title>
+<link rel="stylesheet" href="/admin/layout-base.css">
+<link rel="stylesheet" href="/admin/layout-extra.css">
+<link rel="stylesheet" href="/super-admin/super-admin-base.css">
+</head>
+<body>
+<div class="admin-shell">
+  <aside class="sidebar"></aside>
+  <main class="content">
+    <section class="page-head">
+      <div class="page-head-layout">
+        <div>
+          <h1 class="page-title">审计日志</h1>
+          <p class="page-subtitle">跨租户平台级操作审计与行为追溯</p>
+          <div class="stat-strip">
+            <div class="stat-item">
+              <div class="stat-label">日志总数</div>
+              <div id="auditCount" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">审计范围</div>
+              <div class="stat-value" style="font-size:14px;">全平台</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">数据窗口</div>
+              <div class="stat-value" style="font-size:14px;">最近 200 条</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h3>操作记录</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>事件类型</th>
+              <th>操作人</th>
+              <th>详情</th>
+            </tr>
+          </thead>
+          <tbody id="auditBody">
+            <tr><td colspan="4" class="empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="super-auth-core.js"></script>
+<script src="platform-audit.js"></script>
+</body>
+</html>

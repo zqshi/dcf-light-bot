@@ -43,6 +43,8 @@ function generateEmployeeNo() {
 }
 
 function createInstance(input, cfg) {
+  const tenantId = String(input.tenantId || '').trim();
+  if (!tenantId) throw new Error('tenantId is required to create an instance');
   const now = nowIso();
   const profile = input && typeof input.employeeProfile === 'object' ? input.employeeProfile : {};
   const creator = String(input.creator || 'unknown').trim();
@@ -55,7 +57,7 @@ function createInstance(input, cfg) {
     : (cfg && typeof cfg.openclawPermissionTemplate === 'object' ? cfg.openclawPermissionTemplate : null);
   return {
     id: newId('inst'),
-    tenantId: newId('tenant'),
+    tenantId,
     name: String(input.name || '').trim(),
     source: 'matrix',
     matrixRoomId: String(input.matrixRoomId || '').trim() || null,

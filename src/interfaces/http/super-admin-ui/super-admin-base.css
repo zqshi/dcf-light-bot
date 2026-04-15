@@ -1,0 +1,80 @@
+/* ═══════════════════════════════════════════════════
+ * super-admin-base.css
+ * 租户运营平台统一表单控件 & 通用样式补丁
+ * 所有 /super-admin/ 页面引用此文件
+ *
+ * 设计目标：和列表页筛选框视觉统一
+ *   - 高度 44px，padding 充裕
+ *   - 边框清晰可见（#c5ccd8），有明确"容器感"
+ *   - 圆角 10px，和卡片/筛选框一致
+ *   - focus 紫色光晕，disabled 灰底
+ * ═══════════════════════════════════════════════════ */
+
+/* ── Base form controls ── */
+.employee-drawer input[type="text"],
+.employee-drawer input[type="email"],
+.employee-drawer input[type="password"],
+.employee-drawer input[type="number"],
+.employee-drawer input[type="url"],
+.employee-drawer input[type="tel"],
+.employee-drawer select,
+.employee-drawer textarea {
+  width: 100%;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+  line-height: 42px;
+  font-family: inherit;
+  border: 1.5px solid #c5ccd8;
+  border-radius: 10px;
+  background: #fff;
+  color: #1d1d1f;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+/* ── Select with custom chevron ── */
+.employee-drawer select {
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a6577' d='M1.4 1.4a1 1 0 0 1 1.4 0L6 4.6l3.2-3.2a1 1 0 1 1 1.4 1.4L6.7 6.7a1 1 0 0 1-1.4 0L1.4 2.8a1 1 0 0 1 0-1.4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  cursor: pointer;
+}
+
+/* ── Textarea (multi-line, no fixed height) ── */
+.employee-drawer textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 12px 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+/* ── Focus ── */
+.employee-drawer input:focus,
+.employee-drawer select:focus,
+.employee-drawer textarea:focus {
+  outline: none;
+  border-color: var(--brand, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+}
+
+/* ── Disabled ── */
+.employee-drawer input:disabled,
+.employee-drawer select:disabled,
+.employee-drawer textarea:disabled {
+  background: #f4f5f8;
+  border-color: #dde1e8;
+  color: #8b949e;
+  cursor: not-allowed;
+}
+
+/* ── Placeholder ── */
+.employee-drawer input::placeholder,
+.employee-drawer textarea::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}

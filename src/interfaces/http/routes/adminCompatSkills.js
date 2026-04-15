@@ -51,8 +51,8 @@ function registerAdminCompatSkillRoutes(router, context, deps) {
     });
   });
 
-  router.get('/api/admin/skills/employees', async (_req, res) => {
-    const rows = await listEmployees();
+  router.get('/api/admin/skills/employees', async (req, res) => {
+    const rows = await listEmployees(req.tenantId);
     res.json(rows.map((x) => ({ id: x.id, name: x.name, department: x.department, role: x.role })));
   });
 

@@ -11,12 +11,12 @@ function registerAdminCompatEmployeeRoutes(router, context, deps) {
   const getIdentityMappingByMatrixUserId = deps.getIdentityMappingByMatrixUserId;
 
   router.get('/api/admin/employees', async (req, res) => {
-    const rows = await listEmployees();
+    const rows = await listEmployees(req.tenantId);
     res.json(filterInstanceRows(rows, req.query || {}));
   });
 
   router.get('/api/admin/employees/:id', async (req, res) => {
-    const row = await getEmployeeById(String(req.params.id || ''));
+    const row = await getEmployeeById(String(req.params.id || ''), req.tenantId);
     if (!row) {
       res.status(404).json({ error: 'employee not found' });
       return;
@@ -29,7 +29,7 @@ function registerAdminCompatEmployeeRoutes(router, context, deps) {
     const patch = req.body && typeof req.body === 'object' ? req.body : {};
     const prev = employeeProfileOverrides.get(id) || {};
     employeeProfileOverrides.set(id, { ...prev, ...patch, updatedAt: nowIso() });
-    const row = await getEmployeeById(id);
+    const row = await getEmployeeById(id, req.tenantId);
     res.json(row || { success: true });
   });
 
@@ -90,7 +90,7 @@ function registerAdminCompatEmployeeRoutes(router, context, deps) {
       employeeId: id,
       matrixUserId: String(instance.creator || '')
     });
-    const row = await getEmployeeById(id);
+    const row = await getEmployeeById(id, req.tenantId);
     res.json({
       success: true,
       employeeId: id,

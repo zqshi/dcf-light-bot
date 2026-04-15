@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>运营监控 - 租户运营平台</title>
+<link rel="stylesheet" href="/admin/layout-base.css">
+<link rel="stylesheet" href="/admin/layout-extra.css">
+<link rel="stylesheet" href="/super-admin/super-admin-base.css">
+<style>
+.mon-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.mon-res-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mon-res-label {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.mon-res-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1b3162;
+}
+.mon-res-sub {
+  font-size: 11px;
+  color: var(--text-soft);
+}
+/* ── utilization bar ── */
+.util-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.util-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .3s ease;
+}
+.util-bar-fill.ok { background: #22c55e; }
+.util-bar-fill.warn { background: #f59e0b; }
+.util-bar-fill.danger { background: #ef4444; }
+.util-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 80px;
+}
+.util-text {
+  font-size: 11px;
+  color: var(--text-soft);
+  text-align: right;
+}
+/* ── quota config mini ── */
+.quota-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quota-chip {
+  font-size: 11px;
+  background: #f0f4ff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div class="admin-shell">
+  <aside class="sidebar"></aside>
+  <main class="content">
+    <section class="page-head">
+      <div class="page-head-layout">
+        <div>
+          <h1 class="page-title">运营监控</h1>
+          <p class="page-subtitle">跨租户资源分配、配额利用率与实例健康状态</p>
+          <div class="stat-strip" id="statsStrip">
+            <div class="stat-item">
+              <div class="stat-label">租户总数</div>
+              <div id="statTenants" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">实例总数</div>
+              <div id="statInstances" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">运行中</div>
+              <div id="statRunning" class="stat-value">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">平台健康</div>
+              <div id="statHealth" class="stat-value">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h3>平台资源总览</h3></div>
+      <div id="resourceOverview" class="mon-resource-grid">
+        <div class="mon-res-card"><span class="mon-res-label">加载中...</span><span class="mon-res-value">-</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h3>租户配额利用率</h3></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>租户</th>
+              <th>套餐</th>
+              <th>实例</th>
+              <th>并发</th>
+              <th>CPU 分配</th>
+              <th>内存分配</th>
+              <th>AI 配额</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody id="quotaBody">
+            <tr><td colspan="8" class="empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h3>租户健康状态</h3></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>租户</th>
+              <th>实例总数</th>
+              <th>运行中</th>
+              <th>异常</th>
+              <th>健康度</th>
+            </tr>
+          </thead>
+          <tbody id="healthBody">
+            <tr><td colspan="5" class="empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="super-auth-core.js"></script>
+<script src="platform-monitoring.js"></script>
+</body>
+</html>

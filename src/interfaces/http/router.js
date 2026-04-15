@@ -16,7 +16,12 @@ const { buildUploadRouter } = require('./routes/uploads');
 const { buildWeKnoraProxyRouter } = require('./routes/weknora');
 const { buildAdminCompatRouter } = require('./routes/adminCompat');
 const { buildAdminAnalyticsRouter } = require('./routes/adminAnalytics');
-const { buildControlAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
+const { buildPlatformAuthRouter } = require('./routes/platformAuth');
+const { buildPlatformTenantRouter } = require('./routes/platformTenants');
+const { buildPlatformMonitoringRouter } = require('./routes/platformMonitoring');
+const { buildPlatformUsersRouter } = require('./routes/platformUsers');
+const { buildPlatformConfigRouter } = require('./routes/platformConfig');
+const { buildControlAuthMiddleware, buildPlatformAuthMiddleware, buildPermissionMiddleware } = require('./middleware/controlAuth');
 const { buildRequestContextMiddleware } = require('./middleware/requestContext');
 
 function buildApiRouter(context) {
@@ -28,6 +33,18 @@ function buildApiRouter(context) {
   router.use(buildAdminAnalyticsRouter(context));
   router.use('/api/integrations/matrix', buildMatrixRouter(context.matrixBot, context.authService));
   router.use('/api/control/auth', buildAuthRouter(context.authService, context.auditService));
+
+  // ── Platform API (Super Admin Console) ──
+  router.use('/api/platform/auth', buildPlatformAuthRouter(context.authService, context.auditService));
+  const platformAuth = buildPlatformAuthMiddleware(context.authService);
+  const platformPermission = (permission) => buildPermissionMiddleware(context.authService, permission);
+  router.use('/api/platform', platformAuth);
+  if (context.tenantService) {
+    router.use('/api/platform/tenants', buildPlatformTenantRouter(context.tenantService, platformPermission));
+    router.use('/api/platform/monitoring', buildPlatformMonitoringRouter(context, platformPermission));
+  }
+  router.use('/api/platform/users', buildPlatformUsersRouter(context.config, context.repo, platformPermission));
+  router.use('/api/platform/config', buildPlatformConfigRouter(context.config, context.repo, platformPermission));
 
   const controlAuth = buildControlAuthMiddleware(context.authService);
   const requirePermission = (permission) => buildPermissionMiddleware(context.authService, permission);

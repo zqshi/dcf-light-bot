@@ -40,6 +40,7 @@ npm start
   - Matrix Web Client (Element): `http://127.0.0.1:8081`
   - OpenClaw Gateway UI: `http://127.0.0.1:18789`
   - DCF Admin Console: `http://127.0.0.1:3010/admin/login.html`
+  - DCF Tenant Operations Platform: `http://127.0.0.1:3010/super-admin/login.html`
   - DCF App Status: `http://127.0.0.1:3010/status`
 
 ## Local All-In-One Ops
@@ -82,13 +83,17 @@ npm start
   - batch failure detail panels (instance action / asset review / asset binding)
   - audit trace export (JSON / NDJSON) from instance trace view
 
-## Client Experience Spec
-- PRD: [PRD.md](docs/specs/client-experience/PRD.md)
-- IA: [IA.md](docs/specs/client-experience/IA.md)
-- API Contract: [API-CONTRACT.md](docs/specs/client-experience/API-CONTRACT.md)
-- Acceptance: [ACCEPTANCE.md](docs/specs/client-experience/ACCEPTANCE.md)
-- Tasks: [TASKS.md](docs/specs/client-experience/TASKS.md)
-- Matrix Desktop/Mobile Runbook: [matrix-clients.md](docs/runbooks/matrix-clients.md)
+## Tenant Operations Platform (Super Admin)
+- URL: `http://127.0.0.1:3010/super-admin/login.html`
+- Platform-level control console for operators, independent from tenant admin console.
+- Features:
+  - Tenant lifecycle management (create/edit/suspend/activate/archive)
+  - Production-grade tenant creation: plan selection, 14-field quota model (capacity, instance resources, AI usage, data policy), feature toggles, model access control, initial admin
+  - Platform user CRUD (dynamic users + env users merge)
+  - Cross-tenant resource monitoring (CPU/memory allocation, quota utilization with progress bars, health status)
+  - Editable runtime configuration (audit policy, SLA, resource defaults)
+  - Cross-tenant audit log viewer
+- Docs: [Architecture](docs/super-admin/architecture.md) | [PRD](docs/super-admin/prd.md) | [Milestones](docs/super-admin/milestones.md)
 
 ## Persistence Backend
 - `PERSISTENCE_BACKEND=sqlite` (default): local SQLite database.
@@ -197,9 +202,9 @@ npm run verify:openclaw-lock
 - Helm chart static check: `npm run check:helm-chart`
 - Production helm guardrail check: `npm run check:prod-config`
 - Release preflight matrix check: `npm run check:release-preflight`
-- Prometheus alert template: [prometheus-alert-rules.yaml](docs/monitoring/prometheus-alert-rules.yaml)
-- Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](docs/monitoring/grafana-dashboard-dcf-light-bot.json)
-- Monitoring guide: [README.md](docs/monitoring/README.md)
+- Prometheus alert template: [prometheus-alert-rules.yaml](docs/shared/monitoring/prometheus-alert-rules.yaml)
+- Grafana dashboard template: [grafana-dashboard-dcf-light-bot.json](docs/shared/monitoring/grafana-dashboard-dcf-light-bot.json)
+- Monitoring guide: [README.md](docs/shared/monitoring/README.md)
 - Local observability stack:
   - `npm run observability:up`
   - `npm run observability:check`

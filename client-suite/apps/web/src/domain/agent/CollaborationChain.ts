@@ -6,7 +6,7 @@
  */
 
 import { DecisionHub, type DecisionTrigger } from './DecisionHub';
-import { CollaborationTrigger, type CollaborationNodeContext } from '../../application/decision-triggers/CollaborationTrigger';
+import { createCollaborationTrigger, type CollaborationNodeContext } from './DecisionTriggerFactories';
 
 export type HandoffStatus = 'pending' | 'active' | 'completed' | 'failed';
 
@@ -141,7 +141,7 @@ export class CollaborationChain {
       };
 
       // 创建决策触发器
-      const trigger: DecisionTrigger = CollaborationTrigger.createFromCollaborationNode(
+      const trigger: DecisionTrigger = createCollaborationTrigger(
         nodeContext,
         {
           taskId: this.getRelatedTaskId(nodeId),
