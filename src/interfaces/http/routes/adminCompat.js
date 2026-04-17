@@ -903,7 +903,7 @@ function buildAdminCompatRouter(context) {
   router.use('/api/admin', requireSession);
   router.use('/api/admin', (req, res, next) => {
     const path = String(req.path || '');
-    const allowed = /^\/(overview|instances|employees|agents|matrix|skills|assets|runtime|notifications|logs|tools|auth|ai-gateway|tasks|oss-(findings|cases)|push-channels|bootstrap-status)(\/|$)/.test(path);
+    const allowed = /^\/(overview|instances|employees|agents|matrix|skills|assets|runtime|notifications|logs|tools|auth|ai-gateway|tasks|oss-(findings|cases)|push-channels|bootstrap-status|analytics)(\/|$)/.test(path);
     if (!allowed) {
       res.status(404).json({ error: 'endpoint disabled in pure admin mode' });
       return;
@@ -989,8 +989,9 @@ function buildAdminCompatRouter(context) {
     persistSharedAgents
   });
   // ── Fallback ──
-  router.use('/api/admin', (req, res) => {
+  router.use('/api/admin', (req, res, next) => {
     const compatPath = String(req.path || '').trim();
+    if (compatPath.startsWith('/analytics/')) return next('router');
     if (compatPath === '/auth/identity-mappings' || compatPath.startsWith('/auth/identity-mappings/')) {
       res.status(410).json({
         error: 'manual identity mapping maintenance is disabled',

@@ -272,7 +272,7 @@
 
   function canAccess(user, permission) {
     const perms = user && user.permissions ? user.permissions : [];
-    if (perms.includes('*') || perms.includes(permission)) return true;
+    if (perms.includes('*') || perms.includes('platform:*') || perms.includes(permission)) return true;
     const fallback = TOOL_PERMISSION_COMPAT[String(permission || '')] || [];
     if (fallback.some((item) => perms.includes(item))) return true;
     const actionFallback = ACTION_PERMISSION_COMPAT[String(permission || '')] || [];
@@ -612,6 +612,7 @@
     const required = getRequiredPermission();
     const allowed = !required || canAccess(session.user, required);
     if (!allowed) {
+      document.body.classList.add('admin-entered');
       document.body.innerHTML = '<div style="padding:24px;font-family:IBM Plex Sans,PingFang SC,sans-serif;"><h2>无权限访问</h2><p>当前账号没有该页面权限，请联系管理员分配角色。</p><a href="/admin/openclaw-statistics.html">返回后台首页</a></div>';
       throw new Error('无权限访问');
     }
