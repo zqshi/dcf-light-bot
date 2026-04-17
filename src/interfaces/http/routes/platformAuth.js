@@ -34,14 +34,17 @@ function buildPlatformAuthRouter(authService, auditService) {
 
   router.get('/me', async (req, res, next) => {
     try {
-      // Try JWT first
+      // Try JWT first, fall through to cookie if JWT invalid
       const authHeader = String(req.headers.authorization || '').trim();
       if (authHeader.startsWith('Bearer ')) {
-        const principal = authService.authenticateControlRequest(authHeader);
-        if (principal.scope !== 'platform') {
-          return res.json({ authenticated: false });
+        try {
+          const principal = authService.authenticateControlRequest(authHeader);
+          if (principal.scope === 'platform') {
+            return res.json({ authenticated: true, user: principal });
+          }
+        } catch {
+          // JWT expired or invalid — fall through to cookie check
         }
-        return res.json({ authenticated: true, user: principal });
       }
       // Fallback to session cookie
       const sid = parseCookie(req.headers.cookie, 'platform_session');

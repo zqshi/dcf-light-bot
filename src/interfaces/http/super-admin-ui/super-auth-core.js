@@ -49,12 +49,14 @@
       });
       const data = await res.json();
       if (!data.authenticated) {
+        sessionStorage.removeItem('platform_token');
         window.location.href = '/super-admin/login.html';
         return null;
       }
       _currentUser = data.user;
       return data.user;
     } catch {
+      sessionStorage.removeItem('platform_token');
       window.location.href = '/super-admin/login.html';
       return null;
     }
